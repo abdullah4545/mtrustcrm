@@ -388,6 +388,8 @@ Route::middleware('auth')->group(function () {
         Route::get('manage/datatable', [ProductController::class,'datatable'])->name('products.datatable');
 
         Route::post('manage', [ProductController::class,'store'])->name('products.store');
+        Route::get('manage/{id}/catalogue/view', [ProductController::class,'viewCatalogue'])->name('products.catalogue.view');
+        Route::get('manage/{id}/catalogue/download', [ProductController::class,'downloadCatalogue'])->name('products.catalogue.download');
         Route::get('manage/{id}', [ProductController::class,'show'])->name('products.show');
 
         Route::post('manage/{id}', [ProductController::class,'update'])->name('products.update'); // POST + _method PUT

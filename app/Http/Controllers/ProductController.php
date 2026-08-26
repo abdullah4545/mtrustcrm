@@ -16,7 +16,7 @@ class ProductController extends Controller
         $this->middleware('auth');
  
         $this->middleware('permission:product.view|product.manage')->only([
-            'index','datatable','show','subcategoriesByCategory'
+            'index','datatable','show','subcategoriesByCategory','viewCatalogue','downloadCatalogue'
         ]);
  
         $this->middleware('permission:product.create|product.manage')->only(['store']);
@@ -61,6 +61,12 @@ class ProductController extends Controller
                 if(!$row->image_url) return '-';
                 return '<img src="'.asset($row->image_url).'" style="height:40px;border-radius:8px">';
             })
+            ->addColumn('catalogue', function($row){
+                if(!$row->catalogue_file) return '<span class="text-muted">-</span>';
+                $view = route('products.catalogue.view', $row->id);
+                $download = route('products.catalogue.download', $row->id);
+                return '<div class="d-flex gap-1"><a class="btn btn-sm btn-outline-primary" target="_blank" href="'.$view.'" title="View catalogue"><i class="feather-eye"></i></a><a class="btn btn-sm btn-outline-success" href="'.$download.'" title="Download catalogue"><i class="feather-download"></i></a></div>';
+            })
             ->addColumn('cat', fn($row)=> $row->category?->name ?? '-')
             ->addColumn('subcat', fn($row)=> $row->subcategory?->name ?? '-')
             ->addColumn('brand', fn($row)=> $row->brand?->name ?? '-')
@@ -75,7 +81,7 @@ class ProductController extends Controller
                 if (auth()->user()->can('product.delete')) $html .= '<button class="btn btn-sm btn-danger btn-delete" data-id="'.$row->id.'"><i class="feather-trash-2"></i></button>';
                 return $html.'</div>';
             })
-            ->rawColumns(['image','status','action'])
+            ->rawColumns(['image','catalogue','status','action'])
             ->make(true);
     }
 
@@ -101,6 +107,7 @@ class ProductController extends Controller
 
             'status' => 'required|in:active,inactive',
             'image' => 'nullable|image|max:2048',
+            'catalogue' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
         ]);
 
         $p = new Product();
@@ -126,10 +133,19 @@ class ProductController extends Controller
         // ✅ image store (your pattern)
         if ($request->hasFile('image')) {
             $image = $request->file('image');
-            $name = time() . '.' . $image->getClientOriginalExtension();
+            $name = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
             $path = 'public/images/products/';
-            $image->move($path, $name);
+            if (!is_dir(public_path('images/products'))) mkdir(public_path('images/products'), 0775, true);
+            $image->move(public_path('images/products'), $name);
             $p->image_url = $path . $name;
+        }
+
+        if ($request->hasFile('catalogue')) {
+            $file = $request->file('catalogue');
+            $name = time() . '_' . uniqid() . '.' . strtolower($file->getClientOriginalExtension());
+            if (!is_dir(public_path('catalogues/products'))) mkdir(public_path('catalogues/products'), 0775, true);
+            $file->move(public_path('catalogues/products'), $name);
+            $p->catalogue_file = 'public/catalogues/products/' . $name;
         }
 
         $p->save();
@@ -167,6 +183,7 @@ class ProductController extends Controller
 
             'status' => 'required|in:active,inactive',
             'image' => 'nullable|image|max:2048',
+            'catalogue' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
         ]);
 
         $p->fill($request->only([
@@ -178,15 +195,56 @@ class ProductController extends Controller
         // ✅ image store (your pattern)
         if ($request->hasFile('image')) {
             $image = $request->file('image');
-            $name = time() . '.' . $image->getClientOriginalExtension();
+            $name = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
             $path = 'public/images/products/';
-            $image->move($path, $name);
+            if (!is_dir(public_path('images/products'))) mkdir(public_path('images/products'), 0775, true);
+            $image->move(public_path('images/products'), $name);
             $p->image_url = $path . $name;
+        }
+
+        if ($request->hasFile('catalogue')) {
+            if ($p->catalogue_file) {
+                $old = public_path(preg_replace('#^public/#', '', $p->catalogue_file));
+                if (is_file($old)) @unlink($old);
+            }
+            $file = $request->file('catalogue');
+            $name = time() . '_' . uniqid() . '.' . strtolower($file->getClientOriginalExtension());
+            if (!is_dir(public_path('catalogues/products'))) mkdir(public_path('catalogues/products'), 0775, true);
+            $file->move(public_path('catalogues/products'), $name);
+            $p->catalogue_file = 'public/catalogues/products/' . $name;
         }
 
         $p->save();
 
         return response()->json(['status'=>true,'message'=>'Product updated successfully']);
+    }
+
+    private function catalogueAbsolutePath(Product $product): string
+    {
+        abort_unless($product->catalogue_file, 404, 'Catalogue not found.');
+        $relative = preg_replace('#^/?public/#', '', str_replace('\\', '/', $product->catalogue_file));
+        $absolute = public_path(ltrim($relative, '/'));
+        abort_unless(is_file($absolute) && is_readable($absolute), 404, 'Catalogue file not found.');
+        return $absolute;
+    }
+
+    public function viewCatalogue($id)
+    {
+        $product = Product::findOrFail($id);
+        $path = $this->catalogueAbsolutePath($product);
+        return response()->file($path, [
+            'Content-Type' => mime_content_type($path) ?: 'application/octet-stream',
+            'Content-Disposition' => 'inline; filename="'.basename($path).'"',
+        ]);
+    }
+
+    public function downloadCatalogue($id)
+    {
+        $product = Product::findOrFail($id);
+        $path = $this->catalogueAbsolutePath($product);
+        $ext = pathinfo($path, PATHINFO_EXTENSION);
+        $safeName = preg_replace('/[^A-Za-z0-9_-]+/', '-', $product->name) ?: 'product-catalogue';
+        return response()->download($path, $safeName.'.'.$ext);
     }
 
     public function destroy($id)

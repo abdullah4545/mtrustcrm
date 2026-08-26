@@ -20,9 +20,11 @@
 
         <div class="page-header-right ms-auto">
             <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                @can('branch.manage')
                 <button type="button" class="btn btn-primary" id="btnOpenCreate">
                     <i class="feather-plus me-2"></i> Add Branch
                 </button>
+                @endcan
             </div>
         </div>
     </div>

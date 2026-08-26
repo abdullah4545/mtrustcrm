@@ -76,6 +76,7 @@
                         <tr>
                             <th>#</th>
                             <th>Image</th>
+                            <th>Catalogue</th>
                             <th>SKU</th>
                             <th>Name</th>
                             <th>Category</th>
@@ -204,9 +205,16 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label">Image</label>
+                                <label class="form-label">Product Image</label>
                                 <input type="file" id="image" class="form-control" accept="image/*">
                                 <div id="imgPreview" class="mt-2"></div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Product Catalogue (Image or PDF)</label>
+                                <input type="file" id="catalogue" class="form-control" accept="image/*,application/pdf">
+                                <small class="text-muted">JPG, PNG, WEBP or PDF - max 10 MB.</small>
+                                <div id="cataloguePreview" class="mt-2"></div>
                             </div>
 
                         </div>
@@ -265,6 +273,7 @@ $(document).ready(function(){
         columns:[
             {data:'DT_RowIndex', orderable:false, searchable:false},
             {data:'image', orderable:false, searchable:false},
+            {data:'catalogue', orderable:false, searchable:false},
             {data:'sku', name:'sku'},
             {data:'name', name:'name'},
             {data:'cat', orderable:false, searchable:false},
@@ -349,6 +358,7 @@ $(document).ready(function(){
         fd.append('status', $('#status').val());
 
         if($('#image')[0].files[0]) fd.append('image', $('#image')[0].files[0]);
+        if($('#catalogue')[0].files[0]) fd.append('catalogue', $('#catalogue')[0].files[0]);
 
         if(!id){
             $.ajax({
@@ -419,6 +429,11 @@ $(document).ready(function(){
             if(d.image_url){
                 $('#imgPreview').html(`<img src="{{ asset('') }}${d.image_url}" style="height:60px;border-radius:8px;">`);
             }
+            if(d.catalogue_file){
+                const viewUrl = `{{ url('products/manage') }}/${d.id}/catalogue/view`;
+                const downloadUrl = `{{ url('products/manage') }}/${d.id}/catalogue/download`;
+                $('#cataloguePreview').html(`<a href="${viewUrl}" target="_blank" class="btn btn-sm btn-outline-primary me-1"><i class="feather-eye"></i> View</a><a href="${downloadUrl}" class="btn btn-sm btn-outline-success"><i class="feather-download"></i> Download</a>`);
+            }
 
             modal.show();
         });
@@ -450,7 +465,7 @@ function clearForm(){
     $('#product_id').val('');
     document.getElementById('productForm').reset();
     $('#subcategory_id').html('<option value="">Select</option>');
-    $('#imgPreview').html('');
+    $('#imgPreview,#cataloguePreview').html('');
     $('#status').val('active');
 }
 

@@ -279,6 +279,7 @@ function addRow(){
             const d = json.data;
             tr.querySelector('.item_name').value = d.name || '';
             tr.querySelector('.unit_price').value = d.sale_price || 0;
+            tr.querySelector('.item_desc').value = d.description || d.configuration_description || '';
             tr.querySelector('.tax_rate').value = document.getElementById('tax_enabled')?.checked ? GLOBAL_TAX_RATE : 0;
             calcTotals();
         }

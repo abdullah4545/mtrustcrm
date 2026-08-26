@@ -13,7 +13,7 @@ class BranchController extends Controller
     public function __construct()
     {
         // ✅ List / view
-        $this->middleware('permission:branch.view_all')
+        $this->middleware('permission:branch.view_all|branch.manage')
             ->only(['index','datatable']);
 
         // ✅ Create/Update/Delete
@@ -57,6 +57,7 @@ class BranchController extends Controller
                     : '<span class="badge bg-danger">Inactive</span>';
             })
             ->addColumn('action', function($row){
+                if (!auth()->user()->can('branch.manage')) return '<span class="text-muted">View only</span>';
                 return '
                     <button class="btn btn-sm btn-primary btn-edit mb-2 mr-3" data-id="'.$row->id.'"><i class="feather-edit"></i></button>
                     <button class="btn btn-sm btn-danger btn-delete mb-2" data-id="'.$row->id.'"><i class="feather-trash-2"></i></button>

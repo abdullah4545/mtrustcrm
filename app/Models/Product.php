@@ -13,7 +13,7 @@ class Product extends Model
         'category_id','subcategory_id','brand_id','sku','name','description',
         'sale_price','purchase_price','vat_rate','tax_rate',
         'warranty_months','warranty_terms_details','configuration_description',
-        'image_url','status'
+        'image_url','catalogue_file','status'
     ];
 
     public function category(){ return $this->belongsTo(ProductCategory::class,'category_id'); }

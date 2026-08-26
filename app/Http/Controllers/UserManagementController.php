@@ -105,8 +105,8 @@ class UserManagementController extends Controller
     {
         $rules = [
             'name'=>'required|string|max:150',
-            'email'=>['required','email','max:190', Rule::unique('users','email')->ignore($user?->id)],
-            'phone'=>'nullable|string|max:30',
+            'email'=>['nullable','email','max:190', Rule::unique('users','email')->ignore($user?->id)],
+            'phone'=>['required','string','max:30', Rule::unique('users','phone')->ignore($user?->id)],
             'branch_id'=>'required|exists:branches,id',
             'role'=>'required|exists:roles,name',
             'present_address'=>'nullable|string|max:255',

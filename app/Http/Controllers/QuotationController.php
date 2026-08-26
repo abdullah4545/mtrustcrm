@@ -296,7 +296,7 @@ class QuotationController extends Controller
 
     public function edit($id)
     {
-        $q = Quotation::with('items')->findOrFail($id);
+        $q = Quotation::with('items.product')->findOrFail($id);
 
         $this->ensureQuotationAccess($q);
 
@@ -307,7 +307,7 @@ class QuotationController extends Controller
 
     public function update(Request $request, $id)
     {
-        $q = Quotation::with('items')->findOrFail($id);
+        $q = Quotation::with('items.product')->findOrFail($id);
         $this->ensureQuotationAccess($q);
 
         // same validation as store (short)
@@ -400,7 +400,7 @@ class QuotationController extends Controller
 
     public function show($id)
     {
-        $q = Quotation::with('items','statusStage')->findOrFail($id);
+        $q = Quotation::with('items.product','statusStage')->findOrFail($id);
         $this->ensureQuotationAccess($q);
 
         return view('backend.content.quotations.show', compact('q'));
@@ -418,7 +418,7 @@ class QuotationController extends Controller
     // PDF download
     public function pdf($id)
     {
-        $q = Quotation::with('items','statusStage')->findOrFail($id);
+        $q = Quotation::with('items.product','statusStage')->findOrFail($id);
         $this->ensureQuotationAccess($q);
 
         $business = Business::query()->first();
@@ -429,7 +429,7 @@ class QuotationController extends Controller
     // Mail (simple)
     public function sendMail(Request $request, $id)
     {
-        $q = Quotation::with('items')->findOrFail($id);
+        $q = Quotation::with('items.product')->findOrFail($id);
         $this->ensureQuotationAccess($q);
 
         $request->validate([
@@ -473,6 +473,9 @@ class QuotationController extends Controller
             'sale_price'=>$p->sale_price,
             'vat_rate'=>$p->vat_rate ?? 0,
             'tax_rate'=>$p->tax_rate ?? 0,
+            'description'=>$p->description,
+            'configuration_description'=>$p->configuration_description,
+            'image_url'=>$p->image_url,
         ]]);
     }
 }

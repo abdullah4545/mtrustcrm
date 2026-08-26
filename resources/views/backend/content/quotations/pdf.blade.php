@@ -1,21 +1,130 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><title>{{ $q->quotation_no }}</title>
+<html>
+<head>
+<meta charset="utf-8">
+<title>{{ $q->quotation_no }}</title>
 <style>
-@page{size:A4;margin:104px 38px 118px 38px}*{font-family:DejaVu Sans,sans-serif;box-sizing:border-box}body{font-size:10.5px;color:#21384d;margin:0}.doc-head{width:100%;margin:0 0 14px;border-bottom:2px solid #0b73c9;padding-bottom:9px}.doc-title{font-size:20px;font-weight:800;letter-spacing:1px;color:#17324d}.doc-no{font-size:11px;color:#ef1b2d;font-weight:700}.meta-table{width:100%;border-collapse:collapse;margin:0 0 13px}.meta-table td{border:0;padding:2px 0;vertical-align:top}.right{text-align:right}.muted{color:#6e8091}.client-box{border:1px solid #dfe9f2;background:rgba(255,255,255,.94);padding:10px 12px;margin-bottom:14px}.client-title{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#718096;font-weight:700;margin-bottom:5px}.client-name{font-size:12px;font-weight:800;color:#17324d}.items{width:100%;border-collapse:collapse;margin-bottom:12px}.items thead{display:table-header-group}.items tr{page-break-inside:avoid}.items th{background:#0b73c9;color:#fff;font-weight:700;padding:7px 6px;border:1px solid #0b73c9}.items td{padding:7px 6px;border:1px solid #dfe7ef;vertical-align:top}.items tbody tr:nth-child(even){background:#f8fbfe}.amount{text-align:right;white-space:nowrap}.center{text-align:center}.summary{width:42%;margin-left:auto;border-collapse:collapse}.summary td{border:0;padding:3px 5px}.summary .label{color:#66798c}.summary .grand td{border-top:1px solid #cfdbe6;padding-top:7px;font-size:12px;font-weight:800;color:#17324d}.summary .grand .amount{color:#ef1b2d}.section{margin-top:12px;border-top:1px solid #dfe7ef;padding-top:8px}.section-title{font-size:9px;text-transform:uppercase;letter-spacing:.08em;font-weight:800;color:#0b73c9;margin-bottom:4px}.signature{margin-top:30px;width:100%}.signature td{border:0;width:50%;padding-top:25px}.sig-line{border-top:1px solid #8595a4;width:170px;padding-top:5px;font-size:9px;color:#657789}.status{display:inline-block;padding:3px 7px;border:1px solid #d9e5ef;border-radius:99px;background:#fff;font-size:9px}.page-break{page-break-before:always}
-</style></head><body>
+@page{size:A4;margin:102px 34px 105px 34px}
+*{font-family:DejaVu Sans,sans-serif;box-sizing:border-box}
+body{font-size:10.5px;color:#111;margin:0;line-height:1.45}
+.page-break{page-break-before:always}.no-break{page-break-inside:avoid}.right{text-align:right}.center{text-align:center}.muted{color:#555}
+.meta{width:100%;border-collapse:collapse;margin-bottom:24px}.meta td{border:0;padding:0;vertical-align:top}
+.to-box{margin:28px 0 54px}.subject{font-size:11.5px;font-weight:700;margin:0 0 38px}.letter{font-size:11px;text-align:justify;line-height:1.65}.regards{margin-top:34px;font-weight:700;line-height:2.2}
+.fin-head{width:100%;border-collapse:collapse;margin:10px 0 8px}.fin-head td{background:#d9d9d9;border:1px solid #777;text-align:center;font-weight:700;padding:5px}.fin-title{font-size:13px}
+.items{width:100%;border-collapse:collapse;table-layout:fixed}.items thead{display:table-header-group}.items tr{page-break-inside:avoid}.items th,.items td{border:1px solid #555;padding:5px;vertical-align:top}.items th{text-align:center;font-weight:700}.items .sn{width:5%}.items .desc{width:51%}.items .model{width:10%}.items .qty{width:8%}.items .unitp{width:13%}.items .totalp{width:13%}.product-name{font-size:11px;font-weight:700;margin-bottom:3px}.product-desc{font-size:9.4px;line-height:1.42;text-align:justify}.product-image{display:block;max-width:150px;max-height:145px;margin:8px auto;object-fit:contain}.spec{font-size:9.2px;line-height:1.4;margin-top:5px}.money{text-align:right;font-weight:700;white-space:nowrap}.summary{width:100%;border-collapse:collapse;margin-top:-1px}.summary td{border:1px solid #555;padding:4px 6px}.summary .label{text-align:right;font-weight:700}.summary .amount{width:20%;text-align:right;font-weight:700}.terms{margin-top:32px}.terms-title{text-align:center;text-decoration:underline;font-weight:700;font-size:14px;margin-bottom:18px}.terms-body{font-size:10.5px;line-height:1.7}.terms-body p{margin:0 0 7px}.terms-body ul{margin:0;padding-left:22px}.final-note{margin-top:18px}.small{font-size:9px}
+</style>
+</head>
+<body>
 @php
-$money=fn($v)=>number_format((float)$v,2);
+    $money = fn($v) => number_format((float)$v, 2);
+    $businessName = $business?->business_name ?: 'Medi Trust Solution';
+    $subject = trim((string)($q->description ?: 'Supply of Medical Equipment'));
+    $imgData = static function (?string $storedPath): ?string {
+        if(!$storedPath || preg_match('#^https?://#i',$storedPath)) return null;
+        $relative = preg_replace('#^/?public/#','',str_replace('\\','/',$storedPath));
+        $absolute = public_path(ltrim($relative,'/'));
+        if(!is_file($absolute) || !is_readable($absolute)) return null;
+        $mime = mime_content_type($absolute) ?: 'image/jpeg';
+        return 'data:'.$mime.';base64,'.base64_encode(file_get_contents($absolute));
+    };
 @endphp
 @include('backend.partials.pdf-company-brand', ['business' => $business ?? null])
-<table class="doc-head"><tr><td><div class="doc-title">QUOTATION</div><div class="doc-no">{{ $q->quotation_no }}</div></td><td class="right">@if($q->statusStage)<span class="status">{{ $q->statusStage->name }}</span>@endif</td></tr></table>
-<table class="meta-table"><tr><td><b>Issue Date:</b> {{ optional($q->issue_date)->format('d M Y') }}<br><b>Valid Until:</b> {{ optional($q->valid_until)->format('d M Y') ?: '-' }}</td><td class="right"><b>Currency:</b> {{ $q->currency }}<br><b>Prepared By:</b> {{ $q->preparedBy?->name ?? '-' }}</td></tr></table>
-<div class="client-box"><div class="client-title">Quotation To</div><div class="client-name">{{ $q->client_name ?: 'N/A' }}</div>@if($q->client_phone)<div>{{ $q->client_phone }}</div>@endif @if($q->client_email)<div>{{ $q->client_email }}</div>@endif @if($q->client_address)<div class="muted">{{ $q->client_address }}</div>@endif</div>
-<table class="items"><thead><tr><th style="width:34px">#</th><th>Item Description</th><th style="width:60px" class="center">Qty</th><th style="width:86px" class="amount">Unit Price</th><th style="width:58px" class="amount">Tax</th><th style="width:96px" class="amount">Amount</th></tr></thead><tbody>
-@foreach($q->items as $i=>$it)<tr><td class="center">{{ $i+1 }}</td><td><b>{{ $it->item_name }}</b>@if($it->description)<div class="muted">{{ $it->description }}</div>@endif</td><td class="center">{{ $it->qty }} {{ $it->unit }}</td><td class="amount">{{ $money($it->unit_price) }}</td><td class="amount">{{ $money($it->tax_rate) }}%</td><td class="amount"><b>{{ $money($it->line_total) }}</b></td></tr>@endforeach
-</tbody></table>
-<table class="summary"><tr><td class="label">Sub Total</td><td class="amount">{{ $money($q->sub_total) }}</td></tr><tr><td class="label">Discount</td><td class="amount">{{ $money($q->discount_amount) }}</td></tr><tr><td class="label">VAT / Tax</td><td class="amount">{{ $money($q->tax_amount) }}</td></tr><tr class="grand"><td>Grand Total</td><td class="amount">{{ $money($q->grand_total) }} {{ $q->currency }}</td></tr></table>
-@if($q->description)<div class="section"><div class="section-title">Description</div>{!! nl2br(e($q->description)) !!}</div>@endif
-@if($q->note_for_recipient)<div class="section"><div class="section-title">Note</div>{!! nl2br(e($q->note_for_recipient)) !!}</div>@endif
-@if($q->terms)<div class="section"><div class="section-title">Terms & Conditions</div>{!! nl2br(e($q->terms)) !!}</div>@endif
-<table class="signature"><tr><td><div class="sig-line">Prepared / Authorized By</div></td><td class="right"><div class="sig-line" style="margin-left:auto">Customer Acceptance</div></td></tr></table>
-</body></html>
+
+{{-- PAGE 1: Cover letter pattern from the supplied quotation --}}
+<table class="meta">
+<tr>
+<td><b>Date:</b> {{ optional($q->issue_date)->format('d F Y') }}<br><b>Quotation No.</b> {{ $q->quotation_no }}</td>
+</tr>
+</table>
+
+<div class="to-box">
+    <div>To</div>
+    <b>{{ $q->client_name ?: 'Concerned Authority' }}</b>
+    @if($q->client_address)<div>{{ $q->client_address }}</div>@endif
+    @if($q->client_phone)<div>{{ $q->client_phone }}</div>@endif
+</div>
+
+<div class="subject">Subject: Quotation of {{ $subject }}</div>
+<div class="letter">
+    <p>Dear Sir,</p>
+    <p>Thank you for taking an interest in our products and services. We are pleased to submit our quotation for your kind consideration. The detailed financial quotation, product description, product image, prices and applicable terms &amp; conditions are enclosed on the following pages.</p>
+    @if($q->note_for_recipient)<p>{!! nl2br(e($q->note_for_recipient)) !!}</p>@endif
+    <p>We will consider ourselves fortunate if we are successful in establishing a valued business relationship with your organization.</p>
+</div>
+<div class="regards">Best Regards<br><br>{{ $businessName }}.</div>
+
+<div class="page-break"></div>
+
+{{-- PAGE 2+: Financial quotation with product image + description --}}
+<table class="meta">
+<tr>
+<td><b>Date:</b> {{ optional($q->issue_date)->format('d F Y') }}<br><b>Quotation No.</b> {{ $q->quotation_no }}</td>
+<td class="right">@if($q->valid_until)<b>Valid Until:</b> {{ optional($q->valid_until)->format('d F Y') }}@endif</td>
+</tr>
+</table>
+
+<table class="fin-head"><tr><td>
+    Financial Quotation No: {{ $q->quotation_no }} - Dated {{ optional($q->issue_date)->format('d.m.Y') }}<br>
+    <span class="fin-title">Subject: {{ $subject }}</span>
+</td></tr></table>
+
+<table class="items">
+<thead><tr>
+<th class="sn">SN</th><th class="desc">Description</th><th class="model">Model</th><th class="qty">Qty.</th><th class="unitp">Unit Price<br><span class="small">{{ $q->tax_enabled ? 'Before Tax' : 'Excluding VAT & TAX' }}</span></th><th class="totalp">Total Price<br><span class="small">{{ $q->tax_enabled ? 'Before Tax' : 'Excluding VAT & TAX' }}</span></th>
+</tr></thead>
+<tbody>
+@foreach($q->items as $i => $it)
+@php
+    $product = $it->product;
+    $productImage = $imgData($product?->image_url);
+    $model = $product?->sku ?: '-';
+    $desc = $it->description ?: $product?->description ?: $product?->configuration_description;
+@endphp
+<tr>
+<td class="center">{{ $i+1 }}.</td>
+<td>
+    <div class="product-name">{{ $it->item_name }}</div>
+    @if($desc)<div class="product-desc">{!! nl2br(e($desc)) !!}</div>@endif
+    @if($productImage)<img class="product-image" src="{{ $productImage }}" alt="">@endif
+    @if($product)
+    <div class="spec">
+        @if($product->configuration_description && $product->configuration_description !== $desc)<b>Configuration:</b> {!! nl2br(e($product->configuration_description)) !!}<br>@endif
+        @if($product->warranty_months)<b>Warranty:</b> {{ $product->warranty_months }} month(s)<br>@endif
+        @if($product->warranty_terms_details)<b>Warranty Terms:</b> {!! nl2br(e($product->warranty_terms_details)) !!}@endif
+    </div>
+    @endif
+</td>
+<td class="center"><b>{{ $model }}</b></td>
+<td class="center"><b>{{ rtrim(rtrim(number_format((float)$it->qty,2,'.',''),'0'),'.') }}</b><br>{{ $it->unit }}</td>
+<td class="money">{{ $money($it->unit_price) }}</td>
+<td class="money">{{ $money((float)$it->qty * (float)$it->unit_price) }}</td>
+</tr>
+@endforeach
+</tbody>
+</table>
+
+<table class="summary">
+<tr><td class="label">Sub Total</td><td class="amount">{{ $money($q->sub_total) }}</td></tr>
+@if((float)$q->discount_amount > 0)<tr><td class="label">Special Discount</td><td class="amount">{{ $money($q->discount_amount) }}</td></tr>@endif
+@if((float)$q->tax_amount > 0)<tr><td class="label">VAT / TAX</td><td class="amount">{{ $money($q->tax_amount) }}</td></tr>@endif
+<tr><td class="label">Net Amount</td><td class="amount">{{ $money($q->grand_total) }} {{ $q->currency }}</td></tr>
+</table>
+
+<div class="terms no-break">
+    <div class="terms-title">TERMS AND CONDITIONS</div>
+    <div class="terms-body">
+        @if($q->terms)
+            {!! nl2br(e($q->terms)) !!}
+        @else
+            <p>Payment : As mutually agreed.</p>
+            <p>Delivery : As per confirmed order and stock availability.</p>
+            <p>Installation : As applicable for the quoted product.</p>
+            <p>After Sales : Service support will be provided according to the applicable warranty terms.</p>
+            @if($q->valid_until)<p>Validity : Up to {{ optional($q->valid_until)->format('d F Y') }}.</p>@endif
+        @endif
+    </div>
+    <div class="final-note">We thank you and assure you of our best attention at all times.</div>
+    <div class="regards">Best Regards<br><br>{{ $businessName }}.</div>
+</div>
+</body>
+</html>

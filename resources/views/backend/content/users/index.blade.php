@@ -24,8 +24,8 @@
 <div class="modal-body"><form id="userForm" enctype="multipart/form-data">@csrf<input type="hidden" id="user_id">
 <div class="row g-3">
 <div class="col-md-4"><label class="form-label">Name *</label><input id="name" class="form-control" required></div>
-<div class="col-md-4"><label class="form-label">Phone</label><input id="phone" class="form-control" inputmode="tel"></div>
-<div class="col-md-4"><label class="form-label">Email *</label><input id="email" type="email" class="form-control" required></div>
+<div class="col-md-4"><label class="form-label">Phone *</label><input id="phone" class="form-control" inputmode="tel" required></div>
+<div class="col-md-4"><label class="form-label">Email</label><input id="email" type="email" class="form-control"></div>
 <div class="col-md-4"><label class="form-label">Branch *</label><select id="branch_id" class="form-select" required><option value="">Select Branch</option>@foreach($branches as $b)<option value="{{ $b->id }}">{{ $b->branch_name }}</option>@endforeach</select></div>
 <div class="col-md-4"><label class="form-label">Role *</label><select id="role" class="form-select" required><option value="">Select Role</option>@foreach($roles as $r)<option value="{{ $r->name }}">{{ ucfirst(str_replace('_',' ',$r->name)) }}</option>@endforeach</select></div>
 <div class="col-md-2"><label class="form-label">Status</label><select id="status" class="form-select"><option value="1">Active</option><option value="0">Inactive</option></select></div>

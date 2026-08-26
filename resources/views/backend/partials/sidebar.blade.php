@@ -131,7 +131,7 @@
                 </li>
                 @endcan
 
-                @canany(['user.view_all_branches','user.view_branch','user.create','user.edit','role.manage','permission.manage','branch.manage','database.backup.download'])
+                @canany(['user.view_all_branches','user.view_branch','user.create','user.edit','role.manage','permission.manage','branch.view_all','branch.manage','database.backup.download'])
                 <li class="nxl-item nxl-hasmenu">
                     <a href="javascript:void(0);" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-cast"></i></span>
@@ -141,7 +141,7 @@
                         @canany(['user.view_all_branches','user.view_branch','user.create','user.edit'])<li class="nxl-item"><a class="nxl-link" href="{{ route('users.index') }}">Users</a></li>@endcanany
                         @can('role.manage')<li class="nxl-item"><a class="nxl-link" href="{{ route('roles.index') }}">Roles</a></li>@endcan
                         @can('permission.manage')<li class="nxl-item"><a class="nxl-link" href="{{ route('permissions.index') }}">Permissions</a></li>@endcan
-                        @can('branch.manage')<li class="nxl-item"><a class="nxl-link" href="{{ route('branches.index') }}">Branches</a></li>@endcan
+                        @canany(['branch.view_all','branch.manage'])<li class="nxl-item"><a class="nxl-link" href="{{ route('branches.index') }}">Branches</a></li>@endcanany
                         @can('database.backup.download')<li class="nxl-item"><a class="nxl-link" href="{{ route('database.backup.download') }}"><i class="feather-download-cloud me-1"></i> Database Backup</a></li>@endcan
                     </ul>
                 </li>

@@ -59,7 +59,13 @@
 
                             </div>
                             <div class="mb-4">
-                                <input type="email" class="form-control" placeholder="Email" name="email" required>
+                                <input type="tel" class="form-control" placeholder="Phone *" name="phone" value="{{ old('phone') }}" required>
+                                @error('phone')
+                                    <div class="text-danger">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="mb-4">
+                                <input type="email" class="form-control" placeholder="Email (optional)" name="email" value="{{ old('email') }}">
                                 @error('email')
                                     <div class="text-danger">{{ $message }}</div>
                                 @enderror

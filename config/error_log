@@ -1,0 +1,4 @@
+[08-Jun-2026 05:51:29 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/danpitet/crm.danpitetech.com/config/mail.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/danpitet/crm.danpitetech.com/config/mail.php on line 17

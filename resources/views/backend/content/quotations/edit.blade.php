@@ -67,6 +67,11 @@
                             <input class="form-control" name="client_email" value="{{ $q->client_email }}">
                         </div>
 
+                        <div class="col-md-8">
+                            <label class="form-label">Client Address</label>
+                            <input class="form-control" name="client_address" value="{{ $q->client_address }}">
+                        </div>
+
                         <div class="col-md-4">
                             <label class="form-label">Issue Date</label>
                             <input type="date" class="form-control" name="issue_date" value="{{ optional($q->issue_date)->format('Y-m-d') }}">
@@ -107,9 +112,24 @@
                             </select>
                         </div>
 
+                        <div class="col-md-8">
+                            <label class="form-label">Quotation Subject</label>
+                            <input class="form-control" name="subject" value="{{ $q->subject }}" placeholder="e.g. Supply of Medical Equipment">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Salutation</label>
+                            <input class="form-control" name="salutation" value="{{ $q->salutation ?: 'Dear Sir,' }}">
+                        </div>
+
                         <div class="col-md-12">
-                            <label class="form-label">Description</label>
-                            <textarea class="form-control" name="description" rows="4">{{ $q->description }}</textarea>
+                            <label class="form-label">Cover Letter</label>
+                            <textarea class="form-control quotation-editor" id="cover_letter" name="cover_letter" rows="6">{!! $q->cover_letter !!}</textarea>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label">Quotation Description / Additional Details</label>
+                            <textarea class="form-control" name="description" rows="3">{{ $q->description }}</textarea>
                         </div>
 
                         <div class="col-md-12">
@@ -149,11 +169,20 @@
 
                     <div class="row mt-3">
                         <div class="col-md-6">
-                            <label class="form-label">Note for recipient</label>
-                            <textarea class="form-control" name="note_for_recipient" rows="3">{{ $q->note_for_recipient }}</textarea>
+                            <label class="form-label">Note for Recipient</label>
+                            <textarea class="form-control quotation-editor" id="note_for_recipient" name="note_for_recipient" rows="3">{!! $q->note_for_recipient !!}</textarea>
+
+                            <label class="form-label mt-3">Terms Section Title</label>
+                            <input class="form-control" name="terms_title" value="{{ $q->terms_title ?: 'TERMS AND CONDITIONS' }}">
 
                             <label class="form-label mt-3">Terms & Conditions</label>
-                            <textarea class="form-control" name="terms" rows="3">{{ $q->terms }}</textarea>
+                            <textarea class="form-control quotation-editor" id="terms" name="terms" rows="7">{!! $q->terms !!}</textarea>
+
+                            <label class="form-label mt-3">Closing / Final Note</label>
+                            <textarea class="form-control quotation-editor" id="closing_note" name="closing_note" rows="3">{!! $q->closing_note !!}</textarea>
+
+                            <label class="form-label mt-3">Regards / Sign-off</label>
+                            <input class="form-control" name="sign_off" value="{{ $q->sign_off ?: 'Best Regards' }}">
                         </div>
 
                         <div class="col-md-6">
@@ -198,6 +227,23 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
+<script>
+const quotationEditors = {};
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.quotation-editor').forEach(el => {
+        ClassicEditor.create(el, { toolbar: ['heading','|','bold','italic','link','bulletedList','numberedList','|','undo','redo'] })
+            .then(editor => { quotationEditors[el.id] = editor; })
+            .catch(console.error);
+    });
+    document.getElementById('quotationForm')?.addEventListener('submit', () => {
+        Object.entries(quotationEditors).forEach(([id, editor]) => {
+            const source = document.getElementById(id);
+            if(source) source.value = editor.getData();
+        });
+    });
+});
+</script>
 <script>
 const PRODUCT_OPTIONS_URL = "{{ route(name: 'products.options') }}";
 const GLOBAL_TAX_RATE = Number(@json($taxRate ?? 0));

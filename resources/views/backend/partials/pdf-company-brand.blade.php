@@ -26,7 +26,7 @@
     $pdfWatermark = $pdfImageData($pdfBusiness?->fav_icon, 'branding/mts-favicon.png');
 
     $pdfBusinessName = trim((string) ($pdfBusiness?->business_name ?: 'MEDI TRUST SOLUTION'));
-    $pdfAddress = trim((string) ($pdfBusiness?->business_address ?: ''));
+    $pdfAddress = ($showAddress ?? true) ? trim((string) ($pdfBusiness?->business_address ?: '')) : '';
     $pdfPhone = trim((string) ($pdfBusiness?->business_phone ?: ''));
     $pdfEmail = trim((string) ($pdfBusiness?->business_email ?: ''));
 

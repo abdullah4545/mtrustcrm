@@ -123,8 +123,30 @@ class ActivityController extends Controller
             'work_details'=>'nullable|string','remarks'=>'nullable|string','status'=>'nullable|in:pending,approved,rejected',
             'travels'=>'nullable|array','travels.*.from_location'=>'nullable|string|max:255','travels.*.to_location'=>'nullable|string|max:255',
             'travels.*.vehicle'=>'nullable|string|max:255','travels.*.distance'=>'nullable|numeric|min:0','travels.*.cost'=>'nullable|numeric|min:0',
+            'travels.*.existing_image_url'=>'nullable|string|max:500','travels.*.image'=>'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'expenses'=>'nullable|array','expenses.*.expense_type_id'=>'nullable|exists:expense_types,id','expenses.*.amount'=>'nullable|numeric|min:0','expenses.*.note'=>'nullable|string|max:500',
+            'expenses.*.existing_image_url'=>'nullable|string|max:500','expenses.*.image'=>'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
+    }
+
+    private function storeActivityImage($file, string $group): ?string
+    {
+        if (!$file || !$file->isValid()) return null;
+        $folder = 'uploads/activity/' . $group;
+        $absolute = public_path($folder);
+        if (!is_dir($absolute)) mkdir($absolute, 0775, true);
+        $name = now('Asia/Dhaka')->format('YmdHis') . '_' . uniqid() . '.' . strtolower($file->getClientOriginalExtension());
+        $file->move($absolute, $name);
+        return 'public/' . $folder . '/' . $name;
+    }
+
+    private function deleteActivityImage(?string $storedPath): void
+    {
+        if (!$storedPath) return;
+        $relative = preg_replace('#^/?public/#', '', str_replace('\\', '/', $storedPath));
+        if (!str_starts_with($relative, 'uploads/activity/')) return;
+        $absolute = public_path($relative);
+        if (is_file($absolute)) @unlink($absolute);
     }
 
     private function ensureEditable(Activity $activity): void
@@ -164,7 +186,10 @@ class ActivityController extends Controller
             $activityAt = ($activity->activity_at ?? $activity->created_at ?? $now)->copy()->timezone('Asia/Dhaka');
         }
 
-        return DB::transaction(function () use ($activity,$data,$org,$owner,$u,$travels,$expenses,$ta,$da,$now,$activityAt) {
+        $oldTravelImages = $activity->exists ? $activity->travels->pluck('image_url')->filter()->values()->all() : [];
+        $oldExpenseImages = $activity->exists ? $activity->expenses->pluck('image_url')->filter()->values()->all() : [];
+
+        return DB::transaction(function () use ($activity,$data,$org,$owner,$u,$travels,$expenses,$ta,$da,$now,$activityAt,$oldTravelImages,$oldExpenseImages) {
             $activity->fill([
                 'organization_id'=>$org->id,'organization_name'=>$org->name,'department_id'=>$data['department_id']??null,'department'=>$data['department'],
                 'contact_id'=>$data['contact_id']??null,'contact_person'=>$data['contact_person']??null,'work_details'=>$data['work_details']??null,
@@ -192,16 +217,38 @@ class ActivityController extends Controller
             $activity->save();
 
             $activity->travels()->delete();
-            foreach ($travels as $r) $activity->travels()->create([
-                'from_location'=>$r['from_location']??null,'to_location'=>$r['to_location']??null,'vehicle'=>$r['vehicle']??null,
-                'distance'=>(float)($r['distance']??0),'cost'=>(float)($r['cost']??0),
-            ]);
+            $keptTravelImages = [];
+            foreach ($travels as $r) {
+                $existing = $r['existing_image_url'] ?? null;
+                $imagePath = ($existing && in_array($existing, $oldTravelImages, true)) ? $existing : null;
+                if (!empty($r['image'])) {
+                    $newPath = $this->storeActivityImage($r['image'], 'ta');
+                    if ($newPath) $imagePath = $newPath;
+                }
+                if ($imagePath) $keptTravelImages[] = $imagePath;
+                $activity->travels()->create([
+                    'from_location'=>$r['from_location']??null,'to_location'=>$r['to_location']??null,'vehicle'=>$r['vehicle']??null,
+                    'distance'=>(float)($r['distance']??0),'cost'=>(float)($r['cost']??0),'image_url'=>$imagePath,
+                ]);
+            }
 
             $activity->expenses()->delete();
+            $keptExpenseImages = [];
             foreach ($expenses as $r) {
                 $type = !empty($r['expense_type_id']) ? ExpenseType::find($r['expense_type_id']) : null;
-                $activity->expenses()->create(['expense_type_id'=>$type?->id,'expense_type'=>$type?->name,'amount'=>(float)($r['amount']??0),'note'=>$r['note']??null]);
+                $existing = $r['existing_image_url'] ?? null;
+                $imagePath = ($existing && in_array($existing, $oldExpenseImages, true)) ? $existing : null;
+                if (!empty($r['image'])) {
+                    $newPath = $this->storeActivityImage($r['image'], 'da');
+                    if ($newPath) $imagePath = $newPath;
+                }
+                if ($imagePath) $keptExpenseImages[] = $imagePath;
+                $activity->expenses()->create(['expense_type_id'=>$type?->id,'expense_type'=>$type?->name,'amount'=>(float)($r['amount']??0),'note'=>$r['note']??null,'image_url'=>$imagePath]);
             }
+
+            foreach (array_diff($oldTravelImages, $keptTravelImages) as $oldImage) $this->deleteActivityImage($oldImage);
+            foreach (array_diff($oldExpenseImages, $keptExpenseImages) as $oldImage) $this->deleteActivityImage($oldImage);
+
             return $activity->fresh(['travels','expenses','creator']);
         });
     }
@@ -221,5 +268,11 @@ class ActivityController extends Controller
         ]);
     }
     public function update(Request $request,$id){ $a=$this->saveActivity($this->findVisible((int)$id),$request); return response()->json(['status'=>true,'message'=>'Field activity updated successfully','data'=>$a]); }
-    public function destroy($id){ $this->findVisible((int)$id)->delete(); return response()->json(['status'=>true,'message'=>'Deleted']); }
+    public function destroy($id){
+        $activity = $this->findVisible((int)$id);
+        $images = $activity->travels->pluck('image_url')->merge($activity->expenses->pluck('image_url'))->filter()->values();
+        $activity->delete();
+        $images->each(fn($path) => $this->deleteActivityImage($path));
+        return response()->json(['status'=>true,'message'=>'Deleted']);
+    }
 }

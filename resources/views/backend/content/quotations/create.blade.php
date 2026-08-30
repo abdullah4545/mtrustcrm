@@ -70,6 +70,11 @@
                             <input class="form-control" name="client_email" value="{{ $lead?->person_email }}" placeholder="Email">
                         </div>
 
+                        <div class="col-md-8">
+                            <label class="form-label">Client Address</label>
+                            <input class="form-control" name="client_address" value="{{ $lead?->organization?->address }}" placeholder="Client / organization address">
+                        </div>
+
                         <div class="col-md-4">
                             <label class="form-label">Issue Date</label>
                             <input type="date" class="form-control" name="issue_date" value="{{ now()->toDateString() }}">
@@ -110,9 +115,24 @@
                             </select>
                         </div>
 
+                        <div class="col-md-8">
+                            <label class="form-label">Quotation Subject</label>
+                            <input class="form-control" name="subject" value="{{ $lead?->subject }}" placeholder="e.g. Supply of Medical Equipment">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Salutation</label>
+                            <input class="form-control" name="salutation" value="Dear Sir," placeholder="Dear Sir,">
+                        </div>
+
                         <div class="col-md-12">
-                            <label class="form-label">Description</label>
-                            <textarea class="form-control" name="description" rows="4" placeholder="Write quotation details..."></textarea>
+                            <label class="form-label">Cover Letter</label>
+                            <textarea class="form-control quotation-editor" id="cover_letter" name="cover_letter" rows="6"><p>Thank you for taking an interest in our products and services. We are pleased to submit our quotation for your kind consideration. The detailed financial quotation, product description, product image, prices and applicable terms &amp; conditions are enclosed on the following pages.</p><p>We will consider ourselves fortunate if we are successful in establishing a valued business relationship with your organization.</p></textarea>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label">Quotation Description / Additional Details</label>
+                            <textarea class="form-control" name="description" rows="3" placeholder="Optional additional quotation details..."></textarea>
                         </div>
 
                         <div class="col-md-12">
@@ -158,11 +178,20 @@
                     {{-- Totals --}}
                     <div class="row mt-3">
                         <div class="col-md-6">
-                            <label class="form-label">Note for recipient</label>
-                            <textarea class="form-control" name="note_for_recipient" rows="3" placeholder="e.g. Thank you for your business"></textarea>
+                            <label class="form-label">Note for Recipient</label>
+                            <textarea class="form-control quotation-editor" id="note_for_recipient" name="note_for_recipient" rows="3" placeholder="Optional note for recipient"></textarea>
+
+                            <label class="form-label mt-3">Terms Section Title</label>
+                            <input class="form-control" name="terms_title" value="TERMS AND CONDITIONS">
 
                             <label class="form-label mt-3">Terms & Conditions</label>
-                            <textarea class="form-control" name="terms" rows="3" placeholder="Terms..."></textarea>
+                            <textarea class="form-control quotation-editor" id="terms" name="terms" rows="7"><p><b>Payment:</b> As mutually agreed.</p><p><b>Delivery:</b> As per confirmed order and stock availability.</p><p><b>Installation:</b> As applicable for the quoted product.</p><p><b>After Sales:</b> Service support will be provided according to the applicable warranty terms.</p></textarea>
+
+                            <label class="form-label mt-3">Closing / Final Note</label>
+                            <textarea class="form-control quotation-editor" id="closing_note" name="closing_note" rows="3"><p>We thank you and assure you of our best attention at all times.</p></textarea>
+
+                            <label class="form-label mt-3">Regards / Sign-off</label>
+                            <input class="form-control" name="sign_off" value="Best Regards" placeholder="Best Regards">
                         </div>
 
                         <div class="col-md-6">
@@ -207,6 +236,23 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
+<script>
+const quotationEditors = {};
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.quotation-editor').forEach(el => {
+        ClassicEditor.create(el, { toolbar: ['heading','|','bold','italic','link','bulletedList','numberedList','|','undo','redo'] })
+            .then(editor => { quotationEditors[el.id] = editor; })
+            .catch(console.error);
+    });
+    document.getElementById('quotationForm')?.addEventListener('submit', () => {
+        Object.entries(quotationEditors).forEach(([id, editor]) => {
+            const source = document.getElementById(id);
+            if(source) source.value = editor.getData();
+        });
+    });
+});
+</script>
 <script>
 const PRODUCT_OPTIONS_URL = "{{ route('products.options') }}";
 const GLOBAL_TAX_RATE = Number(@json($taxRate ?? 0));

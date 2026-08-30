@@ -12,8 +12,8 @@ class Quotation extends Model
     protected $fillable = [
         'quotation_no','branch_id','lead_id','organization_id','organization_contact_id',
         'client_name','client_phone','client_email','client_address',
-        'issue_date','valid_until','currency','calculate_tax','tax_enabled','tax_rate','description',
-        'note_for_recipient','terms','require_signature',
+        'issue_date','valid_until','currency','calculate_tax','tax_enabled','tax_rate','subject','salutation','cover_letter','description',
+        'note_for_recipient','terms','closing_note','terms_title','sign_off','require_signature',
         'sub_total','discount_amount','tax_amount','grand_total',
         'status_stage_id','prepared_by'
     ];

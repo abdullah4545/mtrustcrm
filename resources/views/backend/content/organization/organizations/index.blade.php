@@ -27,6 +27,11 @@
                     data-bs-target="#filterSidebar">
                 <i class="feather-filter"></i> <span class="d-none d-lg-block">Filter</span>
             </button> 
+            @can('org.create')
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#organizationImportModal">
+                <i class="feather-upload"></i><span class="d-none d-lg-block">&nbsp;&nbsp;Import Excel</span>
+            </button>
+            @endcan
             <a href="{{route('org.quick.create')}}" class="btn btn-primary" >
                 <i class="feather-plus"></i><span class="d-none d-lg-block">&nbsp;&nbsp;Add Organization</span>
             </a> 
@@ -137,6 +142,51 @@
     </div>
 </div>
 
+@can('org.create')
+<div class="modal fade" id="organizationImportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Import Organizations from Excel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info py-2">
+                    Upload the CRM-ready <b>.xlsx</b> file. Import runs in batches of 500 rows. Existing organizations are updated by DGHS Facility ID; blank Excel cells never erase existing data.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Excel File</label>
+                    <input type="file" class="form-control" id="organizationImportFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+                    <div class="form-text">Maximum file size: 20 MB.</div>
+                </div>
+                <div id="orgImportProgressWrap" class="d-none">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span id="orgImportProgressText">Preparing...</span>
+                        <span id="orgImportPercent">0%</span>
+                    </div>
+                    <div class="progress" style="height:12px">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" id="orgImportProgressBar" style="width:0%"></div>
+                    </div>
+                    <div class="row g-2 mt-2 text-center small">
+                        <div class="col-3"><div class="border rounded p-2"><b id="orgStatImported">0</b><br>Imported</div></div>
+                        <div class="col-3"><div class="border rounded p-2"><b id="orgStatUpdated">0</b><br>Updated</div></div>
+                        <div class="col-3"><div class="border rounded p-2"><b id="orgStatSkipped">0</b><br>Skipped</div></div>
+                        <div class="col-3"><div class="border rounded p-2"><b id="orgStatFailed">0</b><br>Failed</div></div>
+                    </div>
+                    <div id="orgImportErrors" class="small text-danger mt-2"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal" id="orgImportCloseBtn">Close</button>
+                <button type="button" class="btn btn-primary" id="startOrganizationImport">
+                    <i class="feather-upload me-1"></i> Start Import
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+@endcan
+
 @endsection
 
 
@@ -215,6 +265,8 @@ const ROUTE_DELETE    = "{{ url('organization/manage') }}";
 const ROUTE_DISTRICTS = "{{ route('org.geo.districts') }}";
 const ROUTE_UPAZILAS  = "{{ route('org.geo.upazilas') }}";
 const ROUTE_UNIONS    = "{{ route('org.geo.unions') }}";
+const ROUTE_IMPORT_UPLOAD  = "{{ route('org.manage.import.upload') }}";
+const ROUTE_IMPORT_PROCESS = "{{ route('org.manage.import.process') }}";
 
 let table, modal;
 
@@ -416,8 +468,6 @@ function getPayload(){
         phone_secondary: $('#phone_secondary').val(),
         email: $('#email').val(),
         website: $('#website').val(),
-        latitude: $('#latitude').val(),
-        longitude: $('#longitude').val(),
         notes: $('#notes').val(),
         status: $('#status').val(),
     };
@@ -489,6 +539,94 @@ function loadUnions(upazilaSel, unionSel, selectedId=null){
             if(selectedId) $(unionSel).val(selectedId);
         });
 }
+let orgImportRunning = false;
+let orgImportTotals = { imported:0, updated:0, skipped:0, failed:0 };
+
+$('#startOrganizationImport').on('click', function(){
+    if(orgImportRunning) return;
+    const file = document.getElementById('organizationImportFile')?.files?.[0];
+    if(!file){
+        Swal.fire('Select Excel', 'Please select the .xlsx organization file.', 'warning');
+        return;
+    }
+
+    orgImportRunning = true;
+    orgImportTotals = { imported:0, updated:0, skipped:0, failed:0 };
+    $('#orgImportProgressWrap').removeClass('d-none');
+    $('#orgImportErrors').empty();
+    $('#startOrganizationImport').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Preparing...');
+    $('#orgImportCloseBtn').prop('disabled', true);
+    updateOrgImportUi(0, 0);
+
+    const fd = new FormData();
+    fd.append('file', file);
+
+    $.ajax({
+        url: ROUTE_IMPORT_UPLOAD,
+        method: 'POST',
+        data: fd,
+        processData: false,
+        contentType: false,
+    }).done(function(res){
+        processOrganizationChunk(res.token, 0, 0, res.total_rows);
+    }).fail(function(xhr){
+        finishOrganizationImport(false, ajaxMessage(xhr));
+    });
+});
+
+function processOrganizationChunk(token, byteOffset, processed, totalRows){
+    $.post(ROUTE_IMPORT_PROCESS, { token: token, byte_offset: byteOffset, processed: processed })
+    .done(function(res){
+        ['imported','updated','skipped','failed'].forEach(function(k){ orgImportTotals[k] += parseInt(res.stats?.[k] || 0); });
+        if(Array.isArray(res.errors) && res.errors.length){
+            const html = res.errors.map(e => $('<div>').text(e).html()).join('<br>');
+            $('#orgImportErrors').append(html + '<br>');
+        }
+        updateOrgImportUi(res.processed, res.total_rows);
+        if(res.done){ finishOrganizationImport(true); return; }
+        processOrganizationChunk(token, res.byte_offset, res.processed, res.total_rows);
+    }).fail(function(xhr){ finishOrganizationImport(false, ajaxMessage(xhr)); });
+}
+
+function updateOrgImportUi(processed, total){
+    const percent = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
+    $('#orgImportProgressBar').css('width', percent+'%');
+    $('#orgImportPercent').text(percent+'%');
+    $('#orgImportProgressText').text(processed.toLocaleString()+' / '+(total || 0).toLocaleString()+' rows');
+    $('#orgStatImported').text(orgImportTotals.imported.toLocaleString());
+    $('#orgStatUpdated').text(orgImportTotals.updated.toLocaleString());
+    $('#orgStatSkipped').text(orgImportTotals.skipped.toLocaleString());
+    $('#orgStatFailed').text(orgImportTotals.failed.toLocaleString());
+}
+
+function finishOrganizationImport(success, message=''){
+    orgImportRunning = false;
+    $('#startOrganizationImport').prop('disabled', false).html('<i class="feather-upload me-1"></i> Start Import');
+    $('#orgImportCloseBtn').prop('disabled', false);
+    if(success){
+        $('#orgImportProgressBar').removeClass('progress-bar-animated');
+        table.ajax.reload(null, false);
+        Swal.fire({
+            icon: orgImportTotals.failed ? 'warning' : 'success',
+            title: 'Import Completed',
+            html: 'Imported: <b>'+orgImportTotals.imported.toLocaleString()+'</b><br>'+
+                  'Updated: <b>'+orgImportTotals.updated.toLocaleString()+'</b><br>'+
+                  'Skipped: <b>'+orgImportTotals.skipped.toLocaleString()+'</b><br>'+
+                  'Failed: <b>'+orgImportTotals.failed.toLocaleString()+'</b>'
+        });
+    }else{
+        Swal.fire('Import Error', message || 'Import could not be completed.', 'error');
+    }
+}
+
+function ajaxMessage(xhr){
+    if(xhr?.responseJSON?.errors){
+        const k = Object.keys(xhr.responseJSON.errors)[0];
+        return xhr.responseJSON.errors[k][0];
+    }
+    return xhr?.responseJSON?.message || 'Something went wrong during import.';
+}
+
 </script>
 
 @endpush

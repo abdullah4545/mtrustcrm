@@ -266,10 +266,14 @@
             </tr>
 
             <tr>
-                <td class="label">Latitude</td>
-                <td>{{ $org->latitude ?? '-' }}</td>
-                <td class="label">Longitude</td>
-                <td>{{ $org->longitude ?? '-' }}</td>
+                <td class="label">Map Location</td>
+                <td colspan="3">
+                    @if($org->map_location_link)
+                        <a href="{{ $org->map_location_link }}" target="_blank" rel="noopener">View Location</a>
+                    @else
+                        -
+                    @endif
+                </td>
             </tr>
         </table>
     </div>

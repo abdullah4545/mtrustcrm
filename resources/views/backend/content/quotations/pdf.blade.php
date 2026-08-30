@@ -18,7 +18,10 @@ body{font-size:10.5px;color:#111;margin:0;line-height:1.45}
 @php
     $money = fn($v) => number_format((float)$v, 2);
     $businessName = $business?->business_name ?: 'Medi Trust Solution';
-    $subject = trim((string)($q->description ?: 'Supply of Medical Equipment'));
+    $subject = trim((string)($q->subject ?: $q->description ?: 'Supply of Medical Equipment'));
+    $salutation = trim((string)($q->salutation ?: 'Dear Sir,'));
+    $signOff = trim((string)($q->sign_off ?: 'Best Regards'));
+    $termsTitle = trim((string)($q->terms_title ?: 'TERMS AND CONDITIONS'));
     $imgData = static function (?string $storedPath): ?string {
         if(!$storedPath || preg_match('#^https?://#i',$storedPath)) return null;
         $relative = preg_replace('#^/?public/#','',str_replace('\\','/',$storedPath));
@@ -28,7 +31,7 @@ body{font-size:10.5px;color:#111;margin:0;line-height:1.45}
         return 'data:'.$mime.';base64,'.base64_encode(file_get_contents($absolute));
     };
 @endphp
-@include('backend.partials.pdf-company-brand', ['business' => $business ?? null])
+@include('backend.partials.pdf-company-brand', ['business' => $business ?? null, 'showAddress' => false])
 
 {{-- PAGE 1: Cover letter pattern from the supplied quotation --}}
 <table class="meta">
@@ -46,12 +49,16 @@ body{font-size:10.5px;color:#111;margin:0;line-height:1.45}
 
 <div class="subject">Subject: Quotation of {{ $subject }}</div>
 <div class="letter">
-    <p>Dear Sir,</p>
-    <p>Thank you for taking an interest in our products and services. We are pleased to submit our quotation for your kind consideration. The detailed financial quotation, product description, product image, prices and applicable terms &amp; conditions are enclosed on the following pages.</p>
-    @if($q->note_for_recipient)<p>{!! nl2br(e($q->note_for_recipient)) !!}</p>@endif
-    <p>We will consider ourselves fortunate if we are successful in establishing a valued business relationship with your organization.</p>
+    <p>{{ $salutation }}</p>
+    @if($q->cover_letter)
+        {!! $q->cover_letter !!}
+    @else
+        <p>Thank you for taking an interest in our products and services. We are pleased to submit our quotation for your kind consideration. The detailed financial quotation, product description, product image, prices and applicable terms &amp; conditions are enclosed on the following pages.</p>
+        <p>We will consider ourselves fortunate if we are successful in establishing a valued business relationship with your organization.</p>
+    @endif
+    @if($q->note_for_recipient)<div>{!! $q->note_for_recipient !!}</div>@endif
 </div>
-<div class="regards">Best Regards<br><br>{{ $businessName }}.</div>
+<div class="regards">{{ $signOff }}<br><br>{{ $businessName }}.</div>
 
 <div class="page-break"></div>
 
@@ -84,13 +91,13 @@ body{font-size:10.5px;color:#111;margin:0;line-height:1.45}
 <td class="center">{{ $i+1 }}.</td>
 <td>
     <div class="product-name">{{ $it->item_name }}</div>
-    @if($desc)<div class="product-desc">{!! nl2br(e($desc)) !!}</div>@endif
+    @if($desc)<div class="product-desc">{!! $desc !!}</div>@endif
     @if($productImage)<img class="product-image" src="{{ $productImage }}" alt="">@endif
     @if($product)
     <div class="spec">
-        @if($product->configuration_description && $product->configuration_description !== $desc)<b>Configuration:</b> {!! nl2br(e($product->configuration_description)) !!}<br>@endif
+        @if($product->configuration_description && $product->configuration_description !== $desc)<b>Configuration:</b> {!! $product->configuration_description !!}<br>@endif
         @if($product->warranty_months)<b>Warranty:</b> {{ $product->warranty_months }} month(s)<br>@endif
-        @if($product->warranty_terms_details)<b>Warranty Terms:</b> {!! nl2br(e($product->warranty_terms_details)) !!}@endif
+        @if($product->warranty_terms_details)<b>Warranty Terms:</b> {!! $product->warranty_terms_details !!}@endif
     </div>
     @endif
 </td>
@@ -111,10 +118,10 @@ body{font-size:10.5px;color:#111;margin:0;line-height:1.45}
 </table>
 
 <div class="terms no-break">
-    <div class="terms-title">TERMS AND CONDITIONS</div>
+    <div class="terms-title">{{ $termsTitle }}</div>
     <div class="terms-body">
         @if($q->terms)
-            {!! nl2br(e($q->terms)) !!}
+            {!! $q->terms !!}
         @else
             <p>Payment : As mutually agreed.</p>
             <p>Delivery : As per confirmed order and stock availability.</p>
@@ -123,8 +130,10 @@ body{font-size:10.5px;color:#111;margin:0;line-height:1.45}
             @if($q->valid_until)<p>Validity : Up to {{ optional($q->valid_until)->format('d F Y') }}.</p>@endif
         @endif
     </div>
-    <div class="final-note">We thank you and assure you of our best attention at all times.</div>
-    <div class="regards">Best Regards<br><br>{{ $businessName }}.</div>
+    <div class="final-note">
+        @if($q->closing_note) {!! $q->closing_note !!} @else We thank you and assure you of our best attention at all times. @endif
+    </div>
+    <div class="regards">{{ $signOff }}<br><br>{{ $businessName }}.</div>
 </div>
 </body>
 </html>

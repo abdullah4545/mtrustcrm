@@ -158,14 +158,16 @@
             <input type="text" name="website" value="{{ $org->website }}" class="form-control">
         </div>
 
-        <div class="col-md-3">
-            <label>Latitude</label>
-            <input type="text" name="latitude" value="{{ $org->latitude }}" class="form-control">
-        </div>
-
-        <div class="col-md-3">
-            <label>Longitude</label>
-            <input type="text" name="longitude" value="{{ $org->longitude }}" class="form-control">
+        <div class="col-md-6">
+            <label>Map Location Link</label>
+            <div class="input-group">
+                <input type="url" name="map_location_link" value="{{ $org->map_location_link }}" class="form-control" placeholder="https://maps.app.goo.gl/...">
+                @if($org->map_location_link)
+                    <a href="{{ $org->map_location_link }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
+                        <i class="feather-map-pin"></i> View Map
+                    </a>
+                @endif
+            </div>
         </div>
 
         <div class="col-md-12">

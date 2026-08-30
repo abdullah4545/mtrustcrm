@@ -186,9 +186,15 @@ class QuotationController extends Controller
             'currency' => 'required|string|max:10',
             'calculate_tax' => 'required|in:after_discount,before_discount',
             'tax_enabled' => 'nullable|boolean',
+            'subject' => 'nullable|string|max:500',
+            'salutation' => 'nullable|string|max:150',
+            'cover_letter' => 'nullable|string',
             'description' => 'nullable|string',
             'note_for_recipient' => 'nullable|string',
             'terms' => 'nullable|string',
+            'closing_note' => 'nullable|string',
+            'terms_title' => 'nullable|string|max:150',
+            'sign_off' => 'nullable|string|max:150',
             'require_signature' => 'nullable|boolean',
 
             'discount_amount' => 'nullable|numeric|min:0',
@@ -240,9 +246,15 @@ class QuotationController extends Controller
         $q->tax_enabled = $request->boolean('tax_enabled');
         $q->tax_rate = $q->tax_enabled ? (float)(Business::first()?->vat ?? 0) : 0;
 
+        $q->subject = $request->subject;
+        $q->salutation = $request->salutation;
+        $q->cover_letter = $request->cover_letter;
         $q->description = $request->description;
         $q->note_for_recipient = $request->note_for_recipient;
         $q->terms = $request->terms;
+        $q->closing_note = $request->closing_note;
+        $q->terms_title = $request->terms_title;
+        $q->sign_off = $request->sign_off;
         $q->require_signature = (bool)$request->require_signature;
 
         $q->discount_amount = (float)($request->discount_amount ?? 0);
@@ -321,9 +333,15 @@ class QuotationController extends Controller
             'currency' => 'required|string|max:10',
             'calculate_tax' => 'required|in:after_discount,before_discount',
             'tax_enabled' => 'nullable|boolean',
+            'subject' => 'nullable|string|max:500',
+            'salutation' => 'nullable|string|max:150',
+            'cover_letter' => 'nullable|string',
             'description' => 'nullable|string',
             'note_for_recipient' => 'nullable|string',
             'terms' => 'nullable|string',
+            'closing_note' => 'nullable|string',
+            'terms_title' => 'nullable|string|max:150',
+            'sign_off' => 'nullable|string|max:150',
             'require_signature' => 'nullable|boolean',
             'discount_amount' => 'nullable|numeric|min:0',
             'status_stage_id' => 'nullable|exists:status_stages,id',
@@ -346,9 +364,15 @@ class QuotationController extends Controller
             'calculate_tax' => $request->calculate_tax,
             'tax_enabled' => $request->boolean('tax_enabled'),
             'tax_rate' => $request->boolean('tax_enabled') ? (float)(Business::first()?->vat ?? 0) : 0,
+            'subject' => $request->subject,
+            'salutation' => $request->salutation,
+            'cover_letter' => $request->cover_letter,
             'description' => $request->description,
             'note_for_recipient' => $request->note_for_recipient,
             'terms' => $request->terms,
+            'closing_note' => $request->closing_note,
+            'terms_title' => $request->terms_title,
+            'sign_off' => $request->sign_off,
             'require_signature' => (bool)$request->require_signature,
             'discount_amount' => (float)($request->discount_amount ?? 0),
             'status_stage_id' => $request->status_stage_id,

@@ -24,6 +24,8 @@ class Organization extends Model
         'phone_secondary',
         'email',
         'website',
+        'map_location_link',
+        'dghs_facility_id',
         'latitude',
         'longitude',
         'notes',

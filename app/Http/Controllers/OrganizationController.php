@@ -71,6 +71,7 @@ class OrganizationController extends Controller
     
             'email'         => 'nullable|email',
             'phone_primary' => 'nullable|string|max:20',
+            'map_location_link' => 'nullable|string|max:1000',
     
             'contacts' => 'nullable|array',
     
@@ -110,8 +111,7 @@ class OrganizationController extends Controller
                 'phone_secondary'          => $request->phone_secondary,
                 'email'                    => $request->email,
                 'website'                  => $request->website,
-                'latitude'                 => $request->latitude,
-                'longitude'                => $request->longitude,
+                'map_location_link'        => $request->map_location_link,
                 'notes'                    => $request->notes,
                 'about_us'                 => $request->about_us,
                 'status'                   => $request->status,
@@ -269,8 +269,7 @@ class OrganizationController extends Controller
             'phone_secondary'          => 'nullable|string|max:30',
             'email'                    => 'nullable|email|max:150',
             'website'                  => 'nullable|string|max:150',
-            'latitude'                 => 'nullable|numeric',
-            'longitude'                => 'nullable|numeric',
+            'map_location_link'        => 'nullable|string|max:1000',
             'notes'                    => 'nullable|string',
             'about_us'                 => 'nullable|string',
             'status'                   => 'required|in:active,inactive',
@@ -338,6 +337,7 @@ class OrganizationController extends Controller
             'contacts.*.designation_id'  => 'nullable|exists:designations,id',
             'contacts.*.image_url'           => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'contacts.*.status'          => 'nullable|in:active,inactive',
+            'map_location_link'         => 'nullable|string|max:1000',
     
             'deleted_contacts'           => 'nullable|array',
         ]);
@@ -366,8 +366,7 @@ class OrganizationController extends Controller
                 'phone_secondary'          => $request->phone_secondary,
                 'email'                    => $request->email,
                 'website'                  => $request->website,
-                'latitude'                 => $request->latitude,
-                'longitude'                => $request->longitude,
+                'map_location_link'        => $request->map_location_link,
                 'notes'                    => $request->notes,
                 'about_us'                 => $request->about_us,
                 'status'                   => $request->status,

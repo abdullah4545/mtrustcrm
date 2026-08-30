@@ -135,14 +135,10 @@
             <input type="text" name="website" class="form-control" placeholder="https://">
         </div>
 
-        <div class="col-md-3">
-            <label>Latitude</label>
-            <input type="text" name="latitude" class="form-control" placeholder="23.XXXX">
-        </div>
-
-        <div class="col-md-3">
-            <label>Longitude</label>
-            <input type="text" name="longitude" class="form-control" placeholder="90.XXXX">
+        <div class="col-md-6">
+            <label>Map Location Link</label>
+            <input type="url" name="map_location_link" class="form-control" placeholder="https://maps.app.goo.gl/...">
+            <small class="text-muted">Paste the Google Maps/location share link for this organization.</small>
         </div>
 
         <div class="col-md-12">

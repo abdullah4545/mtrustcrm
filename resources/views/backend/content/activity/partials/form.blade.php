@@ -21,6 +21,8 @@
         'vehicle' => $row?->vehicle ?? '',
         'distance' => (float)($row?->distance ?? 0),
         'cost' => (float)($row?->cost ?? 0),
+        'image_url' => $row?->image_url ?? '',
+        'image_view_url' => $row?->image_url ? asset($row->image_url) : '',
     ])->values();
 
     $initialExpenses = $expenseRows->map(fn($row) => [
@@ -28,6 +30,8 @@
         'expense_type' => $row?->expense_type ?? '',
         'amount' => (float)($row?->amount ?? 0),
         'note' => $row?->note ?? '',
+        'image_url' => $row?->image_url ?? '',
+        'image_view_url' => $row?->image_url ? asset($row->image_url) : '',
     ])->values();
 @endphp
 
@@ -157,6 +161,7 @@
                     <div class="col-12 col-sm-6"><label>Vehicle</label><select id="travel_vehicle" class="form-control"><option value="">Select Vehicle</option></select></div>
                     <div class="col-6 col-sm-3"><label>Distance (KM)</label><input type="number" min="0" step="0.01" id="travel_distance" class="form-control" value="0"></div>
                     <div class="col-6 col-sm-3"><label>Cost *</label><input type="number" min="0" step="0.01" id="travel_cost" class="form-control" value="0"></div>
+                    <div class="col-12"><label>TA Image</label><input type="file" accept="image/*" id="travel_image" class="form-control"><small class="text-muted" id="travel_image_hint">JPG, PNG or WEBP - max 5 MB.</small></div>
                 </div>
             </div>
             <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" id="saveTravelRow">Save Travel</button></div>
@@ -174,6 +179,7 @@
                     <div class="col-12"><label>Expense Type *</label><select id="expense_type" class="form-control"><option value="">Select Type</option>@foreach($expenseTypes as $type)<option value="{{ $type->id }}" data-name="{{ $type->name }}">{{ $type->name }}</option>@endforeach</select></div>
                     <div class="col-12"><label>Amount *</label><input type="number" min="0" step="0.01" id="expense_amount" class="form-control" value="0"></div>
                     <div class="col-12"><label>Note</label><input id="expense_note" class="form-control" placeholder="Optional note"></div>
+                    <div class="col-12"><label>DA / Cost Image</label><input type="file" accept="image/*" id="expense_image" class="form-control"><small class="text-muted" id="expense_image_hint">JPG, PNG or WEBP - max 5 MB.</small></div>
                 </div>
             </div>
             <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" id="saveExpenseRow">Save Cost</button></div>
@@ -230,6 +236,7 @@ function renderTravels(){
             </div>
             <div class="activity-list-amount">৳${money(r.cost)}</div>
             <div class="activity-list-actions">
+                ${(r.image_preview_url || r.image_view_url) ? `<a href="${esc(r.image_preview_url || r.image_view_url)}" target="_blank" class="btn btn-outline-success icon-action" title="View Image"><i class="feather-image"></i></a>` : ''}
                 <button type="button" class="btn btn-outline-primary icon-action edit-travel" data-index="${i}" title="Edit"><i class="feather-edit-2"></i></button>
                 <button type="button" class="btn btn-outline-danger icon-action delete-travel" data-index="${i}" title="Delete"><i class="feather-trash-2"></i></button>
             </div>
@@ -253,6 +260,7 @@ function renderExpenses(){
             </div>
             <div class="activity-list-amount">৳${money(r.amount)}</div>
             <div class="activity-list-actions">
+                ${(r.image_preview_url || r.image_view_url) ? `<a href="${esc(r.image_preview_url || r.image_view_url)}" target="_blank" class="btn btn-outline-success icon-action" title="View Image"><i class="feather-image"></i></a>` : ''}
                 <button type="button" class="btn btn-outline-primary icon-action edit-expense" data-index="${i}" title="Edit"><i class="feather-edit-2"></i></button>
                 <button type="button" class="btn btn-outline-danger icon-action delete-expense" data-index="${i}" title="Delete"><i class="feather-trash-2"></i></button>
             </div>
@@ -269,23 +277,25 @@ function fillVehicleOptions(selected=''){
 
 function resetTravelModal(){
     $('#travelEditIndex').val(''); $('#travelModalTitle').text('Add Travel');
-    $('#travel_from,#travel_to').val(''); $('#travel_distance,#travel_cost').val(0); fillVehicleOptions('');
+    $('#travel_from,#travel_to').val(''); $('#travel_distance,#travel_cost').val(0); $('#travel_image').val(''); $('#travel_image_hint').text('JPG, PNG or WEBP - max 5 MB.'); fillVehicleOptions('');
 }
 function openTravelEdit(index){
     const r=travels[index]; if(!r) return;
     $('#travelEditIndex').val(index); $('#travelModalTitle').text('Edit Travel');
-    $('#travel_from').val(r.from_location); $('#travel_to').val(r.to_location); fillVehicleOptions(r.vehicle); $('#travel_distance').val(r.distance); $('#travel_cost').val(r.cost);
+    $('#travel_from').val(r.from_location); $('#travel_to').val(r.to_location); fillVehicleOptions(r.vehicle); $('#travel_distance').val(r.distance); $('#travel_cost').val(r.cost); $('#travel_image').val('');
+    $('#travel_image_hint').text((r.image_file?.name || (r.image_url ? 'Current image attached. Choose a file only to replace it.' : 'JPG, PNG or WEBP - max 5 MB.')));
     travelModal.show();
 }
 
 function resetExpenseModal(){
     $('#expenseEditIndex').val(''); $('#expenseModalTitle').text('Add Cost');
-    $('#expense_type').val(''); $('#expense_amount').val(0); $('#expense_note').val('');
+    $('#expense_type').val(''); $('#expense_amount').val(0); $('#expense_note').val(''); $('#expense_image').val(''); $('#expense_image_hint').text('JPG, PNG or WEBP - max 5 MB.');
 }
 function openExpenseEdit(index){
     const r=expenses[index]; if(!r) return;
     $('#expenseEditIndex').val(index); $('#expenseModalTitle').text('Edit Cost');
-    $('#expense_type').val(String(r.expense_type_id||'')); $('#expense_amount').val(r.amount); $('#expense_note').val(r.note||'');
+    $('#expense_type').val(String(r.expense_type_id||'')); $('#expense_amount').val(r.amount); $('#expense_note').val(r.note||''); $('#expense_image').val('');
+    $('#expense_image_hint').text((r.image_file?.name || (r.image_url ? 'Current image attached. Choose a file only to replace it.' : 'JPG, PNG or WEBP - max 5 MB.')));
     expenseModal.show();
 }
 
@@ -345,8 +355,10 @@ $('#saveTravelRow').on('click',function(){
     const from=$.trim($('#travel_from').val()), to=$.trim($('#travel_to').val()), cost=parseFloat($('#travel_cost').val())||0;
     if(!from || !to){ Swal.fire('Required','From and To location are required.','warning'); return; }
     if(cost < 0){ Swal.fire('Invalid','Travel cost cannot be negative.','warning'); return; }
-    const row={from_location:from,to_location:to,vehicle:$('#travel_vehicle').val()||'',distance:parseFloat($('#travel_distance').val())||0,cost:cost};
     const idx=$('#travelEditIndex').val();
+    const oldRow = idx==='' ? {} : (travels[parseInt(idx,10)] || {});
+    const imageFile = document.getElementById('travel_image').files[0] || oldRow.image_file || null;
+    const row={from_location:from,to_location:to,vehicle:$('#travel_vehicle').val()||'',distance:parseFloat($('#travel_distance').val())||0,cost:cost,image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
     if(idx==='') travels.push(row); else travels[parseInt(idx,10)]=row;
     renderTravels(); travelModal.hide();
 });
@@ -361,8 +373,10 @@ $('#saveExpenseRow').on('click',function(){
     const typeId=$('#expense_type').val(), amount=parseFloat($('#expense_amount').val())||0;
     if(!typeId){ Swal.fire('Required','Please select an expense type.','warning'); return; }
     if(amount < 0){ Swal.fire('Invalid','Amount cannot be negative.','warning'); return; }
-    const row={expense_type_id:String(typeId),expense_type:$('#expense_type option:selected').data('name')||$('#expense_type option:selected').text(),amount:amount,note:$.trim($('#expense_note').val())};
     const idx=$('#expenseEditIndex').val();
+    const oldRow = idx==='' ? {} : (expenses[parseInt(idx,10)] || {});
+    const imageFile = document.getElementById('expense_image').files[0] || oldRow.image_file || null;
+    const row={expense_type_id:String(typeId),expense_type:$('#expense_type option:selected').data('name')||$('#expense_type option:selected').text(),amount:amount,note:$.trim($('#expense_note').val()),image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
     if(idx==='') expenses.push(row); else expenses[parseInt(idx,10)]=row;
     renderExpenses(); expenseModal.hide();
 });
@@ -394,11 +408,15 @@ $('#btnSave').on('click',function(){
         fd.append(`travels[${i}][vehicle]`,r.vehicle||'');
         fd.append(`travels[${i}][distance]`,r.distance||0);
         fd.append(`travels[${i}][cost]`,r.cost||0);
+        fd.append(`travels[${i}][existing_image_url]`,r.image_url||'');
+        if(r.image_file) fd.append(`travels[${i}][image]`,r.image_file);
     });
     expenses.forEach((r,i)=>{
         fd.append(`expenses[${i}][expense_type_id]`,r.expense_type_id||'');
         fd.append(`expenses[${i}][amount]`,r.amount||0);
         fd.append(`expenses[${i}][note]`,r.note||'');
+        fd.append(`expenses[${i}][existing_image_url]`,r.image_url||'');
+        if(r.image_file) fd.append(`expenses[${i}][image]`,r.image_file);
     });
 
     const btn=$(this), oldText=btn.text();

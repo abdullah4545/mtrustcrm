@@ -232,6 +232,7 @@
 @endpush
 
 @push('scripts')
+<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -254,8 +255,29 @@ const ROUTE_DELETE    = "{{ url('products/manage') }}";
 const ROUTE_SUBCATS   = "{{ route('product.subcategory') }}";
 
 let table, modal;
+const productEditors = {};
+
+function initProductEditors(){
+    ['description','configuration_description','warranty_terms_details'].forEach(id => {
+        const el = document.getElementById(id);
+        if(!el || productEditors[id]) return;
+        ClassicEditor.create(el, { toolbar: ['heading','|','bold','italic','link','bulletedList','numberedList','|','undo','redo'] })
+            .then(editor => { productEditors[id] = editor; })
+            .catch(console.error);
+    });
+}
+
+function editorData(id){
+    return productEditors[id] ? productEditors[id].getData() : ($('#'+id).val() || '');
+}
+
+function setEditorData(id, value){
+    if(productEditors[id]) productEditors[id].setData(value || '');
+    else $('#'+id).val(value || '');
+}
 
 $(document).ready(function(){
+    initProductEditors();
     modal = new bootstrap.Modal(document.getElementById('productModal'));
 
     table = $('#productTable').DataTable({
@@ -344,7 +366,7 @@ $(document).ready(function(){
 
         fd.append('sku', $('#sku').val());
         fd.append('name', $('#name').val());
-        fd.append('description', $('#description').val());
+        fd.append('description', editorData('description'));
 
         fd.append('sale_price', $('#sale_price').val());
         fd.append('purchase_price', $('#purchase_price').val());
@@ -352,8 +374,8 @@ $(document).ready(function(){
         fd.append('tax_rate', $('#tax_rate').val());
 
         fd.append('warranty_months', $('#warranty_months').val());
-        fd.append('warranty_terms_details', $('#warranty_terms_details').val());
-        fd.append('configuration_description', $('#configuration_description').val());
+        fd.append('warranty_terms_details', editorData('warranty_terms_details'));
+        fd.append('configuration_description', editorData('configuration_description'));
 
         fd.append('status', $('#status').val());
 
@@ -413,7 +435,7 @@ $(document).ready(function(){
             $('#brand_id').val(d.brand_id);
             $('#sku').val(d.sku);
             $('#name').val(d.name);
-            $('#description').val(d.description);
+            setEditorData('description', d.description);
 
             $('#sale_price').val(d.sale_price);
             $('#purchase_price').val(d.purchase_price);
@@ -421,8 +443,8 @@ $(document).ready(function(){
             $('#tax_rate').val(d.tax_rate);
 
             $('#warranty_months').val(d.warranty_months);
-            $('#warranty_terms_details').val(d.warranty_terms_details);
-            $('#configuration_description').val(d.configuration_description);
+            setEditorData('warranty_terms_details', d.warranty_terms_details);
+            setEditorData('configuration_description', d.configuration_description);
 
             $('#status').val(d.status);
 
@@ -466,6 +488,9 @@ function clearForm(){
     document.getElementById('productForm').reset();
     $('#subcategory_id').html('<option value="">Select</option>');
     $('#imgPreview,#cataloguePreview').html('');
+    setEditorData('description','');
+    setEditorData('configuration_description','');
+    setEditorData('warranty_terms_details','');
     $('#status').val('active');
 }
 

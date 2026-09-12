@@ -35,6 +35,25 @@ class ActivityController extends Controller
         return (bool) $u?->can('activity.approve');
     }
 
+    private function isSuperAdmin(): bool
+    {
+        return (bool) Auth::user()?->hasRole('superadmin');
+    }
+
+    private function isLocked(Activity $activity): bool
+    {
+        return in_array(strtolower((string) $activity->status), ['approved', 'rejected'], true);
+    }
+
+    private function ensureUnlockedOrSuperAdmin(Activity $activity, string $action = 'change'): void
+    {
+        if (!$this->isLocked($activity) || $this->isSuperAdmin()) return;
+
+        throw ValidationException::withMessages([
+            'activity' => 'Approved or rejected activities are locked. Only Super Admin can '.$action.' them.',
+        ]);
+    }
+
     /**
      * Roles that may create an activity for another staff member and
      * manually choose the activity date/time. Regular staff always
@@ -87,11 +106,36 @@ class ActivityController extends Controller
             ->editColumn('date', fn($row) => optional($row->activity_at)->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?? optional($row->date)->format('d M Y'))
             ->addColumn('status', fn($row) => '<span class="badge bg-'.($row->status==='approved'?'success':($row->status==='rejected'?'danger':'secondary')).'">'.e($row->status).'</span>')
             ->addColumn('action', function($row){
-                $html='<div class="d-flex gap-1">';
-                if (Auth::user()->can('activity.edit')) $html.='<a href="'.route('activities.show',$row->id).'" class="btn btn-sm btn-primary">Edit</a>';
-                if (Auth::user()->can('activity.approve') && $row->status !== 'approved') $html.='<button class="btn btn-sm btn-success btn-review" data-id="'.$row->id.'" data-status="approved">Approve</button>';
-                if (Auth::user()->can('activity.approve') && $row->status !== 'rejected') $html.='<button class="btn btn-sm btn-warning btn-review" data-id="'.$row->id.'" data-status="rejected">Reject</button>';
-                if (Auth::user()->can('activity.delete')) $html.='<button class="btn btn-sm btn-danger btn-delete" data-id="'.$row->id.'">Delete</button>';
+                $user = Auth::user();
+                $locked = $this->isLocked($row);
+                $superAdmin = $this->isSuperAdmin();
+                $canModifyLocked = !$locked || $superAdmin;
+
+                $html='<div class="d-flex gap-1 flex-wrap">';
+
+                if ($user->can('activity.edit') && $canModifyLocked) {
+                    $html.='<a href="'.route('activities.show',$row->id).'" class="btn btn-sm btn-primary">Edit</a>';
+                }
+
+                // Pending activities can be reviewed by normal approvers. Once reviewed,
+                // only Super Admin may change the approval decision.
+                if ($user->can('activity.approve') && (!$locked || $superAdmin)) {
+                    if ($row->status !== 'approved') {
+                        $html.='<button class="btn btn-sm btn-success btn-review" data-id="'.$row->id.'" data-status="approved">Approve</button>';
+                    }
+                    if ($row->status !== 'rejected') {
+                        $html.='<button class="btn btn-sm btn-warning btn-review" data-id="'.$row->id.'" data-status="rejected">Reject</button>';
+                    }
+                }
+
+                if ($user->can('activity.delete') && $canModifyLocked) {
+                    $html.='<button class="btn btn-sm btn-danger btn-delete" data-id="'.$row->id.'">Delete</button>';
+                }
+
+                if ($locked && !$superAdmin) {
+                    $html.='<span class="badge bg-light text-dark align-self-center"><i class="feather-lock"></i> Locked</span>';
+                }
+
                 return $html.'</div>';
             })->rawColumns(['status','action'])->make(true);
     }
@@ -160,7 +204,12 @@ class ActivityController extends Controller
 
     private function ensureEditable(Activity $activity): void
     {
+        // Approval is a hard lock. Having activity.edit or activity.approve is not enough;
+        // only the protected superadmin role may override an approved/rejected activity.
+        $this->ensureUnlockedOrSuperAdmin($activity, 'edit');
+
         if ($this->isAdmin()) return;
+
         $activityDate = ($activity->activity_at ?? $activity->created_at ?? $activity->date)?->timezone('Asia/Dhaka')->toDateString();
         if ($activityDate !== now('Asia/Dhaka')->toDateString()) {
             throw ValidationException::withMessages(['activity'=>'Previous day activities can only be edited by Admin or Super Admin.']);
@@ -280,6 +329,7 @@ class ActivityController extends Controller
     public function departments(){ return response()->json(Department::select('id','title')->orderBy('title')->get()); }
     public function show($id){
         $activity=$this->findVisible((int)$id);
+        $this->ensureUnlockedOrSuperAdmin($activity, 'edit');
         return view('backend.content.activity.edit',[
             'activity'=>$activity,
             'isAdmin'=>$this->isAdmin(),
@@ -293,6 +343,7 @@ class ActivityController extends Controller
     {
         $data = $request->validate(['status'=>'required|in:approved,rejected','review_note'=>'nullable|string|max:500']);
         $activity = $this->findVisible((int)$id);
+        $this->ensureUnlockedOrSuperAdmin($activity, 'change the approval status of');
         $activity->update([
             'status'=>$data['status'],
             'reviewed_by'=>Auth::id(),
@@ -304,6 +355,7 @@ class ActivityController extends Controller
 
     public function destroy($id){
         $activity = $this->findVisible((int)$id);
+        $this->ensureUnlockedOrSuperAdmin($activity, 'delete');
         $images = $activity->travels->pluck('image_url')->merge($activity->expenses->pluck('image_url'))->filter()->values();
         $activity->delete();
         $images->each(fn($path) => $this->deleteActivityImage($path));

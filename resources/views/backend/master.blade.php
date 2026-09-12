@@ -127,8 +127,45 @@
 
     @stack('modals')
     <style>
+        /* Keep Select2 text properly inside and vertically centered in the control. */
+        .select2-container {
+            width: 100% !important;
+        }
+        .select2-container--default .select2-selection--single {
+            min-height: 42px !important;
+            height: 42px !important;
+            display: flex !important;
+            align-items: center !important;
+            border: 1px solid #ced4da !important;
+            border-radius: .375rem !important;
+            background-color: #fff !important;
+            position: relative !important;
+        }
         .select2-container--default .select2-selection--single .select2-selection__rendered {
-            line-height: 20px !important;
+            width: 100% !important;
+            line-height: normal !important;
+            padding-left: 12px !important;
+            padding-right: 38px !important;
+            margin: 0 !important;
+            display: block !important;
+            color: #283c50;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__placeholder {
+            line-height: normal !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px !important;
+            top: 0 !important;
+            right: 6px !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__clear {
+            position: absolute !important;
+            right: 28px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            margin: 0 !important;
+            line-height: 1 !important;
+            z-index: 2;
         }
 
         /* Global modal safety: blur only the backdrop, never modal content. */

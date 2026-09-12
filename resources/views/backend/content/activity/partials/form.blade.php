@@ -51,7 +51,7 @@
 .activity-list-actions{display:flex;gap:6px;flex:0 0 auto}
 .icon-action{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;padding:0}
 .summary-box{background:#f8fafc;border-radius:14px;padding:16px}
-.select2-container{width:100%!important}.select2-container .select2-selection--single{height:40px!important;border:1px solid #ced4da!important;border-radius:.375rem!important}.select2-container--default .select2-selection--single .select2-selection__rendered{line-height:38px!important}.select2-container--default .select2-selection--single .select2-selection__arrow{height:38px!important}
+.activity-entry-card .select2-container{width:100%!important}.activity-entry-card .select2-container .select2-selection--single{min-height:42px!important;height:42px!important;display:flex!important;align-items:center!important;border:1px solid #ced4da!important;border-radius:.375rem!important}.activity-entry-card .select2-container--default .select2-selection--single .select2-selection__rendered{width:100%!important;line-height:normal!important;padding-left:12px!important;padding-right:38px!important;margin:0!important}.activity-entry-card .select2-container--default .select2-selection--single .select2-selection__arrow{height:40px!important;top:0!important;right:6px!important}
 .modal-backdrop{z-index:1050!important;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);background-color:rgba(15,23,42,.38)!important}
 .modal-backdrop.show{opacity:1!important}
 .activity-modal{z-index:1060!important;filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}

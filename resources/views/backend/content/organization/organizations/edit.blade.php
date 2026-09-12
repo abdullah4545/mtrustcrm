@@ -296,26 +296,10 @@
 
         @empty
 
-        <div class="contact-row border p-2 mt-2">
-            <div class="row g-2">
-
-                <div class="col-md-3">
-                    <input name="contacts[0][title]" class="form-control" placeholder="Title">
-                </div>
-
-                <div class="col-md-3">
-                    <input name="contacts[0][name]" class="form-control" placeholder="Full Name">
-                </div>
-
-                <div class="col-md-3">
-                    <div class="repeat-field" data-type="phone"><div class="input-group"><input name="contacts[0][phone_numbers][]" class="form-control" placeholder="Phone"><button type="button" class="btn btn-outline-primary add-repeat" data-kind="phone">+</button></div></div>
-                </div>
-
-                <div class="col-md-3">
-                    <div class="repeat-field" data-type="email"><div class="input-group"><input type="email" name="contacts[0][email_addresses][]" class="form-control" placeholder="Email"><button type="button" class="btn btn-outline-primary add-repeat" data-kind="email">+</button></div></div>
-                </div>
-
-            </div>
+        <div id="noContactState" class="text-center text-muted py-4">
+            <i class="feather-user-plus d-block mb-2" style="font-size:26px;"></i>
+            <div>No contact added yet.</div>
+            <small>Click <strong>+ Add Contact</strong> to add a contact person.</small>
         </div>
 
         @endforelse
@@ -334,7 +318,7 @@
 
 
 <script>
-let i = {{ $org->contacts->count() > 0 ? $org->contacts->count() : 1 }};
+let i = {{ $org->contacts->count() }};
 
 
 function repeatInputName(row, kind){
@@ -351,6 +335,8 @@ $(document).on('click','.add-repeat',function(){
 $(document).on('click','.remove-repeat',function(){ $(this).closest('.repeat-field').remove(); });
 
 $('#addMore').on('click', function(){
+
+    $('#noContactState').remove();
 
     let html = `
     <div class="contact-row border p-2 mt-2">
@@ -442,6 +428,16 @@ $(document).on('click', '.btnRemoveContact', function(){
     }
 
     $(this).closest('.contact-row').remove();
+
+    if($('#contactBox .contact-row').length === 0){
+        $('#contactBox').html(`
+            <div id="noContactState" class="text-center text-muted py-4">
+                <i class="feather-user-plus d-block mb-2" style="font-size:26px;"></i>
+                <div>No contact added yet.</div>
+                <small>Click <strong>+ Add Contact</strong> to add a contact person.</small>
+            </div>
+        `);
+    }
 });
 
 $('#division_id').on('change', function () {

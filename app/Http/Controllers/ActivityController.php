@@ -80,7 +80,7 @@ class ActivityController extends Controller
     public function datatable(Request $request)
     {
         $query = $this->visibleQuery()->latest('activity_at')->latest('id');
-        if ($request->filled('created_by')) $query->where('created_by', $request->integer('created_by'));
+        if (Auth::user()->can('staff.filter') && $request->filled('created_by')) $query->where('created_by', $request->integer('created_by'));
         return DataTables::of($query)
             ->addIndexColumn()
             ->addColumn('staff_name', fn($row) => e($row->creator?->name ?? '-'))

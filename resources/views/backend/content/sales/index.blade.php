@@ -67,6 +67,7 @@
                         </select>
                     </div>
 
+                    @can('staff.filter')
                     <div class="col-md-2">
                         <label class="form-label mb-1">Sold By</label>
                         <select id="f_sold_by" class="form-control">
@@ -76,6 +77,7 @@
                             @endforeach
                         </select>
                     </div>
+                    @endcan
                     <div class="col-md-3">
                         <label class="form-label mb-1">Search</label>
                         <input type="text" id="f_search_text" class="form-control" placeholder="invoice / name / phone / sale no">

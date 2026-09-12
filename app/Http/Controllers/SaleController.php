@@ -156,7 +156,7 @@ class SaleController extends Controller
 
         if ($request->filled('status_stage_id')) $q->where('status_stage_id', $request->status_stage_id);
         if ($request->filled('payment_status')) $q->where('payment_status', $request->payment_status);
-        if ($request->filled('sold_by')) $q->where('sold_by', $request->integer('sold_by'));
+        if ($u->can('staff.filter') && $request->filled('sold_by')) $q->where('sold_by', $request->integer('sold_by'));
 
         if ($request->filled('date_from') && $request->filled('date_to')) {
             $q->whereBetween('sale_date', [$request->date_from, $request->date_to]);

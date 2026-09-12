@@ -192,7 +192,7 @@ class LeadController extends Controller
         if ($request->filled('platform_id')) $q->where('platform_id', $request->platform_id);
         if ($request->filled('status_stage_id')) $q->where('status_stage_id', $request->status_stage_id);
         if ($request->filled('organization_id')) $q->where('organization_id', $request->organization_id);
-        if ($request->filled('created_by')) $q->where('created_by', $request->integer('created_by'));
+        if (Auth::user()->can('staff.filter') && $request->filled('created_by')) $q->where('created_by', $request->integer('created_by'));
 
         if ($request->filled('lead_state')) $q->where('lead_state', $request->lead_state);
 

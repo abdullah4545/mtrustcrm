@@ -93,7 +93,7 @@ class QuotationController extends Controller
 
         // filters
         if ($request->filled('status_stage_id')) $q->where('status_stage_id', $request->status_stage_id);
-        if ($request->filled('prepared_by')) $q->where('prepared_by', $request->integer('prepared_by'));
+        if ($u->can('staff.filter') && $request->filled('prepared_by')) $q->where('prepared_by', $request->integer('prepared_by'));
 
         if ($request->filled('date_from') && $request->filled('date_to')) {
             $q->whereBetween('issue_date', [$request->date_from, $request->date_to]);

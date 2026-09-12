@@ -16,7 +16,7 @@
         <div class="card-body">
             <form class="row g-2 mb-3" method="GET">
                 <div class="col-md-3"><select name="filter" class="form-control"><option value="today" @selected($filter==='today')>Today</option><option value="overdue" @selected($filter==='overdue')>Overdue</option><option value="upcoming" @selected($filter==='upcoming')>Next 7 Days</option><option value="all" @selected($filter==='all')>All</option></select></div>
-                <div class="col-md-3"><select name="user_id" class="form-control"><option value="">All Staff</option>@foreach($staffs as $staff)<option value="{{ $staff->id }}" @selected((string)request('user_id')===(string)$staff->id)>{{ $staff->name }}</option>@endforeach</select></div>
+                @can('staff.filter')<div class="col-md-3"><select name="user_id" class="form-control"><option value="">All Staff</option>@foreach($staffs as $staff)<option value="{{ $staff->id }}" @selected((string)request('user_id')===(string)$staff->id)>{{ $staff->name }}</option>@endforeach</select></div>@endcan
                 <div class="col-md-3"><input name="q" value="{{ request('q') }}" class="form-control" placeholder="Search name, phone or lead no"></div>
                 <div class="col-md-3"><button class="btn btn-primary w-100">Search</button></div>
             </form>

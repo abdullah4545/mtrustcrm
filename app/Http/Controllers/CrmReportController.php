@@ -38,7 +38,7 @@ class CrmReportController extends Controller
 
         $sales = $this->applyScope(Sale::query(), 'sale.view_all_branches', 'sale.view_branch', 'sold_by');
         $sales->whereBetween('sale_date', [$from, $to]);
-        if ($request->filled('user_id')) $sales->where('sold_by', $request->integer('user_id'));
+        if (Auth::user()->can('staff.filter') && $request->filled('user_id')) $sales->where('sold_by', $request->integer('user_id'));
 
         $summary = [
             'sales_count' => (clone $sales)->count(),
@@ -60,7 +60,7 @@ class CrmReportController extends Controller
 
         $leads = $this->applyScope(Lead::query(), 'lead.view_all_branches', 'lead.view_branch', 'assigned_user_id')
             ->whereBetween('created_at', [$from.' 00:00:00', $to.' 23:59:59']);
-        if ($request->filled('user_id')) $leads->where('created_by', $request->integer('user_id'));
+        if (Auth::user()->can('staff.filter') && $request->filled('user_id')) $leads->where('created_by', $request->integer('user_id'));
 
         $summary = [
             'total' => (clone $leads)->count(),
@@ -90,7 +90,7 @@ class CrmReportController extends Controller
             $payments->whereIn('sale_id', Sale::where('sold_by', $u->id)->select('id'));
         }
         $payments->whereBetween('payment_date', [$from, $to]);
-        if ($request->filled('user_id')) $payments->where('received_by', $request->integer('user_id'));
+        if ($u->can('staff.filter') && $request->filled('user_id')) $payments->where('received_by', $request->integer('user_id'));
 
         $summary = [
             'count' => (clone $payments)->count(),

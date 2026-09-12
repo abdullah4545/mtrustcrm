@@ -62,7 +62,7 @@ class FollowupController extends Controller
             $query->whereBetween('next_followup_at', [now()->startOfDay(), now()->endOfDay()]);
         }
 
-        if ($request->filled('user_id')) $query->where('assigned_user_id', $request->integer('user_id'));
+        if ($u->can('staff.filter') && $request->filled('user_id')) $query->where('assigned_user_id', $request->integer('user_id'));
 
         if ($request->filled('q')) {
             $s = trim($request->q);

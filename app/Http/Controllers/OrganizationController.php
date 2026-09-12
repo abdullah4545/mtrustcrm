@@ -224,7 +224,7 @@ class OrganizationController extends Controller
         if($request->filled('district_id'))              $q->where('district_id', $request->district_id);
         if($request->filled('upazila_id'))               $q->where('upazila_id', $request->upazila_id);
         if($request->filled('union_id'))                 $q->where('union_id', $request->union_id);
-        if($request->filled('created_by'))               $q->where('created_by', $request->integer('created_by'));
+        if(auth()->user()->can('staff.filter') && $request->filled('created_by')) $q->where('created_by', $request->integer('created_by'));
 
         if($request->filled('name')) {
             $q->where('name', 'like', '%'.$request->name.'%');

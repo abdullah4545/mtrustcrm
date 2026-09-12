@@ -67,6 +67,7 @@ class ActivityReportController extends Controller
     {
         
         $userQuery = DB::table('users')->select('id','name')->orderBy('name');
+        if (!Auth::user()->can('staff.filter')) $userQuery->whereRaw('1 = 0');
         if (Auth::user()->can('activity.view_branch') && !Auth::user()->can('activity.view_all')) {
             $userQuery->where('branch_id', Auth::user()->branch_id);
         } elseif (Auth::user()->can('activity.view_self') && !Auth::user()->can('activity.view_branch') && !Auth::user()->can('activity.view_all')) {
@@ -361,8 +362,12 @@ class ActivityReportController extends Controller
         ]);
 
         $u = Auth::user();
+        if (!$u->can('staff.filter')) {
+            unset($validated['created_by']);
+        }
+
         if ($u->can('activity.view_all')) {
-            // requested branch/user filters are allowed
+            // requested branch/user filters are allowed only with staff.filter
         } elseif ($u->can('activity.view_branch')) {
             $validated['branch_id'] = $u->branch_id;
         } else {

@@ -126,6 +126,7 @@
                 </select>
             </div>
 
+                    @can('staff.filter')
             <div class="col-12">
                 <select id="f_created_by" class="form-control">
                     <option value="">All Staff</option>
@@ -134,6 +135,7 @@
                     @endforeach
                 </select>
             </div>
+                    @endcan
 
             <div class="col-12">
                 <input type="text" id="f_name" class="form-control" placeholder="Search name...">

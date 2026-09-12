@@ -33,6 +33,7 @@
         <div class="card">
             <div class="card-body">
                 <div class="row g-2 mb-3">
+                    @can('staff.filter')
                     <div class="col-md-4">
                         <label class="form-label">Staff / Created By</label>
                         <select id="f_created_by" class="form-control">
@@ -42,6 +43,7 @@
                             @endforeach
                         </select>
                     </div>
+                    @endcan
                 </div>
 
                 <table class="table table-bordered" id="activityTable">

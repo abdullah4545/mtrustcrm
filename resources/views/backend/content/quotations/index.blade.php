@@ -58,6 +58,7 @@
                             @endforeach
                         </select>
                     </div>
+                    @can('staff.filter')
                     <div class="col-md-2">
                         <label class="form-label mb-1">Prepared By</label>
                         <select id="f_prepared_by" class="form-control">
@@ -67,6 +68,7 @@
                             @endforeach
                         </select>
                     </div>
+                    @endcan
                     <div class="col-md-3">
                         <label class="form-label mb-1">Search</label>
                         <input type="text" id="f_search_text" class="form-control" placeholder="quotation no / name / phone / email">

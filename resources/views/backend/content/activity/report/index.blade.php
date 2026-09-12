@@ -174,6 +174,7 @@
                             >
                         </div>
 
+                        @can('staff.filter')
                         <div class="col-md-3">
                             <label class="form-label">
                                 Created By / User
@@ -195,6 +196,8 @@
                                 @endforeach
                             </select>
                         </div>
+
+                        @endcan
 
                         <div class="col-md-3">
                             <label class="form-label">

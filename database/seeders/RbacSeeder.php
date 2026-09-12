@@ -109,6 +109,7 @@ class RbacSeeder extends Seeder
 
             'role.manage',
             'permission.manage',
+            'staff.filter',
             'database.backup.download',
         ];
 
@@ -164,7 +165,7 @@ class RbacSeeder extends Seeder
 
                 'user.view_all_branches','user.create','user.edit','user.delete','user.role.assign','user.profile.update',
 
-                'role.manage','permission.manage',
+                'role.manage','permission.manage','staff.filter',
             ],
 
             // ✅ Accounts = Branch wise sales/payment + due/collection reports

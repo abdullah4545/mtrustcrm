@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Lead;
 use App\Models\LeadActivity;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -61,6 +62,8 @@ class FollowupController extends Controller
             $query->whereBetween('next_followup_at', [now()->startOfDay(), now()->endOfDay()]);
         }
 
+        if ($request->filled('user_id')) $query->where('assigned_user_id', $request->integer('user_id'));
+
         if ($request->filled('q')) {
             $s = trim($request->q);
             $query->where(function ($q) use ($s) {
@@ -71,6 +74,8 @@ class FollowupController extends Controller
         }
 
         $followups = $query->orderBy('next_followup_at')->paginate(25)->withQueryString();
+        $u = Auth::user();
+        $staffs = User::where('status',1)->when(!$u->can('lead.view_all_branches'), fn($q)=>$q->where('branch_id',$u->branch_id))->orderBy('name')->get(['id','name']);
 
         $base = Lead::query()->where('lead_state', 'open')->whereNotNull('next_followup_at');
         $this->scopeVisible($base);
@@ -80,7 +85,7 @@ class FollowupController extends Controller
             'upcoming' => (clone $base)->whereBetween('next_followup_at', [now()->endOfDay(), now()->addDays(7)->endOfDay()])->count(),
         ];
 
-        return view('backend.content.followups.index', compact('followups','filter','counts'));
+        return view('backend.content.followups.index', compact('followups','filter','counts','staffs'));
     }
 
     public function complete(Request $request, $id)

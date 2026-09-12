@@ -53,6 +53,7 @@
                     <tr>
                         <th>#</th>
                         <th>Lead No</th>
+                        <th>Created By</th>
                         <th>Organization</th>
                         <th>Contact</th>
                         <th>Phone</th>
@@ -96,6 +97,15 @@
                     <option value="">All Status</option>
                     @foreach($statuses as $s)
                         <option value="{{ $s->id }}">{{ $s->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="col-12">
+                <select id="f_created_by" class="form-control">
+                    <option value="">All Staff</option>
+                    @foreach($assignees as $staff)
+                        <option value="{{ $staff->id }}">{{ $staff->name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -378,6 +388,7 @@ $(document).ready(function(){
             data: function(d){ 
                 d.status_stage_id = $('#f_status_stage_id').val(); 
                 d.search_text = $('#f_search_text').val();
+                d.created_by = $('#f_created_by').val();
                 d.date_from = $('#f_date_from').val();
                 d.date_to = $('#f_date_to').val();
                 @if(!empty($branches))
@@ -388,6 +399,7 @@ $(document).ready(function(){
         columns:[
             {data:'DT_RowIndex', orderable:false, searchable:false},
             {data:'lead_no', name:'lead_no'},
+            {data:'staff_name', orderable:false, searchable:false},
             {data:'org_name', orderable:false, searchable:false}, 
             {data:'person_name', name:'person_name'},
             {data:'person_phone', name:'person_phone'}, 
@@ -410,6 +422,7 @@ $(document).ready(function(){
                 <div class="card-body p-2">
                     <h6>${item.person_name}</h6>
                     <small>${item.person_phone}</small><br>
+                    <small><b>Created By:</b> ${item.staff_name ?? '-'}</small><br>
                     <small>${item.org_name}</small><br>
                     <small>${item.status_badge}</small><br>
                     <small>${item.next_followup}</small>
@@ -422,14 +435,14 @@ $(document).ready(function(){
     }
 
 
-    $('#f_status_stage_id,#f_date_from,#f_date_to').on('change', ()=>table.ajax.reload());
+    $('#f_status_stage_id,#f_date_from,#f_date_to,#f_created_by').on('change', ()=>table.ajax.reload());
     $('#f_search_text').on('keyup', ()=>table.ajax.reload());
     @if(!empty($branches))
     $('#f_branch_id').on('change', ()=>table.ajax.reload());
     @endif
 
     $('#btnReset').on('click', function(){
-        $('#f_status_stage_id,#f_search_text,#f_date_from,#f_date_to').val('');
+        $('#f_status_stage_id,#f_search_text,#f_date_from,#f_date_to,#f_created_by').val('').trigger('change');
         @if(!empty($branches)) $('#f_branch_id').val(''); @endif
         table.ajax.reload();
     });

@@ -69,13 +69,21 @@ class ActivityController extends Controller
         return $this->visibleQuery()->with(['travels','expenses'])->findOrFail($id);
     }
 
-    public function index(){ return view('backend.content.activity.index'); }
+    public function index(){
+        $u = Auth::user();
+        $staffs = User::where('status',1)
+            ->when(!$u->can('activity.view_all'), fn($q) => $q->where('branch_id',$u->branch_id))
+            ->orderBy('name')->get(['id','name']);
+        return view('backend.content.activity.index', compact('staffs'));
+    }
 
     public function datatable(Request $request)
     {
         $query = $this->visibleQuery()->latest('activity_at')->latest('id');
+        if ($request->filled('created_by')) $query->where('created_by', $request->integer('created_by'));
         return DataTables::of($query)
             ->addIndexColumn()
+            ->addColumn('staff_name', fn($row) => e($row->creator?->name ?? '-'))
             ->editColumn('date', fn($row) => optional($row->activity_at)->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?? optional($row->date)->format('d M Y'))
             ->addColumn('status', fn($row) => '<span class="badge bg-'.($row->status==='approved'?'success':($row->status==='rejected'?'danger':'secondary')).'">'.e($row->status).'</span>')
             ->addColumn('action', function($row){

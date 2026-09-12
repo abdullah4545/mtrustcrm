@@ -75,4 +75,9 @@ class Organization extends Model
         return $this->hasMany(\App\Models\OrganizationContact::class)->orderBy('designation_id', 'asc');
     }
 
+    public function creator()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'created_by');
+    }
+
 }

@@ -177,7 +177,8 @@ class LeadController extends Controller
                 'platform:id,title',
                 'statusStage:id,name,color',
                 'organization:id,name',
-                'organizationContact:id,name'
+                'organizationContact:id,name',
+                'creator:id,name'
             ])
             ->latest();
 
@@ -191,6 +192,7 @@ class LeadController extends Controller
         if ($request->filled('platform_id')) $q->where('platform_id', $request->platform_id);
         if ($request->filled('status_stage_id')) $q->where('status_stage_id', $request->status_stage_id);
         if ($request->filled('organization_id')) $q->where('organization_id', $request->organization_id);
+        if ($request->filled('created_by')) $q->where('created_by', $request->integer('created_by'));
 
         if ($request->filled('lead_state')) $q->where('lead_state', $request->lead_state);
 
@@ -208,6 +210,7 @@ class LeadController extends Controller
 
         return DataTables::of($q)
             ->addIndexColumn()
+            ->addColumn('staff_name', fn($row) => e($row->creator?->name ?? '-'))
             ->addColumn('org_name', fn($row) => $row->organization ? e($row->organization->name) : '-')
             ->addColumn('contact_name', fn($row) => $row->organizationContact ? e($row->organizationContact->name) : '-')
             ->addColumn('platform_name', fn($row) => $row->platform ? e($row->platform->title) : '-')

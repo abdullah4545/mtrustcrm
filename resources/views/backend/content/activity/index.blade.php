@@ -32,12 +32,24 @@
     <div class="main-content">
         <div class="card">
             <div class="card-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Staff / Created By</label>
+                        <select id="f_created_by" class="form-control">
+                            <option value="">All Staff</option>
+                            @foreach($staffs as $staff)
+                                <option value="{{ $staff->id }}">{{ $staff->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
 
                 <table class="table table-bordered" id="activityTable">
                     <thead>
                     <tr>
                         <th>#</th>
                         <th>Date</th>
+                        <th>Staff</th>
                         <th>Organization</th>
                         <th>From</th>
                         <th>To</th>
@@ -196,10 +208,11 @@
         table = $('#activityTable').DataTable({
             processing:true,
             serverSide:true,
-            ajax: ROUTE_DATATABLE,
+            ajax:{url:ROUTE_DATATABLE,data:function(d){d.created_by=$('#f_created_by').val();}},
             columns:[
                 {data:'DT_RowIndex', orderable:false, searchable:false},
                 {data:'date'},
+                {data:'staff_name', orderable:false, searchable:false},
                 {data:'organization_name'},
                 {data:'from_location'},
                 {data:'to_location'},
@@ -212,6 +225,8 @@
         });
 
         
+
+        $('#f_created_by').on('change', ()=>table.ajax.reload());
 
         $('#ta,#da').on('keyup change', function(){
             let ta = parseFloat($('#ta').val()) || 0;

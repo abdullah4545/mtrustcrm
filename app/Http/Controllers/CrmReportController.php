@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Lead;
 use App\Models\Sale;
 use App\Models\SalePayment;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Support\CrmAccess;
@@ -37,6 +38,7 @@ class CrmReportController extends Controller
 
         $sales = $this->applyScope(Sale::query(), 'sale.view_all_branches', 'sale.view_branch', 'sold_by');
         $sales->whereBetween('sale_date', [$from, $to]);
+        if ($request->filled('user_id')) $sales->where('sold_by', $request->integer('user_id'));
 
         $summary = [
             'sales_count' => (clone $sales)->count(),
@@ -45,8 +47,10 @@ class CrmReportController extends Controller
             'due_total' => (float)(clone $sales)->sum('due_total'),
         ];
 
-        $rows = $sales->latest('sale_date')->paginate(30)->withQueryString();
-        return view('backend.content.reports.sales', compact('summary','rows','from','to'));
+        $rows = $sales->with('soldBy:id,name')->latest('sale_date')->paginate(30)->withQueryString();
+        $u = Auth::user();
+        $staffs = User::where('status',1)->when(!$u->can('sale.view_all_branches'), fn($q)=>$q->where('branch_id',$u->branch_id))->orderBy('name')->get(['id','name']);
+        return view('backend.content.reports.sales', compact('summary','rows','from','to','staffs'));
     }
 
     public function leads(Request $request)
@@ -56,6 +60,7 @@ class CrmReportController extends Controller
 
         $leads = $this->applyScope(Lead::query(), 'lead.view_all_branches', 'lead.view_branch', 'assigned_user_id')
             ->whereBetween('created_at', [$from.' 00:00:00', $to.' 23:59:59']);
+        if ($request->filled('user_id')) $leads->where('created_by', $request->integer('user_id'));
 
         $summary = [
             'total' => (clone $leads)->count(),
@@ -64,8 +69,10 @@ class CrmReportController extends Controller
             'value' => (float)(clone $leads)->sum('expected_value'),
         ];
 
-        $rows = $leads->with('statusStage:id,name,color')->latest()->paginate(30)->withQueryString();
-        return view('backend.content.reports.leads', compact('summary','rows','from','to'));
+        $rows = $leads->with(['statusStage:id,name,color','creator:id,name'])->latest()->paginate(30)->withQueryString();
+        $u = Auth::user();
+        $staffs = User::where('status',1)->when(!$u->can('lead.view_all_branches'), fn($q)=>$q->where('branch_id',$u->branch_id))->orderBy('name')->get(['id','name']);
+        return view('backend.content.reports.leads', compact('summary','rows','from','to','staffs'));
     }
 
     public function collections(Request $request)
@@ -83,15 +90,17 @@ class CrmReportController extends Controller
             $payments->whereIn('sale_id', Sale::where('sold_by', $u->id)->select('id'));
         }
         $payments->whereBetween('payment_date', [$from, $to]);
+        if ($request->filled('user_id')) $payments->where('received_by', $request->integer('user_id'));
 
         $summary = [
             'count' => (clone $payments)->count(),
             'amount' => (float)(clone $payments)->sum('amount'),
         ];
 
-        $rows = $payments->with('sale:id,invoice_no,client_name,client_phone')
+        $rows = $payments->with(['sale:id,invoice_no,client_name,client_phone','receiver:id,name'])
             ->latest('payment_date')->paginate(30)->withQueryString();
+        $staffs = User::where('status',1)->when(!$u->can('sale.view_all_branches'), fn($q)=>$q->where('branch_id',$u->branch_id))->orderBy('name')->get(['id','name']);
 
-        return view('backend.content.reports.collections', compact('summary','rows','from','to'));
+        return view('backend.content.reports.collections', compact('summary','rows','from','to','staffs'));
     }
 }

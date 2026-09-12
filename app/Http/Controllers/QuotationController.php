@@ -8,6 +8,7 @@ use App\Models\QuotationItem;
 use App\Models\Lead;
 use App\Models\Product;
 use App\Models\StatusStage;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -68,8 +69,9 @@ class QuotationController extends Controller
 
     public function index()
     {
-        // later: datatable; now normal view
-        return view('backend.content.quotations.index');
+        $u = Auth::user();
+        $staffs = User::where('status',1)->when(!$u->can('quotation.view_all_branches'), fn($q)=>$q->where('branch_id',$u->branch_id))->orderBy('name')->get(['id','name']);
+        return view('backend.content.quotations.index', compact('staffs'));
     }
 
     public function datatable(Request $request)
@@ -77,7 +79,7 @@ class QuotationController extends Controller
         $u = Auth::user();
 
         $q = Quotation::query()
-            ->with(['statusStage:id,name,color','organization:id,name'])
+            ->with(['statusStage:id,name,color','organization:id,name','preparedBy:id,name'])
             ->latest();
 
         // permission-aware visibility
@@ -91,6 +93,7 @@ class QuotationController extends Controller
 
         // filters
         if ($request->filled('status_stage_id')) $q->where('status_stage_id', $request->status_stage_id);
+        if ($request->filled('prepared_by')) $q->where('prepared_by', $request->integer('prepared_by'));
 
         if ($request->filled('date_from') && $request->filled('date_to')) {
             $q->whereBetween('issue_date', [$request->date_from, $request->date_to]);
@@ -108,6 +111,7 @@ class QuotationController extends Controller
 
         return DataTables::of($q)
             ->addIndexColumn()
+            ->addColumn('staff_name', fn($row) => e($row->preparedBy?->name ?? '-'))
             ->addColumn('org_name', fn($row) => $row->organization ? e($row->organization->name) : '-')
             ->addColumn('status_badge', function($row){
                 if(!$row->statusStage) return '-';

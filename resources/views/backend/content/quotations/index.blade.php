@@ -58,6 +58,15 @@
                             @endforeach
                         </select>
                     </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1">Prepared By</label>
+                        <select id="f_prepared_by" class="form-control">
+                            <option value="">All Staff</option>
+                            @foreach($staffs as $staff)
+                                <option value="{{ $staff->id }}">{{ $staff->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                     <div class="col-md-3">
                         <label class="form-label mb-1">Search</label>
                         <input type="text" id="f_search_text" class="form-control" placeholder="quotation no / name / phone / email">
@@ -80,6 +89,7 @@
                         <tr>
                             <th>#</th>
                             <th>Quotation No</th>
+                            <th>Prepared By</th>
                             <th>Organization</th>
                             <th>Client</th>
                             <th>Issue</th>
@@ -120,6 +130,7 @@ $(document).ready(function(){
             data: function(d){
                 d.status_stage_id = $('#f_status_stage_id').val();
                 d.search_text = $('#f_search_text').val();
+                d.prepared_by = $('#f_prepared_by').val();
                 d.date_from = $('#f_date_from').val();
                 d.date_to = $('#f_date_to').val();
             }
@@ -127,6 +138,7 @@ $(document).ready(function(){
         columns:[
             {data:'DT_RowIndex', orderable:false, searchable:false},
             {data:'quotation_no', name:'quotation_no'},
+            {data:'staff_name', orderable:false, searchable:false},
             {data:'org_name', orderable:false, searchable:false},
             {data:'client_name', name:'client_name'},
             {data:'issue_date', name:'issue_date'},
@@ -137,11 +149,11 @@ $(document).ready(function(){
         ]
     });
 
-    $('#f_status_stage_id,#f_date_from,#f_date_to').on('change', ()=>table.ajax.reload());
+    $('#f_status_stage_id,#f_date_from,#f_date_to,#f_prepared_by').on('change', ()=>table.ajax.reload());
     $('#f_search_text').on('keyup', ()=>table.ajax.reload());
 
     $('#btnReset').on('click', function(){
-        $('#f_status_stage_id,#f_search_text,#f_date_from,#f_date_to').val('');
+        $('#f_status_stage_id,#f_search_text,#f_date_from,#f_date_to,#f_prepared_by').val('').trigger('change');
         table.ajax.reload();
     });
 

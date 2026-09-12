@@ -11,6 +11,7 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SalePayment;
 use App\Models\StatusStage;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -132,7 +133,9 @@ class SaleController extends Controller
     public function index()
     {
         $statuses = StatusStage::where('status', 1)->where('is_for', 'sales')->orderBy('name')->get();
-        return view('backend.content.sales.index', compact('statuses'));
+        $u = Auth::user();
+        $staffs = User::where('status',1)->when(!$u->can('sale.view_all_branches'), fn($q)=>$q->where('branch_id',$u->branch_id))->orderBy('name')->get(['id','name']);
+        return view('backend.content.sales.index', compact('statuses','staffs'));
     }
 
     public function datatable(Request $request)
@@ -140,7 +143,7 @@ class SaleController extends Controller
         $u = Auth::user();
 
         $q = Sale::query()
-            ->with(['statusStage:id,name,color'])
+            ->with(['statusStage:id,name,color','soldBy:id,name'])
             ->latest();
 
         if ($u->can('sale.view_all_branches')) {
@@ -153,6 +156,7 @@ class SaleController extends Controller
 
         if ($request->filled('status_stage_id')) $q->where('status_stage_id', $request->status_stage_id);
         if ($request->filled('payment_status')) $q->where('payment_status', $request->payment_status);
+        if ($request->filled('sold_by')) $q->where('sold_by', $request->integer('sold_by'));
 
         if ($request->filled('date_from') && $request->filled('date_to')) {
             $q->whereBetween('sale_date', [$request->date_from, $request->date_to]);
@@ -170,6 +174,7 @@ class SaleController extends Controller
 
         return DataTables::of($q)
             ->addIndexColumn()
+            ->addColumn('staff_name', fn($row) => e($row->soldBy?->name ?? '-'))
             ->editColumn('sale_date', fn($row) =>
                 $row->sale_date ? Carbon::parse($row->sale_date)->timezone('Asia/Dhaka')->format('d M Y') : '-'
             )

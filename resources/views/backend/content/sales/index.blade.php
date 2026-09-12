@@ -67,6 +67,15 @@
                         </select>
                     </div>
 
+                    <div class="col-md-2">
+                        <label class="form-label mb-1">Sold By</label>
+                        <select id="f_sold_by" class="form-control">
+                            <option value="">All Staff</option>
+                            @foreach($staffs as $staff)
+                                <option value="{{ $staff->id }}">{{ $staff->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                     <div class="col-md-3">
                         <label class="form-label mb-1">Search</label>
                         <input type="text" id="f_search_text" class="form-control" placeholder="invoice / name / phone / sale no">
@@ -90,6 +99,7 @@
                         <tr>
                             <th>#</th>
                             <th>Invoice</th>
+                            <th>Sold By</th>
                             <th>Sale Date</th>
                             <th>Client</th>
                             <th>Phone</th>
@@ -132,6 +142,7 @@ $(document).ready(function(){
                 d.status_stage_id = $('#f_status_stage_id').val();
                 d.payment_status = $('#f_payment_status').val();
                 d.search_text = $('#f_search_text').val();
+                d.sold_by = $('#f_sold_by').val();
                 d.date_from = $('#f_date_from').val();
                 d.date_to = $('#f_date_to').val();
             }
@@ -139,6 +150,7 @@ $(document).ready(function(){
         columns:[
             {data:'DT_RowIndex', orderable:false, searchable:false},
             {data:'invoice_no', name:'invoice_no'},
+            {data:'staff_name', orderable:false, searchable:false},
             {data:'sale_date', name:'sale_date'},
             {data:'client_name', name:'client_name'},
             {data:'client_phone', name:'client_phone'},
@@ -150,11 +162,11 @@ $(document).ready(function(){
         ]
     });
 
-    $('#f_status_stage_id,#f_payment_status,#f_date_from,#f_date_to').on('change', ()=>table.ajax.reload());
+    $('#f_status_stage_id,#f_payment_status,#f_date_from,#f_date_to,#f_sold_by').on('change', ()=>table.ajax.reload());
     $('#f_search_text').on('keyup', ()=>table.ajax.reload());
 
     $('#btnReset').on('click', function(){
-        $('#f_status_stage_id,#f_payment_status,#f_search_text,#f_date_from,#f_date_to').val('');
+        $('#f_status_stage_id,#f_payment_status,#f_search_text,#f_date_from,#f_date_to,#f_sold_by').val('').trigger('change');
         table.ajax.reload();
     });
 

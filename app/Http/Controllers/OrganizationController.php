@@ -17,6 +17,7 @@ use App\Models\Designation;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Support\CrmAccess;
+use App\Models\User;
 
 class OrganizationController extends Controller
 {
@@ -44,7 +45,8 @@ class OrganizationController extends Controller
         $types      = OrganizationType::where('is_active',1)->orderBy('name')->get();
         $divisions  = Division::where('is_active',1)->orderBy('name')->get();
 
-        return view('backend.content.organization.organizations.index', compact('categories','types','divisions'));
+        $staffs = User::where('status',1)->orderBy('name')->get(['id','name']);
+        return view('backend.content.organization.organizations.index', compact('categories','types','divisions','staffs'));
     }
 
     public function quickCreate()
@@ -212,7 +214,7 @@ class OrganizationController extends Controller
     public function datatable(Request $request)
     {
         $q = CrmAccess::applyOrganizationScope(Organization::query())
-            ->with(['category:id,name','type:id,name','division:id,name','district:id,name','upazila:id,name','union:id,name'])
+            ->with(['category:id,name','type:id,name','division:id,name','district:id,name','upazila:id,name','union:id,name','creator:id,name'])
             ->select('organizations.*')->latest();
 
         // ✅ Filters
@@ -222,6 +224,7 @@ class OrganizationController extends Controller
         if($request->filled('district_id'))              $q->where('district_id', $request->district_id);
         if($request->filled('upazila_id'))               $q->where('upazila_id', $request->upazila_id);
         if($request->filled('union_id'))                 $q->where('union_id', $request->union_id);
+        if($request->filled('created_by'))               $q->where('created_by', $request->integer('created_by'));
 
         if($request->filled('name')) {
             $q->where('name', 'like', '%'.$request->name.'%');
@@ -233,6 +236,7 @@ class OrganizationController extends Controller
 
         return DataTables::of($q)
             ->addIndexColumn()
+            ->addColumn('staff_name', fn($row) => e($row->creator?->name ?? '-'))
             ->addColumn('category', fn($row) => $row->category?->name ?? '-')
             ->addColumn('type', fn($row) => $row->type?->name ?? '-')
             ->addColumn('geo', function($row){

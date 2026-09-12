@@ -53,6 +53,7 @@
                     <tr>
                         <th>#</th>
                         <th>Name</th>
+                        <th>Created By</th>
                         <th>Category</th>
                         <th>Type</th> 
                         <th>Geo</th>
@@ -122,6 +123,15 @@
             <div class="col-12">
                 <select id="f_union" class="form-control">
                     <option value="">All Union</option>
+                </select>
+            </div>
+
+            <div class="col-12">
+                <select id="f_created_by" class="form-control">
+                    <option value="">All Staff</option>
+                    @foreach($staffs as $staff)
+                        <option value="{{ $staff->id }}">{{ $staff->name }}</option>
+                    @endforeach
                 </select>
             </div>
 
@@ -291,11 +301,13 @@ $(document).ready(function(){
                 d.district_id              = $('#f_district').val();
                 d.upazila_id               = $('#f_upazila').val();
                 d.union_id                 = $('#f_union').val();
+                d.created_by               = $('#f_created_by').val();
             }
         },
         columns:[
             {data:'DT_RowIndex', orderable:false, searchable:false},
             {data:'name', name:'name'},
+            {data:'staff_name', orderable:false, searchable:false},
             {data:'category', orderable:false, searchable:false},
             {data:'type', orderable:false, searchable:false}, 
             {data:'geo', orderable:false, searchable:false},
@@ -320,6 +332,7 @@ $(document).ready(function(){
                     <h6 class="mb-1">${item.name}</h6>
 
                     <div class="small text-muted">
+                        <b>Created By:</b> ${item.staff_name ?? '-'}<br>
                         ${item.category ?? ''} | ${item.type ?? ''}
                     </div>
 
@@ -347,7 +360,7 @@ $(document).ready(function(){
     }
 
     // ✅ Auto Reload on dropdown change
-    $('#f_category, #f_type, #f_division, #f_district, #f_upazila, #f_union').on('change', function () {
+    $('#f_category, #f_type, #f_division, #f_district, #f_upazila, #f_union, #f_created_by').on('change', function () {
         table.ajax.reload();
     });
 
@@ -362,7 +375,7 @@ $(document).ready(function(){
 
     // ✅ Reset filters
     $('#btnReset').on('click', function(){
-        $('#f_category,#f_type,#f_name,#f_address,#f_division,#f_district,#f_upazila,#f_union').val('');
+        $('#f_category,#f_type,#f_name,#f_address,#f_division,#f_district,#f_upazila,#f_union,#f_created_by').val('').trigger('change');
         $('#f_district').html('<option value="">All District</option>');
         $('#f_upazila').html('<option value="">All Upazila</option>');
         $('#f_union').html('<option value="">All Union</option>');

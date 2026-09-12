@@ -28,7 +28,7 @@ class DashboardController extends Controller
             $branches = Branch::orderBy('branch_name')->get(['id','branch_name']);
         }
         $territories = collect();
-        if (CrmAccess::isStaff()) {
+        if (CrmAccess::hasAreaRestriction(Auth::user())) {
             $territories = Auth::user()->areaAssignments()->with(['district:id,name','upazila:id,name'])->get()->groupBy('district_id');
         }
         return view('backend.content.maincontent', compact('branches','territories'));
@@ -44,9 +44,7 @@ class DashboardController extends Controller
         $u = Auth::user();
         $q = Lead::query();
 
-        if (CrmAccess::isStaff($u)) {
-            $q->where('assigned_user_id',$u->id);
-        } elseif ($u->can('lead.view_all_branches')) {
+        if ($u->can('lead.view_all_branches')) {
             if ($branchId) $q->where('branch_id', $branchId);
         } elseif ($u->can('lead.view_branch')) {
             $q->where('branch_id', $u->branch_id);
@@ -60,9 +58,7 @@ class DashboardController extends Controller
     {
         $u = Auth::user();
         $q = Sale::query();
-        if (CrmAccess::isStaff($u)) {
-            $q->where('sold_by',$u->id);
-        } elseif ($u->can('sale.view_all_branches')) {
+        if ($u->can('sale.view_all_branches')) {
             if ($branchId) $q->where('branch_id', $branchId);
         } elseif ($u->can('sale.view_branch')) {
             $q->where('branch_id', $u->branch_id);
@@ -77,9 +73,7 @@ class DashboardController extends Controller
     {
         $u = Auth::user();
         $q = Activity::query();
-        if (CrmAccess::isStaff($u)) {
-            $q->where('created_by', $u->id);
-        } elseif ($u->can('activity.view_all')) {
+        if ($u->can('activity.view_all')) {
             if ($branchId) $q->where('branch_id', $branchId);
         } elseif ($u->can('activity.view_branch')) {
             $q->where('branch_id', $u->branch_id);
@@ -139,12 +133,12 @@ class DashboardController extends Controller
             $kpi['due_total'] = (float)(clone $saleBase)->sum('due_total');
 
             $paymentBase = SalePayment::query();
-            if (CrmAccess::isStaff($u)) {
-                $paymentBase->whereIn('sale_id', Sale::where('sold_by',$u->id)->select('id'));
-            } elseif (!$u->can('sale.view_all_branches')) {
+            if ($u->can('sale.view_all_branches')) {
+                if ($branchId) $paymentBase->where('branch_id',$branchId);
+            } elseif ($u->can('sale.view_branch')) {
                 $paymentBase->where('branch_id',$u->branch_id);
-            } elseif ($branchId) {
-                $paymentBase->where('branch_id',$branchId);
+            } else {
+                $paymentBase->whereIn('sale_id', Sale::where('sold_by',$u->id)->select('id'));
             }
             $kpi['collection_today'] = (float)(clone $paymentBase)->whereDate('payment_date',now()->toDateString())->sum('amount');
 

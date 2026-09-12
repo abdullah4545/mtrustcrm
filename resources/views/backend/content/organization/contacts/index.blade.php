@@ -125,18 +125,13 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Phone</label>
-                            <input type="text" id="phone" class="form-control">
+                            <label class="form-label">Phone Numbers</label>
+                            <div id="phoneList"><div class="input-group contact-phone-row"><input type="text" class="form-control contact-phone" placeholder="Phone"><button type="button" class="btn btn-outline-primary add-contact-phone">+</button></div></div>
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Phone Two</label>
-                            <input type="text" id="phone_two" class="form-control">
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label">Email</label>
-                            <input type="email" id="email" class="form-control">
+                            <label class="form-label">Email Addresses</label>
+                            <div id="emailList"><div class="input-group contact-email-row"><input type="email" class="form-control contact-email" placeholder="Email"><button type="button" class="btn btn-outline-primary add-contact-email">+</button></div></div>
                         </div>
 
                         <div class="col-md-6">
@@ -222,6 +217,12 @@ const ROUTE_DELETE    = "{{ url('organization/contacts') }}";
 
 let table, modal;
 
+function renderPhones(values=[]){ const list=$('#phoneList').empty(); const vals=values.length?values:['']; vals.forEach((v,i)=>list.append(`<div class="input-group contact-phone-row mb-1"><input type="text" class="form-control contact-phone" value="${$('<div>').text(v||'').html()}" placeholder="Phone"><button type="button" class="btn ${i===0?'btn-outline-primary add-contact-phone':'btn-outline-danger remove-contact-row'}">${i===0?'+':'−'}</button></div>`)); }
+function renderEmails(values=[]){ const list=$('#emailList').empty(); const vals=values.length?values:['']; vals.forEach((v,i)=>list.append(`<div class="input-group contact-email-row mb-1"><input type="email" class="form-control contact-email" value="${$('<div>').text(v||'').html()}" placeholder="Email"><button type="button" class="btn ${i===0?'btn-outline-primary add-contact-email':'btn-outline-danger remove-contact-row'}">${i===0?'+':'−'}</button></div>`)); }
+$(document).on('click','.add-contact-phone',()=>$('#phoneList').append('<div class="input-group contact-phone-row mb-1"><input type="text" class="form-control contact-phone" placeholder="Additional Phone"><button type="button" class="btn btn-outline-danger remove-contact-row">−</button></div>'));
+$(document).on('click','.add-contact-email',()=>$('#emailList').append('<div class="input-group contact-email-row mb-1"><input type="email" class="form-control contact-email" placeholder="Additional Email"><button type="button" class="btn btn-outline-danger remove-contact-row">−</button></div>'));
+$(document).on('click','.remove-contact-row',function(){$(this).closest('.input-group').remove();});
+
 $(document).ready(function(){
 
     modal = new bootstrap.Modal(document.getElementById('contactModal'));
@@ -285,9 +286,8 @@ $(document).ready(function(){
 
         fd.append('title', $('#title').val());
         fd.append('name', $('#name').val());
-        fd.append('email', $('#email').val());
-        fd.append('phone', $('#phone').val());
-        fd.append('phone_two', $('#phone_two').val());
+        $('.contact-phone').each(function(){ if($.trim($(this).val())) fd.append('phone_numbers[]',$.trim($(this).val())); });
+        $('.contact-email').each(function(){ if($.trim($(this).val())) fd.append('email_addresses[]',$.trim($(this).val())); });
         fd.append('address', $('#address').val());
         fd.append('additional_info', $('#additional_info').val());
         fd.append('status', $('#status').val());
@@ -345,9 +345,8 @@ $(document).ready(function(){
 
             $('#title').val(d.title);
             $('#name').val(d.name);
-            $('#email').val(d.email);
-            $('#phone').val(d.phone);
-            $('#phone_two').val(d.phone_two);
+            renderPhones(d.phone_numbers?.length ? d.phone_numbers : [d.phone,d.phone_two].filter(Boolean));
+            renderEmails(d.email_addresses?.length ? d.email_addresses : [d.email].filter(Boolean));
             $('#address').val(d.address);
             $('#additional_info').val(d.additional_info);
             $('#status').val(d.status);
@@ -390,6 +389,7 @@ function clearForm(){
     $('#imgPreview').html('');
     $('#is_primary').prop('checked', false);
     $('#status').val('active');
+    renderPhones([]); renderEmails([]);
 }
 
 function showAjaxError(xhr){

@@ -144,6 +144,7 @@
         <div class="col-md-12">
             <label>About Organization</label>
             <textarea name="about_us" class="form-control" placeholder="Write something about this Organization..."></textarea>
+            <div class="mt-3"><label>Existing Machine</label><textarea name="existing_machine" class="form-control" rows="3" placeholder="Existing machine / equipment details"></textarea></div>
         </div>
 
         <div class="col-md-12">
@@ -175,11 +176,11 @@
                 </div>
 
                 <div class="col-md-3">
-                    <input name="contacts[0][phone]" class="form-control" placeholder="Phone">
+                    <div class="repeat-field" data-type="phone"><div class="input-group"><input name="contacts[0][phone_numbers][]" class="form-control" placeholder="Phone"><button type="button" class="btn btn-outline-primary add-repeat" data-kind="phone">+</button></div></div>
                 </div>
 
                 <div class="col-md-3">
-                    <input name="contacts[0][email]" class="form-control" placeholder="Email">
+                    <div class="repeat-field" data-type="email"><div class="input-group"><input type="email" name="contacts[0][email_addresses][]" class="form-control" placeholder="Email"><button type="button" class="btn btn-outline-primary add-repeat" data-kind="email">+</button></div></div>
                 </div>
 
                 <div class="col-md-3">
@@ -212,10 +213,6 @@
                 </div>
 
                 <div class="col-md-6">
-                    <input name="contacts[0][phone_two]" class="form-control" placeholder="Secondary Phone">
-                </div>
-
-                <div class="col-md-6">
                     <input name="contacts[0][address]" class="form-control" placeholder="Address">
                 </div>
 
@@ -244,10 +241,23 @@
 
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
 let i = 1;
+
+
+function repeatInputName(row, kind){
+    const any = row.find(kind==='phone' ? 'input[name*=\"[phone_numbers]\"]' : 'input[name*=\"[email_addresses]\"]').first();
+    return any.attr('name') || '';
+}
+$(document).on('click','.add-repeat',function(){
+    const row=$(this).closest('.contact-row'); const kind=$(this).data('kind'); const name=repeatInputName(row,kind);
+    if(!name) return;
+    const type=kind==='email'?'email':'text'; const placeholder=kind==='email'?'Additional Email':'Additional Phone';
+    const html=`<div class="repeat-field mt-1"><div class="input-group"><input type="${type}" name="${name}" class="form-control" placeholder="${placeholder}"><button type="button" class="btn btn-outline-danger remove-repeat">−</button></div></div>`;
+    $(this).closest('.repeat-field').after(html);
+});
+$(document).on('click','.remove-repeat',function(){ $(this).closest('.repeat-field').remove(); });
 
 $('#addMore').on('click', function(){
 
@@ -264,11 +274,11 @@ $('#addMore').on('click', function(){
             </div>
 
             <div class="col-md-3">
-                <input name="contacts[${i}][phone]" class="form-control" placeholder="Phone">
+                <div class="repeat-field" data-type="phone"><div class="input-group"><input name="contacts[${i}][phone_numbers][]" class="form-control" placeholder="Phone"><button type="button" class="btn btn-outline-primary add-repeat" data-kind="phone">+</button></div></div>
             </div>
 
             <div class="col-md-3">
-                <input name="contacts[${i}][email]" class="form-control" placeholder="Email">
+                <div class="repeat-field" data-type="email"><div class="input-group"><input type="email" name="contacts[${i}][email_addresses][]" class="form-control" placeholder="Email"><button type="button" class="btn btn-outline-primary add-repeat" data-kind="email">+</button></div></div>
             </div>
 
             <div class="col-md-3">
@@ -301,7 +311,7 @@ $('#addMore').on('click', function(){
             </div>
 
             <div class="col-md-6">
-                <input name="contacts[${i}][phone_two]" class="form-control" placeholder="Secondary Phone">
+                
             </div>
 
             <div class="col-md-6">

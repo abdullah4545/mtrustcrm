@@ -58,8 +58,7 @@ class UserManagementController extends Controller
             ->addColumn('branch', fn($r) => $r->branch?->branch_name ?? '-')
             ->addColumn('role', fn($r) => '<span class="badge bg-dark">'.e($r->getRoleNames()->first() ?? 'No role').'</span>')
             ->addColumn('areas', function($r){
-                if (!$r->hasRole('staff')) return '<span class="text-muted">All permitted data</span>';
-                if ($r->areaAssignments->isEmpty()) return '<span class="badge bg-danger">No area assigned</span>';
+                if ($r->areaAssignments->isEmpty()) return '<span class="text-muted">No area restriction</span>';
                 $groups = $r->areaAssignments->groupBy('district_id');
                 $parts = [];
                 foreach ($groups as $rows) {
@@ -84,16 +83,16 @@ class UserManagementController extends Controller
     private function assignableRoles(): array
     {
         $auth = auth()->user();
-        if ($auth->hasRole('superadmin')) {
-            return Role::pluck('name')->all();
-        }
-        if ($auth->hasRole('admin')) {
-            return Role::where('name', '!=', 'superadmin')->pluck('name')->all();
-        }
-        if ($auth->hasRole('branch_manager')) {
-            return ['staff'];
-        }
-        return [];
+        if ($auth->hasRole('superadmin')) return Role::orderBy('name')->pluck('name')->all();
+        if (!$auth->can('user.role.assign')) return [];
+
+        $ownPermissions = $auth->getAllPermissions()->pluck('name');
+        return Role::with('permissions')
+            ->where('name','!=','superadmin')
+            ->orderBy('name')
+            ->get()
+            ->filter(fn($role) => $role->permissions->pluck('name')->diff($ownPermissions)->isEmpty())
+            ->pluck('name')->all();
     }
 
     private function ensureRoleAssignable(string $role): void
@@ -126,11 +125,8 @@ class UserManagementController extends Controller
 
     private function normalizeAreas(Request $request, string $role): array
     {
-        if ($role !== 'staff') return [];
         $areas = json_decode($request->input('areas','[]'), true);
-        if (!is_array($areas) || count($areas) === 0) {
-            throw ValidationException::withMessages(['areas'=>'Staff user-এর জন্য অন্তত একটি District/Upazila assign করুন।']);
-        }
+        if (!is_array($areas) || count($areas) === 0) return [];
 
         $normalized = [];
         foreach ($areas as $area) {
@@ -146,7 +142,7 @@ class UserManagementController extends Controller
             $validIds = Upazila::where('district_id',$districtId)->whereIn('id', array_map('intval',(array)$upazilas))->pluck('id');
             foreach ($validIds as $upazilaId) $normalized[] = ['district_id'=>$districtId,'upazila_id'=>(int)$upazilaId];
         }
-        if (!$normalized) throw ValidationException::withMessages(['areas'=>'Assigned district-এর জন্য All Upazila অথবা অন্তত একটি Upazila select করুন।']);
+        if (!$normalized && count($areas)) throw ValidationException::withMessages(['areas'=>'Assigned district-এর জন্য All Upazila অথবা অন্তত একটি Upazila select করুন।']);
         return collect($normalized)->unique(fn($x)=>$x['district_id'].'-'.($x['upazila_id'] ?? 'all'))->values()->all();
     }
 
@@ -161,7 +157,6 @@ class UserManagementController extends Controller
         $auth = auth()->user();
         if (!$auth->can('user.view_all_branches')) abort_unless((int)$user->branch_id === (int)$auth->branch_id, 403);
         if (!$auth->hasRole('superadmin') && $user->hasRole('superadmin')) abort(403);
-        if ($auth->hasRole('branch_manager') && !$user->hasRole('staff')) abort(403);
     }
 
     public function store(Request $request)

@@ -218,6 +218,7 @@
     <div class="section">
         <div class="section-title">About Company</div>
         <p>{{ $org->about_us ?? '-' }}</p>
+        <div class="mt-3"><b>Existing Machine</b><p>{{ $org->existing_machine ?? '-' }}</p></div>
     </div>
 
     <div class="section">
@@ -260,13 +261,11 @@
                         <td>{{ $contact->designation->title ?? '-' }}</td>
 
                         <td>
-                            {{ $contact->phone ?? '-' }}
-                            @if($contact->phone_two)
-                                <br>{{ $contact->phone_two }}
-                            @endif
+                            @php($contactPhones = $contact->phone_numbers ?: array_values(array_filter([$contact->phone,$contact->phone_two])))
+                            {{ count($contactPhones) ? implode(', ', $contactPhones) : '-' }}
                         </td>
 
-                        <td>{{ $contact->email ?? '-' }}</td>
+                        <td>@php($contactEmails = $contact->email_addresses ?: array_values(array_filter([$contact->email]))){{ count($contactEmails) ? implode(', ', $contactEmails) : '-' }}</td>
                         <td>{{ $contact->address ?? '-' }}</td>
                         <td>{{ ucfirst($contact->status) }}</td>
                     </tr>

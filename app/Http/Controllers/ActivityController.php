@@ -26,12 +26,13 @@ class ActivityController extends Controller
         $this->middleware('permission:activity.create')->only(['quickCreate','quickStore','store']);
         $this->middleware('permission:activity.edit')->only(['update']);
         $this->middleware('permission:activity.delete')->only(['destroy']);
+        $this->middleware('permission:activity.approve')->only(['review']);
     }
 
     private function isAdmin(): bool
     {
         $u = Auth::user();
-        return (bool) $u?->hasAnyRole(['superadmin','admin']);
+        return (bool) $u?->can('activity.approve');
     }
 
     /**
@@ -41,7 +42,7 @@ class ActivityController extends Controller
      */
     private function canManageActivityEntry(): bool
     {
-        return (bool) Auth::user()?->hasAnyRole(['superadmin','manager','accounts']);
+        return (bool) Auth::user()?->can('activity.create_for_others');
     }
 
     private function manageableStaffs()
@@ -49,19 +50,15 @@ class ActivityController extends Controller
         $u = Auth::user();
         if (!$this->canManageActivityEntry()) return collect();
 
-        $query = User::role('staff')->where('status', 1);
-        if ($u?->hasRole('accounts')) {
-            $query->where('branch_id', $u->branch_id);
-        }
-
-        return $query->orderBy('name')->get(['id','name','branch_id']);
+        $query = User::where('status', 1);
+        if (!$u?->can('activity.view_all')) $query->where('branch_id', $u->branch_id);
+        return $query->orderBy('name')->limit(300)->get(['id','name','branch_id']);
     }
 
     private function visibleQuery()
     {
         $u = Auth::user();
         $q = Activity::query()->with(['creator:id,name']);
-        if (CrmAccess::isStaff($u)) return $q->where('created_by',$u->id);
         if ($u->can('activity.view_all')) return $q;
         if ($u->can('activity.view_branch')) return $q->where('branch_id',$u->branch_id);
         return $q->where('created_by',$u->id);
@@ -84,6 +81,8 @@ class ActivityController extends Controller
             ->addColumn('action', function($row){
                 $html='<div class="d-flex gap-1">';
                 if (Auth::user()->can('activity.edit')) $html.='<a href="'.route('activities.show',$row->id).'" class="btn btn-sm btn-primary">Edit</a>';
+                if (Auth::user()->can('activity.approve') && $row->status !== 'approved') $html.='<button class="btn btn-sm btn-success btn-review" data-id="'.$row->id.'" data-status="approved">Approve</button>';
+                if (Auth::user()->can('activity.approve') && $row->status !== 'rejected') $html.='<button class="btn btn-sm btn-warning btn-review" data-id="'.$row->id.'" data-status="rejected">Reject</button>';
                 if (Auth::user()->can('activity.delete')) $html.='<button class="btn btn-sm btn-danger btn-delete" data-id="'.$row->id.'">Delete</button>';
                 return $html.'</div>';
             })->rawColumns(['status','action'])->make(true);
@@ -109,16 +108,18 @@ class ActivityController extends Controller
         return response()->json(OrganizationContact::with('department:id,title')->where('organization_id',$organization_id)->whereNotNull('department_id')->where('status','active')->get()->pluck('department')->filter()->unique('id')->values());
     }
 
-    public function organizationContacts($organization_id,$department_id)
+    public function organizationContacts(Request $request,$organization_id)
     {
         CrmAccess::ensureOrganizationAllowed(Organization::findOrFail($organization_id));
-        return response()->json(OrganizationContact::select('id','name','phone','designation_id')->with('designation:id,title')->where('organization_id',$organization_id)->where('department_id',$department_id)->where('status','active')->orderByDesc('is_primary')->orderBy('name')->get());
+        $q = OrganizationContact::select('id','name','phone','designation_id','department_id')->with('designation:id,title')->where('organization_id',$organization_id)->where('status','active');
+        if ($request->filled('department_id')) $q->where('department_id',$request->integer('department_id'));
+        return response()->json($q->orderByDesc('is_primary')->orderBy('name')->get());
     }
 
     private function validated(Request $request): array
     {
         return $request->validate([
-            'staff_id'=>'nullable|exists:users,id','activity_at'=>'nullable|date','organization_id'=>'required|exists:organizations,id','department'=>'required|string|max:255',
+            'staff_id'=>'nullable|exists:users,id','activity_at'=>'nullable|date','organization_id'=>'required|exists:organizations,id','department'=>'nullable|string|max:255',
             'department_id'=>'nullable|exists:departments,id','contact_id'=>'nullable|exists:organization_contacts,id','contact_person'=>'nullable|string|max:255',
             'work_details'=>'nullable|string','remarks'=>'nullable|string','status'=>'nullable|in:pending,approved,rejected',
             'travels'=>'nullable|array','travels.*.from_location'=>'nullable|string|max:255','travels.*.to_location'=>'nullable|string|max:255',
@@ -198,7 +199,8 @@ class ActivityController extends Controller
                 'vehicle'=>$travels->pluck('vehicle')->filter()->implode(' | '),
                 'distance'=>$travels->sum(fn($r)=>(float)($r['distance']??0)),
                 'remarks'=>$data['remarks']??null,'ta'=>$ta,'da'=>$da,'total'=>$ta+$da,
-                'status'=>CrmAccess::isStaff($u)?'pending':($data['status']??$activity->status??'pending'),
+                'status'=>'pending',
+                'reviewed_by'=>null,'reviewed_at'=>null,'review_note'=>null,
             ]);
 
             if (!$activity->exists) {
@@ -255,7 +257,18 @@ class ActivityController extends Controller
 
     public function quickStore(Request $request){ $a=$this->saveActivity(new Activity(),$request); return response()->json(['status'=>true,'message'=>'Field activity created successfully','data'=>$a]); }
     public function store(Request $request){ $this->saveActivity(new Activity(),$request); return response()->json(['status'=>true,'message'=>'Field activity created successfully']); }
-    public function organizations(){ return response()->json(CrmAccess::applyOrganizationScope(Organization::query())->select('id','name')->where('status','active')->orderBy('name')->get()); }
+    public function organizations(Request $request){
+        $term = trim((string)$request->get('q',''));
+        $page = max(1,(int)$request->get('page',1));
+        $perPage = 20;
+        $q = CrmAccess::applyOrganizationScope(Organization::query())->where('status','active');
+        if ($term !== '') $q->where(function($x) use($term){
+            $x->where('name','like','%'.$term.'%')->orWhere('phone_primary','like','%'.$term.'%')->orWhere('email','like','%'.$term.'%');
+        });
+        $rows = $q->orderBy('name')->skip(($page-1)*$perPage)->take($perPage+1)->get(['id','name','phone_primary']);
+        $more = $rows->count()>$perPage;
+        return response()->json(['results'=>$rows->take($perPage)->map(fn($r)=>['id'=>$r->id,'text'=>$r->name.($r->phone_primary?' · '.$r->phone_primary:'')])->values(),'pagination'=>['more'=>$more]]);
+    }
     public function departments(){ return response()->json(Department::select('id','title')->orderBy('title')->get()); }
     public function show($id){
         $activity=$this->findVisible((int)$id);
@@ -268,6 +281,19 @@ class ActivityController extends Controller
         ]);
     }
     public function update(Request $request,$id){ $a=$this->saveActivity($this->findVisible((int)$id),$request); return response()->json(['status'=>true,'message'=>'Field activity updated successfully','data'=>$a]); }
+    public function review(Request $request, $id)
+    {
+        $data = $request->validate(['status'=>'required|in:approved,rejected','review_note'=>'nullable|string|max:500']);
+        $activity = $this->findVisible((int)$id);
+        $activity->update([
+            'status'=>$data['status'],
+            'reviewed_by'=>Auth::id(),
+            'reviewed_at'=>now('Asia/Dhaka'),
+            'review_note'=>$data['review_note'] ?? null,
+        ]);
+        return response()->json(['status'=>true,'message'=>'Activity '.($data['status']==='approved'?'approved':'rejected').' successfully']);
+    }
+
     public function destroy($id){
         $activity = $this->findVisible((int)$id);
         $images = $activity->travels->pluck('image_url')->merge($activity->expenses->pluck('image_url'))->filter()->values();

@@ -46,7 +46,6 @@ class QuotationController extends Controller
     private function ensureQuotationAccess(Quotation $quotation): void
     {
         $u = Auth::user();
-        if (CrmAccess::isStaff($u)) { abort_unless((int)$quotation->prepared_by === (int)$u->id,403); return; }
         if ($u->can('quotation.view_all_branches')) return;
         if ($u->can('quotation.view_branch') && (int)$quotation->branch_id === (int)$u->branch_id) return;
         if ($u->can('quotation.view_self') && (int)$quotation->prepared_by === (int)$u->id) return;
@@ -82,9 +81,7 @@ class QuotationController extends Controller
             ->latest();
 
         // permission-aware visibility
-        if (CrmAccess::isStaff($u)) {
-            $q->where('prepared_by',$u->id);
-        } elseif ($u->can('quotation.view_all_branches')) {
+        if ($u->can('quotation.view_all_branches')) {
             if ($request->filled('branch_id')) $q->where('branch_id', $request->branch_id);
         } elseif ($u->can('quotation.view_branch')) {
             $q->where('branch_id', $u->branch_id);

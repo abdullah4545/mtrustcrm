@@ -71,13 +71,7 @@ class LeadController extends Controller
     {
         $platforms = Platform::where('status',1)->orderBy('title')->get(['id','title']);
         $statuses  = StatusStage::where('status',1)->where('is_for','lead')->orderBy('name')->get(['id','name','color']);
-        $orgs      = CrmAccess::applyOrganizationScope(Organization::query())->where('status','active')->orderBy('name')->get();
-
-        return view('backend.content.leads.quick_create', compact(
-            'statuses',
-            'platforms',
-            'orgs'
-        ));
+        return view('backend.content.leads.quick_create', compact('statuses','platforms'));
     }
 
     // =========================
@@ -138,7 +132,6 @@ class LeadController extends Controller
     private function applyVisibleScope($q)
     {
         $u = Auth::user();
-        if (CrmAccess::isStaff($u)) return $q->where('assigned_user_id',$u->id);
         if ($u->can('lead.view_all_branches')) return $q;
         if ($u->can('lead.view_branch')) return $q->where('branch_id', $u->branch_id);
         return $q->where('assigned_user_id', $u->id);
@@ -147,7 +140,6 @@ class LeadController extends Controller
     private function ensureLeadAccess(Lead $lead): void
     {
         $u = Auth::user();
-        if (CrmAccess::isStaff($u)) { abort_unless((int)$lead->assigned_user_id === (int)$u->id,403); return; }
         if ($u->can('lead.view_all_branches')) return;
         if ($u->can('lead.view_branch') && (int)$lead->branch_id === (int)$u->branch_id) return;
         if ($u->can('lead.view_self') && (int)$lead->assigned_user_id === (int)$u->id) return;
@@ -435,14 +427,18 @@ class LeadController extends Controller
     {
         $q = CrmAccess::applyOrganizationScope(Organization::query())->where('status','active');
 
-        if($request->filled('q')){
-            $s = trim($request->q);
+        if ($request->filled('id')) {
+            $q->whereKey($request->integer('id'));
+        } elseif ($request->filled('q')) {
+            $s = trim((string) $request->q);
             $q->where(function($qq) use ($s){
-                $qq->where('name','like',"%{$s}%")->orWhere('phone_primary','like',"%{$s}%");
+                $qq->where('name','like',"%{$s}%")
+                   ->orWhere('phone_primary','like',"%{$s}%")
+                   ->orWhere('email','like',"%{$s}%");
             });
         }
 
-        return $q->orderBy('name')->limit(50)->get(['id','name']);
+        return $q->orderBy('name')->limit(20)->get(['id','name','phone_primary']);
     }
 
     // ✅ Contacts by organization
@@ -497,7 +493,7 @@ class LeadController extends Controller
             'lead_id' => $lead->id,
             'activity_type' => $request->activity_type,
             'activity_text' => $request->activity_text,
-            'activity_at' => CrmAccess::isStaff($u) ? now() : ($request->activity_at ?? now()),
+            'activity_at' => (!$u->can('lead.view_all_branches') && !$u->can('lead.view_branch')) ? now() : ($request->activity_at ?? now()),
             'outcome_status' => $request->outcome_status,
             'next_followup_at' => $request->next_followup_at,
             'next_action_type' => $request->next_action_type,

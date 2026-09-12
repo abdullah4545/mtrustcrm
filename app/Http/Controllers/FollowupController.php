@@ -36,7 +36,6 @@ class FollowupController extends Controller
     private function ensureVisible(Lead $lead): void
     {
         $u = Auth::user();
-        if (CrmAccess::isStaff($u)) { abort_unless((int)$lead->assigned_user_id === (int)$u->id,403); return; }
         if ($u->can('lead.view_all_branches')) return;
         if ($u->can('lead.view_branch') && (int)$lead->branch_id === (int)$u->branch_id) return;
         if ($u->can('lead.view_self') && (int)$lead->assigned_user_id === (int)$u->id) return;

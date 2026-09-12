@@ -35,7 +35,6 @@
     ])->values();
 @endphp
 
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
 .activity-entry-card{border:0;border-radius:18px;box-shadow:0 10px 30px rgba(15,23,42,.07)}
 .activity-entry-card label{font-weight:600;margin-bottom:6px}
@@ -116,9 +115,8 @@
     @endif
 
     <div class="col-12 col-md-4"><label>Organization *</label><select id="organization_id" class="form-control" required><option value="">Select Organization</option></select></div>
-    <div class="col-12 col-md-4"><label>Department *</label><select id="department" class="form-control" required><option value="">Select Department</option></select></div>
+    <div class="col-12 col-md-4"><label>Department <span class="text-muted">(Optional)</span></label><select id="department" class="form-control"><option value="">Select Department</option></select></div>
     <div class="col-12 col-md-4"><label>Contact Person</label><select id="contact_id" class="form-control"><option value="">Select Contact</option></select></div>
-    @if($isAdmin)<div class="col-12 col-md-4"><label>Status</label><select id="status" class="form-control"><option value="pending" {{ $editing&&$activity->status==='pending'?'selected':'' }}>Pending</option><option value="approved" {{ $editing&&$activity->status==='approved'?'selected':'' }}>Approved</option><option value="rejected" {{ $editing&&$activity->status==='rejected'?'selected':'' }}>Rejected</option></select></div>@endif
 
     <div class="col-12">
         <div class="activity-section">
@@ -188,8 +186,6 @@
 </div>
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 $.ajaxSetup({headers:{'X-CSRF-TOKEN':$('meta[name="csrf-token"]').attr('content')}});
 
@@ -301,16 +297,17 @@ function openExpenseEdit(index){
 
 function loadDepartments(org,selected='',contact=''){
     $.get(DEPT_URL+'/'+org,r=>{
-        let h='<option value="">Select Department</option>';
+        let h='<option value="">No Department / Select Department</option>';
         r.forEach(v=>h+=`<option value="${v.id}" data-title="${esc(v.title)}" ${String(v.id)===String(selected)?'selected':''}>${esc(v.title)}</option>`);
         $('#department').html(h).trigger('change.select2');
-        if(selected) loadContacts(org,selected,contact);
+        loadContacts(org,selected||'',contact);
     });
 }
-function loadContacts(org,dept,selected=''){
-    $.get(CONTACT_URL+'/'+org+'/'+dept,r=>{
+function loadContacts(org,dept='',selected=''){
+    const data={}; if(dept) data.department_id=dept;
+    $.get(CONTACT_URL+'/'+org,data,r=>{
         let h='<option value="">Select Contact</option>';
-        r.forEach(v=>h+=`<option value="${v.id}" data-name="${esc(v.name)}" ${String(v.id)===String(selected)?'selected':''}>${esc(v.name)}${v.designation?' - '+esc(v.designation.title):''}</option>`);
+        r.forEach(v=>h+=`<option value="${v.id}" data-name="${esc(v.name)}" ${String(v.id)===String(selected)?'selected':''}>${esc(v.name||'Unnamed')}${v.designation?' - '+esc(v.designation.title):''}</option>`);
         $('#contact_id').html(h).trigger('change.select2');
     });
 }
@@ -325,15 +322,20 @@ $(function(){
     travelModal = new bootstrap.Modal(document.getElementById('travelModal'), {backdrop:true, keyboard:true, focus:true});
     expenseModal = new bootstrap.Modal(document.getElementById('expenseModal'), {backdrop:true, keyboard:true, focus:true});
 
-    $('#organization_id,#department,#contact_id,#status,#staff_id').each(function(){ if(this) $(this).select2({width:'100%'}); });
+    $('#department,#contact_id,#staff_id').each(function(){ if(this && !$(this).hasClass('select2-hidden-accessible')) $(this).select2({width:'100%'}); });
+    if($('#organization_id').hasClass('select2-hidden-accessible')) $('#organization_id').select2('destroy');
+    $('#organization_id').select2({
+        width:'100%', placeholder:'Search organization...', minimumInputLength:0,
+        ajax:{url:ORG_URL,dataType:'json',delay:300,data:p=>({q:p.term||'',page:p.page||1}),processResults:r=>r,cache:true}
+    });
+    if(OLD_ORG){
+        $.ajax({url:ORG_URL,data:{q:'',page:1}}).always(()=>{});
+        const oldText=@json($editing ? $activity->organization_name : '');
+        $('#organization_id').append(new Option(oldText||('Organization #'+OLD_ORG),OLD_ORG,true,true)).trigger('change.select2');
+        loadDepartments(OLD_ORG,OLD_DEPT,OLD_CONTACT);
+    }
 
     $.get(VEHICLE_URL,r=>{ vehicles=r; fillVehicleOptions(''); });
-    $.get(ORG_URL,r=>{
-        let h='<option value="">Select Organization</option>';
-        r.forEach(v=>h+=`<option value="${v.id}" ${String(v.id)===OLD_ORG?'selected':''}>${esc(v.name)}</option>`);
-        $('#organization_id').html(h).trigger('change.select2');
-        if(OLD_ORG) loadDepartments(OLD_ORG,OLD_DEPT,OLD_CONTACT);
-    });
 
     renderTravels(); renderExpenses();
 });
@@ -347,7 +349,7 @@ $('#organization_id').on('change',function(){
 $('#department').on('change',function(){
     const org=$('#organization_id').val(), d=$(this).val();
     $('#contact_id').html('<option value="">Select Contact</option>').trigger('change.select2');
-    if(org&&d) loadContacts(org,d);
+    if(org) loadContacts(org,d);
 });
 
 $('#addTravel').on('click',function(){ resetTravelModal(); travelModal.show(); });
@@ -387,7 +389,7 @@ $(document).on('click','.delete-expense',function(){
 });
 
 $('#btnSave').on('click',function(){
-    if(!$('#organization_id').val() || !$('#department').val()){ Swal.fire('Error','Organization and Department are required','error'); return; }
+    if(!$('#organization_id').val()){ Swal.fire('Error','Organization is required','error'); return; }
     const fd=new FormData();
     if(CAN_MANAGE_ENTRY){
         fd.append('staff_id',$('#staff_id').val()||'');
@@ -395,12 +397,11 @@ $('#btnSave').on('click',function(){
     }
     fd.append('organization_id',$('#organization_id').val());
     fd.append('department_id',$('#department').val());
-    fd.append('department',$('#department option:selected').data('title')||$('#department option:selected').text());
+    fd.append('department',$('#department').val() ? ($('#department option:selected').data('title')||$('#department option:selected').text()) : '');
     fd.append('contact_id',$('#contact_id').val()||'');
     fd.append('contact_person',$('#contact_id option:selected').data('name')||'');
     fd.append('work_details',$('#work_details').val());
     fd.append('remarks',$('#remarks').val());
-    @if($isAdmin) fd.append('status',$('#status').val()); @endif
 
     travels.forEach((r,i)=>{
         fd.append(`travels[${i}][from_location]`,r.from_location||'');

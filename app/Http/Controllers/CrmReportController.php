@@ -18,13 +18,16 @@ class CrmReportController extends Controller
         $this->middleware('permission:lead.view_all_branches|lead.view_branch|lead.view_self')->only(['leads']);
     }
 
-    private function applyBranch($query, string $allBranchesPermission, string $branchColumn = 'branch_id')
+    private function applyScope($query, string $allPermission, string $branchPermission, string $selfColumn, string $branchColumn = 'branch_id')
     {
         $u = Auth::user();
-        if (!$u->can($allBranchesPermission)) {
-            $query->where($branchColumn, $u->branch_id);
+        if ($u->can($allPermission)) {
+            return $query;
         }
-        return $query;
+        if ($u->can($branchPermission)) {
+            return $query->where($branchColumn, $u->branch_id);
+        }
+        return $query->where($selfColumn, $u->id);
     }
 
     public function sales(Request $request)
@@ -32,8 +35,7 @@ class CrmReportController extends Controller
         $from = $request->get('from', now()->startOfMonth()->toDateString());
         $to = $request->get('to', now()->toDateString());
 
-        $sales = $this->applyBranch(Sale::query(), 'sale.view_all_branches');
-        if (CrmAccess::isStaff()) $sales->where('sold_by', Auth::id());
+        $sales = $this->applyScope(Sale::query(), 'sale.view_all_branches', 'sale.view_branch', 'sold_by');
         $sales->whereBetween('sale_date', [$from, $to]);
 
         $summary = [
@@ -52,12 +54,8 @@ class CrmReportController extends Controller
         $from = $request->get('from', now()->startOfMonth()->toDateString());
         $to = $request->get('to', now()->toDateString());
 
-        $leads = $this->applyBranch(Lead::query(), 'lead.view_all_branches')
+        $leads = $this->applyScope(Lead::query(), 'lead.view_all_branches', 'lead.view_branch', 'assigned_user_id')
             ->whereBetween('created_at', [$from.' 00:00:00', $to.' 23:59:59']);
-
-        if (Auth::user()->can('lead.view_self') && !Auth::user()->can('lead.view_branch') && !Auth::user()->can('lead.view_all_branches')) {
-            $leads->where('assigned_user_id', Auth::id());
-        }
 
         $summary = [
             'total' => (clone $leads)->count(),
@@ -75,8 +73,15 @@ class CrmReportController extends Controller
         $from = $request->get('from', now()->startOfMonth()->toDateString());
         $to = $request->get('to', now()->toDateString());
 
-        $payments = $this->applyBranch(SalePayment::query(), 'sale.view_all_branches');
-        if (CrmAccess::isStaff()) $payments->whereIn('sale_id', Sale::where('sold_by',Auth::id())->select('id'));
+        $u = Auth::user();
+        $payments = SalePayment::query();
+        if ($u->can('sale.view_all_branches')) {
+            // all branches
+        } elseif ($u->can('sale.view_branch')) {
+            $payments->where('branch_id', $u->branch_id);
+        } else {
+            $payments->whereIn('sale_id', Sale::where('sold_by', $u->id)->select('id'));
+        }
         $payments->whereBetween('payment_date', [$from, $to]);
 
         $summary = [

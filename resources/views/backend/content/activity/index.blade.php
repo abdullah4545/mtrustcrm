@@ -88,7 +88,7 @@
 
                         <div class="col-md-3">
                             <label>Department</label>
-                            <select id="department" class="form-control" required>
+                            <select id="department" class="form-control">
                                 <option value="">Select Department</option>
                             </select>
                         </div>
@@ -111,15 +111,6 @@
                         <div class="col-md-3">
                             <label>Vehicle</label>
                             <input type="text" id="vehicle" class="form-control">
-                        </div>
-
-                        <div class="col-md-3">
-                            <label>Status</label>
-                            <select id="status" class="form-control">
-                                <option value="pending">Pending</option>
-                                <option value="approved">Approved</option>
-                                <option value="rejected">Rejected</option>
-                            </select>
                         </div>
 
                         <div class="col-md-12">
@@ -184,14 +175,9 @@
     const ROUTE_DEP = "{{ url('activities/ajax/departments') }}";
 
     function loadDropdowns(){
-        // organization
-        $.get(ROUTE_ORG, function(res){
-            let html = `<option value="">Select Organization</option>`;
-            res.forEach(v=>{
-                html += `<option value="${v.id}">${v.name}</option>`;
-            });
-            $('#organization_id').html(html);
-        });
+        if($.fn.select2){
+            $('#organization_id').select2({width:'100%',placeholder:'Search organization...',ajax:{url:ROUTE_ORG,dataType:'json',delay:300,data:p=>({q:p.term||'',page:p.page||1}),processResults:r=>r,cache:true}});
+        }
 
         // department
         $.get(ROUTE_DEP, function(res){
@@ -242,6 +228,14 @@
                     table.ajax.reload();
                 });
             }
+        });
+
+        $(document).on('click','.btn-review',function(){
+            const id=$(this).data('id'), status=$(this).data('status');
+            Swal.fire({title:status==='approved'?'Approve activity?':'Reject activity?',input:'text',inputLabel:'Review note (optional)',showCancelButton:true,confirmButtonText:status==='approved'?'Approve':'Reject'}).then(r=>{
+                if(!r.isConfirmed) return;
+                $.post(ROUTE_UPDATE+'/'+id+'/review',{status:status,review_note:r.value||''}).done(x=>{Swal.fire('Done',x.message,'success');table.ajax.reload(null,false)}).fail(x=>Swal.fire('Error',x.responseJSON?.message||'Unable to review','error'));
+            });
         });
 
     });

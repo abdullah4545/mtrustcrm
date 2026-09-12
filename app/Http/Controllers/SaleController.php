@@ -69,7 +69,6 @@ class SaleController extends Controller
     private function ensureSaleAccess(Sale $sale): void
     {
         $u = Auth::user();
-        if (CrmAccess::isStaff($u)) { abort_unless((int)$sale->sold_by === (int)$u->id,403); return; }
         if ($u->can('sale.view_all_branches')) return;
         if ($u->can('sale.view_branch') && (int)$sale->branch_id === (int)$u->branch_id) return;
         if ($u->can('sale.view_self') && (int)$sale->sold_by === (int)$u->id) return;
@@ -144,9 +143,7 @@ class SaleController extends Controller
             ->with(['statusStage:id,name,color'])
             ->latest();
 
-        if (CrmAccess::isStaff($u)) {
-            $q->where('sold_by',$u->id);
-        } elseif ($u->can('sale.view_all_branches')) {
+        if ($u->can('sale.view_all_branches')) {
             if ($request->filled('branch_id')) $q->where('branch_id', $request->branch_id);
         } elseif ($u->can('sale.view_branch')) {
             $q->where('branch_id', $u->branch_id);
@@ -226,7 +223,7 @@ class SaleController extends Controller
     {
         $lead = Lead::with(['organization', 'organizationContact'])->findOrFail($leadId);
         $this->ensureBranchAccess((int)$lead->branch_id);
-        if (CrmAccess::isStaff()) abort_unless((int)$lead->assigned_user_id === (int)Auth::id(),403);
+        if (Auth::user()->can('lead.view_self') && !Auth::user()->can('lead.view_branch') && !Auth::user()->can('lead.view_all_branches')) abort_unless((int)$lead->assigned_user_id === (int)Auth::id(),403);
 
         if ($lead->converted_sale_id) {
             return redirect()->route('sales.show', $lead->converted_sale_id)
@@ -248,7 +245,7 @@ class SaleController extends Controller
     {
         $quotation = Quotation::with(['items', 'lead', 'organization', 'organizationContact'])->findOrFail($qid);
         $this->ensureBranchAccess((int)$quotation->branch_id);
-        if (CrmAccess::isStaff()) abort_unless((int)$quotation->prepared_by === (int)Auth::id(),403);
+        if (Auth::user()->can('quotation.view_self') && !Auth::user()->can('quotation.view_branch') && !Auth::user()->can('quotation.view_all_branches')) abort_unless((int)$quotation->prepared_by === (int)Auth::id(),403);
 
         $lead = $quotation->lead;
 
@@ -315,7 +312,7 @@ class SaleController extends Controller
             $lead = Lead::find($request->lead_id);
             if ($lead) {
                 $this->ensureBranchAccess((int)$lead->branch_id);
-                if (CrmAccess::isStaff($u)) abort_unless((int)$lead->assigned_user_id === (int)$u->id,403);
+                if (!$u->can('lead.view_all_branches') && !$u->can('lead.view_branch')) abort_unless((int)$lead->assigned_user_id === (int)$u->id,403);
                 $branchId = (int)$lead->branch_id;
             }
         }
@@ -324,7 +321,7 @@ class SaleController extends Controller
             $quotation = Quotation::find($request->quotation_id);
             if ($quotation) {
                 $this->ensureBranchAccess((int)$quotation->branch_id);
-                if (CrmAccess::isStaff($u)) abort_unless((int)$quotation->prepared_by === (int)$u->id,403);
+                if (!$u->can('quotation.view_all_branches') && !$u->can('quotation.view_branch')) abort_unless((int)$quotation->prepared_by === (int)$u->id,403);
                 $branchId = (int)$quotation->branch_id;
             }
         }

@@ -27,14 +27,16 @@
                     data-bs-target="#filterSidebar">
                 <i class="feather-filter"></i> <span class="d-none d-lg-block">Filter</span>
             </button> 
-            @can('org.create')
+            @can('org.import')
             <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#organizationImportModal">
                 <i class="feather-upload"></i><span class="d-none d-lg-block">&nbsp;&nbsp;Import Excel</span>
             </button>
             @endcan
+            @can('org.create')
             <a href="{{route('org.quick.create')}}" class="btn btn-primary" >
                 <i class="feather-plus"></i><span class="d-none d-lg-block">&nbsp;&nbsp;Add Organization</span>
-            </a> 
+            </a>
+            @endcan
         </div>
     </div> 
 </div>
@@ -142,7 +144,7 @@
     </div>
 </div>
 
-@can('org.create')
+@can('org.import')
 <div class="modal fade" id="organizationImportModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exports\ActivityReportExport;
 use App\Models\Activity;
+use App\Models\Branch;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -73,23 +74,13 @@ class ActivityReportController extends Controller
         }
         $users = $userQuery->get();
 
-        $organizationQuery = DB::table('activities')
-            ->whereNotNull('organization_id')
-            ->whereNotNull('organization_name');
-        if (Auth::user()->can('activity.view_branch') && !Auth::user()->can('activity.view_all')) {
-            $organizationQuery->where('branch_id', Auth::user()->branch_id);
-        } elseif (Auth::user()->can('activity.view_self') && !Auth::user()->can('activity.view_branch') && !Auth::user()->can('activity.view_all')) {
-            $organizationQuery->where('created_by', Auth::id());
-        }
-        $organizations = $organizationQuery
-            ->select('organization_id', 'organization_name')
-            ->distinct()
-            ->orderBy('organization_name')
-            ->get();
+        $branchQuery = Branch::query()->orderBy('branch_name');
+        if (!Auth::user()->can('activity.view_all')) $branchQuery->whereKey(Auth::user()->branch_id);
+        $branches = $branchQuery->get(['id','branch_name','branch_code']);
 
         return view('backend.content.activity.report.index', [
             'users'            => $users,
-            'organizations'    => $organizations,
+            'branches'         => $branches,
             'availableColumns' => self::AVAILABLE_COLUMNS,
             'defaultColumns'   => self::DEFAULT_COLUMNS,
         ]);
@@ -187,6 +178,7 @@ class ActivityReportController extends Controller
             'totalTa'     => $activities->sum('ta'),
             'totalDa'     => $activities->sum('da'),
             'grandTotal'  => $activities->sum('total'),
+            'statusFilter'=> $validated['status'] ?? null,
         ]);
 
         $pdf->setPaper('a4', 'landscape');
@@ -231,6 +223,7 @@ class ActivityReportController extends Controller
             'totalTa'     => $activities->sum('ta'),
             'totalDa'     => $activities->sum('da'),
             'grandTotal'  => $activities->sum('total'),
+            'statusFilter'=> $validated['status'] ?? null,
         ]);
 
         $pdf->setPaper('a4', 'landscape');

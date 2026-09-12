@@ -27,13 +27,9 @@ class RoleController extends Controller
                 return $row->permissions()->count();
             })
             ->addColumn('action', function($row){
-                return '
-                    <a class="btn btn-sm btn-dark mb-2 mr-2" href="'.route('roles.permissions.edit',$row->id).'">
-                        <i class="feather-lock"></i>
-                    </a>
-                    <button class="btn btn-sm btn-primary btn-edit mb-2 mr-2" data-id="'.$row->id.'"><i class="feather-edit"></i></button>
-                    <button class="btn btn-sm btn-danger btn-delete mb-2" data-id="'.$row->id.'"><i class="feather-trash-2"></i></button>
-                ';
+                if ($row->name === 'superadmin' && !auth()->user()->hasRole('superadmin')) return '<span class="badge bg-secondary">Protected</span>';
+                $delete = $row->name === 'superadmin' ? '' : '<button class="btn btn-sm btn-danger btn-delete mb-2" data-id="'.$row->id.'"><i class="feather-trash-2"></i></button>';
+                return '<a class="btn btn-sm btn-dark mb-2 mr-2" href="'.route('roles.permissions.edit',$row->id).'"><i class="feather-lock"></i></a> <button class="btn btn-sm btn-primary btn-edit mb-2 mr-2" data-id="'.$row->id.'"><i class="feather-edit"></i></button> '.$delete;
             })
             ->addColumn('permissions', function($row){
                 $names = $row->permissions()->pluck('name')->toArray();
@@ -68,17 +64,20 @@ class RoleController extends Controller
     public function show($id)
     {
         $role = Role::findOrFail($id);
+        if ($role->name === 'superadmin' && !auth()->user()->hasRole('superadmin')) abort(403);
         return response()->json(['status'=>true,'data'=>$role]);
     }
 
     public function update(Request $request, $id)
     {
         $role = Role::findOrFail($id);
+        if ($role->name === 'superadmin') abort_unless(auth()->user()->hasRole('superadmin'),403);
 
         $request->validate([
             'name' => 'required|string|max:100|unique:roles,name,'.$role->id,
         ]);
 
+        if ($role->name === 'superadmin' && strtolower(trim($request->name)) !== 'superadmin') return response()->json(['status'=>false,'message'=>'superadmin role cannot be renamed'],422);
         $role->name = strtolower(trim($request->name));
         $role->save();
 

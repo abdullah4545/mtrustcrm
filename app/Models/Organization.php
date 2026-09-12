@@ -30,6 +30,7 @@ class Organization extends Model
         'longitude',
         'notes',
         'about_us',
+        'existing_machine',
         'status',
         'created_by',
     ];

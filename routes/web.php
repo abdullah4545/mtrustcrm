@@ -193,6 +193,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/{id}', [ActivityController::class, 'show'])->whereNumber('id')->name('activities.show');
         Route::post('/{id}', [ActivityController::class, 'update'])->whereNumber('id')->name('activities.update');
         Route::post('/{id}/delete', [ActivityController::class, 'destroy'])->whereNumber('id')->name('activities.destroy');
+        Route::post('/{id}/review', [ActivityController::class, 'review'])->whereNumber('id')->name('activities.review');
         Route::get('/ajax/organizations', [ActivityController::class, 'organizations']);
         Route::get('/ajax/departments', [ActivityController::class, 'departments']);
         Route::get('ajax/vehicles', [ActivityController::class,'vehicles'])->name('activities.vehicles');
@@ -200,7 +201,7 @@ Route::middleware('auth')->group(function () {
         Route::get('ajax/staffs', [ActivityController::class,'staffs'])->name('activities.staffs'); 
         Route::get('ajax/org-departments/{organization_id}', [ActivityController::class,'organizationDepartments'])
             ->name('activities.organization.departments'); 
-        Route::get('ajax/org-contacts/{organization_id}/{department_id}', [ActivityController::class,'organizationContacts'])
+        Route::get('ajax/org-contacts/{organization_id}', [ActivityController::class,'organizationContacts'])
             ->name('activities.organization.contacts');
        
     });

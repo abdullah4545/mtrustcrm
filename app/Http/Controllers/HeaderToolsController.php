@@ -34,8 +34,7 @@ class HeaderToolsController extends Controller
             $query = Lead::query()->where(function ($x) use ($like) {
                 $x->where('lead_no', 'like', $like)->orWhere('person_name', 'like', $like)->orWhere('person_phone', 'like', $like);
             });
-            if (CrmAccess::isStaff($user)) $query->where('assigned_user_id', $user->id);
-            elseif ($user->can('lead.view_all_branches')) { /* all branches */ }
+            if ($user->can('lead.view_all_branches')) { /* all branches */ }
             elseif ($user->can('lead.view_branch')) $query->where('branch_id', $user->branch_id);
             else $query->where('assigned_user_id', $user->id);
             foreach ($query->latest()->limit(5)->get(['id','lead_no','person_name','person_phone']) as $row) {
@@ -59,10 +58,9 @@ class HeaderToolsController extends Controller
 
         if ($user->can('quotation.view_all_branches') || $user->can('quotation.view_branch') || $user->can('quotation.view_self')) {
             $query = Quotation::query()->where(function ($x) use ($like) { $x->where('quotation_no','like',$like)->orWhere('client_name','like',$like)->orWhere('client_phone','like',$like); });
-            if (CrmAccess::isStaff($user)) $query->where('created_by',$user->id);
-            elseif ($user->can('quotation.view_all_branches')) { /* all branches */ }
+            if ($user->can('quotation.view_all_branches')) { /* all branches */ }
             elseif ($user->can('quotation.view_branch')) $query->where('branch_id',$user->branch_id);
-            else $query->where('created_by',$user->id);
+            else $query->where('prepared_by',$user->id);
             foreach ($query->latest()->limit(4)->get(['id','quotation_no','client_name','client_phone']) as $row) {
                 $results[] = ['type'=>'Quotation','title'=>$row->quotation_no,'subtitle'=>trim(($row->client_name ?: '').' · '.($row->client_phone ?: ''), ' ·'),'url'=>route('quotations.show',$row->id),'icon'=>'feather-file-text'];
             }
@@ -70,8 +68,7 @@ class HeaderToolsController extends Controller
 
         if ($user->can('sale.view_all_branches') || $user->can('sale.view_branch') || $user->can('sale.view_self')) {
             $query = Sale::query()->where(function ($x) use ($like) { $x->where('sale_no','like',$like)->orWhere('invoice_no','like',$like)->orWhere('client_name','like',$like)->orWhere('client_phone','like',$like); });
-            if (CrmAccess::isStaff($user)) $query->where('sold_by',$user->id);
-            elseif ($user->can('sale.view_all_branches')) { /* all branches */ }
+            if ($user->can('sale.view_all_branches')) { /* all branches */ }
             elseif ($user->can('sale.view_branch')) $query->where('branch_id',$user->branch_id);
             else $query->where('sold_by',$user->id);
             foreach ($query->latest()->limit(4)->get(['id','sale_no','invoice_no','client_name']) as $row) {
@@ -97,8 +94,7 @@ class HeaderToolsController extends Controller
 
         if ($user->can('lead.view_all_branches') || $user->can('lead.view_branch') || $user->can('lead.view_self')) {
             $query = Lead::query()->where('lead_state','open')->whereNotNull('next_followup_at');
-            if (CrmAccess::isStaff($user)) $query->where('assigned_user_id',$user->id);
-            elseif ($user->can('lead.view_all_branches')) { /* all branches */ }
+            if ($user->can('lead.view_all_branches')) { /* all branches */ }
             elseif ($user->can('lead.view_branch')) $query->where('branch_id',$user->branch_id);
             else $query->where('assigned_user_id',$user->id);
 
@@ -113,7 +109,7 @@ class HeaderToolsController extends Controller
             }
         }
 
-        if (CrmAccess::isStaff($user) && $user->can('activity.create')) {
+        if ($user->can('activity.create') && $user->can('activity.view_self') && !$user->can('activity.view_branch') && !$user->can('activity.view_all')) {
             $hasActivity = Activity::where('created_by',$user->id)->whereDate('date',now()->toDateString())->exists();
             if (!$hasActivity) {
                 $items[] = ['level'=>'warning','title'=>'Activity not entered','text'=>'No activity has been entered for today.','url'=>route('activities.quick.create'),'icon'=>'feather-map-pin'];

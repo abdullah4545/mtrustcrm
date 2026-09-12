@@ -33,6 +33,7 @@ class RbacSeeder extends Seeder
             // org
             'org.view',
             'org.create',
+            'org.import',
             'org.edit',
             'org.delete',
             'org_contact.manage',
@@ -60,6 +61,7 @@ class RbacSeeder extends Seeder
             'activity.view_branch',
             'activity.view_self',
             'activity.create',
+            'activity.create_for_others',
             'activity.edit',
             'activity.delete',
             'activity.approve',
@@ -144,14 +146,14 @@ class RbacSeeder extends Seeder
                 'business.manage',
                 'geo.view',
 
-                'org.view','org.create','org.edit','org.delete',
+                'org.view','org.create','org.import','org.edit','org.delete',
                 'org_contact.manage','org_category.manage','org_type.manage',
 
                 'platform.manage',
                 'status_stage.manage',
 
                 'lead.view_all_branches','lead.create','lead.edit','lead.delete','lead.activity.view','lead.activity.add',
-                'activity.view_all','activity.create','activity.edit','activity.delete','activity.approve',
+                'activity.view_all','activity.create','activity.create_for_others','activity.edit','activity.delete','activity.approve',
 
                 'product.view','product.create','product.edit','product.delete',
                 'product.category.manage','product.subcategory.manage','brand.manage',
@@ -187,10 +189,10 @@ class RbacSeeder extends Seeder
             // ✅ Manager = lead + quotation + sales monitoring (branch wide)
             'manager' => [
                 'dashboard.view','dashboard.view_all_branches',
-                'geo.view','org.view','org.create','org.edit','org_contact.manage',
+                'geo.view','org.view','org.create','org.import','org.edit','org_contact.manage',
                 'platform.manage','status_stage.manage',
                 'lead.view_all_branches','lead.create','lead.edit','lead.activity.view','lead.activity.add',
-                'activity.view_all','activity.create','activity.edit','activity.approve',
+                'activity.view_all','activity.create','activity.create_for_others','activity.edit','activity.approve',
                 'quotation.view_all_branches','quotation.create','quotation.edit','quotation.pdf','quotation.mail','quotation.convert_to_sale',
                 'sale.view_all_branches','sale.create','sale.edit','sale.pdf','sale.mail','sale.payment.view','sale.payment.add',
                 'product.view','user.view_all_branches','user.profile.update',
@@ -210,7 +212,7 @@ class RbacSeeder extends Seeder
                 'status_stage.manage',
 
                 'lead.view_branch','lead.create','lead.edit','lead.delete','lead.activity.view','lead.activity.add',
-                'activity.view_branch','activity.create','activity.edit','activity.delete','activity.approve',
+                'activity.view_branch','activity.create','activity.create_for_others','activity.edit','activity.delete','activity.approve',
 
                 'quotation.view_branch','quotation.create','quotation.edit','quotation.delete','quotation.pdf','quotation.mail','quotation.convert_to_sale',
 

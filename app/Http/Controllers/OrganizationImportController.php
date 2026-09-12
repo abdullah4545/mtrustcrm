@@ -22,13 +22,11 @@ class OrganizationImportController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('permission:org.create');
+        $this->middleware('permission:org.import');
     }
 
     public function upload(Request $request, SimpleXlsxToCsv $converter)
     {
-        abort_if(CrmAccess::isStaff(), 403, 'Bulk organization import is not available for staff users.');
-
         $request->validate([
             'file' => 'required|file|mimes:xlsx|max:20480',
         ]);
@@ -73,8 +71,6 @@ class OrganizationImportController extends Controller
 
     public function process(Request $request)
     {
-        abort_if(CrmAccess::isStaff(), 403, 'Bulk organization import is not available for staff users.');
-
         $data = $request->validate([
             'token' => 'required|string|max:80',
             'byte_offset' => 'nullable|integer|min:0',

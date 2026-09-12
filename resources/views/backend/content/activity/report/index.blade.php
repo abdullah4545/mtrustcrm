@@ -6,10 +6,6 @@
 
 @section('maincontent')
 
-<link
-    href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
-    rel="stylesheet"
-/>
 
 <style>
     .report-filter-card {
@@ -241,14 +237,6 @@
                                 <option value="">
                                     All Organizations
                                 </option>
-
-                                @foreach($organizations as $organization)
-                                    <option
-                                        value="{{ $organization->organization_id }}"
-                                    >
-                                        {{ $organization->organization_name }}
-                                    </option>
-                                @endforeach
                             </select>
                         </div>
 
@@ -559,11 +547,6 @@
 
 @push('scripts')
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<script
-    src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"
-></script>
 
 <script>
     const REPORT_DATA_URL =
@@ -587,6 +570,7 @@
     });
 
     function initSelect2() {
+        $('#created_by,#status,#branch_id,#organization_id').each(function(){ if($(this).hasClass('select2-hidden-accessible')) $(this).select2('destroy'); });
         $('#created_by').select2({
             placeholder: 'All Users',
             allowClear: true,
@@ -600,10 +584,21 @@
             width: '100%'
         });
 
+        $('#branch_id').select2({placeholder:'All Permitted Branches',allowClear:true,width:'100%'});
+
         $('#organization_id').select2({
-            placeholder: 'All Organizations',
+            placeholder: 'Search organization...',
             allowClear: true,
-            width: '100%'
+            width: '100%',
+            minimumInputLength: 0,
+            ajax: {
+                url: @json(url('activities/ajax/organizations')),
+                dataType: 'json',
+                delay: 300,
+                data: p => ({q:p.term||'', page:p.page||1}),
+                processResults: r => r,
+                cache: true
+            }
         });
     }
 

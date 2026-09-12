@@ -38,13 +38,19 @@
                         <button class="btn btn-primary">Save Permissions</button>
                     </div>
 
-                    <div class="row">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="feather-search"></i></span>
+                                <input type="text" id="permissionSearch" class="form-control" placeholder="Search permission or module...">
+                            </div>
+                        </div>
                         @foreach($grouped as $module => $perms)
-                            <div class="col-md-4 mb-3">
-                                <div class="border rounded p-3">
+                            <div class="col-md-6 col-xl-4 permission-module" data-module-name="{{ strtolower($module) }}">
+                                <div class="border rounded p-3 h-100">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <b class="text-uppercase">{{ $module }}</b>
-                                        <button type="button" class="btn btn-sm btn-light select-all" data-module="{{ $module }}">Select All</button>
+                                        <div class="btn-group btn-group-sm"><button type="button" class="btn btn-light select-all" data-module="{{ $module }}">All</button><button type="button" class="btn btn-outline-secondary clear-all" data-module="{{ $module }}">None</button></div>
                                     </div>
 
                                     @foreach($perms as $p)
@@ -56,7 +62,7 @@
                                                    id="perm_{{ md5($p->name) }}"
                                                    {{ in_array($p->name, $assigned) ? 'checked' : '' }}>
                                             <label class="form-check-label" for="perm_{{ md5($p->name) }}">
-                                                {{ $p->name }}
+                                                <span class="permission-name">{{ $p->name }}</span>
                                             </label>
                                         </div>
                                     @endforeach
@@ -81,5 +87,7 @@ document.querySelectorAll('.select-all').forEach(btn=>{
         document.querySelectorAll('.module-'+module).forEach(ch=> ch.checked = true);
     });
 });
+document.querySelectorAll('.clear-all').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.module-'+btn.dataset.module).forEach(ch=>ch.checked=false)}));
+document.getElementById('permissionSearch')?.addEventListener('input',function(){const q=this.value.toLowerCase().trim();document.querySelectorAll('.permission-module').forEach(card=>{card.style.display=(!q||card.innerText.toLowerCase().includes(q))?'':'none';});});
 </script>
 @endpush

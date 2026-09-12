@@ -247,13 +247,33 @@
         });
 
         function loadOrganizations(selectedId = null){
-            $.get(ROUTE_ORG_OPTIONS, function(rows){
-                let html = `<option value="">-- Select Organization --</option>`;
-                rows.forEach(r => html += `<option value="${r.id}">${r.name}</option>`);
-                $('#organization_id').html(html);
-                if(selectedId) $('#organization_id').val(selectedId);
-            });
+    const $org = $('#organization_id');
+    if ($org.hasClass('select2-hidden-accessible')) $org.select2('destroy');
+    $org.empty().append(new Option('-- Select Organization --', '', false, false));
+    $org.select2({
+        width:'100%',
+        placeholder:'Search organization...',
+        allowClear:true,
+        minimumInputLength:0,
+        ajax:{
+            url:ROUTE_ORG_OPTIONS,
+            dataType:'json',
+            delay:300,
+            data:params=>({q:params.term||''}),
+            processResults:rows=>({results:(rows||[]).map(r=>({id:r.id,text:r.name+(r.phone_primary?' · '+r.phone_primary:'')}))}),
+            cache:true
         }
+    });
+    if(selectedId){
+        $.get(ROUTE_ORG_OPTIONS,{id:selectedId},function(rows){
+            if(rows && rows.length){
+                const r=rows[0];
+                const option=new Option(r.name+(r.phone_primary?' · '+r.phone_primary:''),r.id,true,true);
+                $org.append(option).trigger('change');
+            }
+        });
+    }
+}
 
     });
 </script>

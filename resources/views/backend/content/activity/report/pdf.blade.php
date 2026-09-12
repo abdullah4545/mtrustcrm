@@ -250,6 +250,9 @@
     <div class="date-line">
         Date : {{ $dateDisplay }}
     </div>
+    <div class="date-line">
+        Approval Status : {{ $statusFilter ? ucfirst($statusFilter) : 'All' }}
+    </div>
 
 </div>
 

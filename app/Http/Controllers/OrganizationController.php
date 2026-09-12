@@ -68,6 +68,7 @@ class OrganizationController extends Controller
             'name'   => 'required|string|max:255',
             'no_of_beds' => 'nullable|integer|min:0',
             'status' => 'required|in:active,inactive',
+            'existing_machine' => 'nullable|string',
     
             'email'         => 'nullable|email',
             'phone_primary' => 'nullable|string|max:20',
@@ -80,15 +81,19 @@ class OrganizationController extends Controller
             'contacts.*.phone'           => 'nullable|string|max:20',
             'contacts.*.email'           => 'nullable|email',
             'contacts.*.phone_two'       => 'nullable|string|max:20',
+            'contacts.*.phone_numbers'   => 'nullable|array|max:10',
+            'contacts.*.phone_numbers.*' => 'nullable|string|max:30',
+            'contacts.*.email_addresses' => 'nullable|array|max:10',
+            'contacts.*.email_addresses.*' => 'nullable|email|max:150',
             'contacts.*.address'         => 'nullable|string|max:255',
             'contacts.*.additional_info' => 'nullable|string|max:255',
             'contacts.*.department_id'   => 'nullable|exists:departments,id',
             'contacts.*.designation_id'  => 'nullable|exists:designations,id',
-            'contacts.*.image_url'           => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'contacts.*.image'               => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'contacts.*.status'          => 'nullable|in:active,inactive',
         ]);
     
-        if (CrmAccess::isStaff()) {
+        if (CrmAccess::hasAreaRestriction()) {
             $request->validate(['district_id'=>'required|exists:districts,id','upazila_id'=>'required|exists:upazilas,id']);
             CrmAccess::ensureAreaAllowed((int)$request->district_id, (int)$request->upazila_id);
         }
@@ -114,6 +119,7 @@ class OrganizationController extends Controller
                 'map_location_link'        => $request->map_location_link,
                 'notes'                    => $request->notes,
                 'about_us'                 => $request->about_us,
+                'existing_machine'          => $request->existing_machine,
                 'status'                   => $request->status,
                 'created_by'               => auth()->id(),
             ]);
@@ -125,8 +131,9 @@ class OrganizationController extends Controller
     
                 if (
                     empty($c['name']) &&
-                    empty($c['phone']) &&
-                    empty($c['email'])
+                    empty($c['phone']) && empty($c['email']) &&
+                    empty(array_filter($c['phone_numbers'] ?? [])) &&
+                    empty(array_filter($c['email_addresses'] ?? []))
                 ) {
                     continue;
                 }
@@ -164,9 +171,11 @@ class OrganizationController extends Controller
                     'organization_id' => $org->id,
                     'title'           => $c['title'] ?? null,
                     'name'            => $c['name'] ?? null,
-                    'phone'           => $c['phone'] ?? null,
-                    'email'           => $c['email'] ?? null,
-                    'phone_two'       => $c['phone_two'] ?? null,
+                    'phone'           => collect($c['phone_numbers'] ?? [$c['phone'] ?? null])->filter()->values()->get(0),
+                    'email'           => collect($c['email_addresses'] ?? [$c['email'] ?? null])->filter()->values()->get(0),
+                    'phone_two'       => collect($c['phone_numbers'] ?? [$c['phone'] ?? null, $c['phone_two'] ?? null])->filter()->values()->get(1),
+                    'phone_numbers'   => collect($c['phone_numbers'] ?? [$c['phone'] ?? null, $c['phone_two'] ?? null])->filter()->values()->all(),
+                    'email_addresses' => collect($c['email_addresses'] ?? [$c['email'] ?? null])->filter()->values()->all(),
                     'address'         => $c['address'] ?? null,
                     'additional_info' => $c['additional_info'] ?? null,
     
@@ -272,10 +281,11 @@ class OrganizationController extends Controller
             'map_location_link'        => 'nullable|string|max:1000',
             'notes'                    => 'nullable|string',
             'about_us'                 => 'nullable|string',
+            'existing_machine'         => 'nullable|string',
             'status'                   => 'required|in:active,inactive',
         ]);
 
-        if (CrmAccess::isStaff()) {
+        if (CrmAccess::hasAreaRestriction()) {
             validator($data, ['district_id'=>'required','upazila_id'=>'required'])->validate();
             CrmAccess::ensureAreaAllowed((int)$data['district_id'], (int)$data['upazila_id']);
         }
@@ -319,6 +329,7 @@ class OrganizationController extends Controller
             'name'   => 'required|string|max:255',
             'no_of_beds' => 'nullable|integer|min:0',
             'status' => 'required|in:active,inactive',
+            'existing_machine' => 'nullable|string',
     
             'email'         => 'nullable|email',
             'phone_primary' => 'nullable|string|max:20',
@@ -331,11 +342,15 @@ class OrganizationController extends Controller
             'contacts.*.phone'           => 'nullable|string|max:20',
             'contacts.*.email'           => 'nullable|email',
             'contacts.*.phone_two'       => 'nullable|string|max:20',
+            'contacts.*.phone_numbers'   => 'nullable|array|max:10',
+            'contacts.*.phone_numbers.*' => 'nullable|string|max:30',
+            'contacts.*.email_addresses' => 'nullable|array|max:10',
+            'contacts.*.email_addresses.*' => 'nullable|email|max:150',
             'contacts.*.address'         => 'nullable|string|max:255',
             'contacts.*.additional_info' => 'nullable|string|max:255',
             'contacts.*.department_id'   => 'nullable|exists:departments,id',
             'contacts.*.designation_id'  => 'nullable|exists:designations,id',
-            'contacts.*.image_url'           => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'contacts.*.image'               => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'contacts.*.status'          => 'nullable|in:active,inactive',
             'map_location_link'         => 'nullable|string|max:1000',
     
@@ -347,7 +362,7 @@ class OrganizationController extends Controller
         try {
     
             $org = $this->visibleOrganization((int)$id);
-            if (CrmAccess::isStaff()) {
+            if (CrmAccess::hasAreaRestriction()) {
                 $request->validate(['district_id'=>'required|exists:districts,id','upazila_id'=>'required|exists:upazilas,id']);
                 CrmAccess::ensureAreaAllowed((int)$request->district_id, (int)$request->upazila_id);
             }
@@ -369,6 +384,7 @@ class OrganizationController extends Controller
                 'map_location_link'        => $request->map_location_link,
                 'notes'                    => $request->notes,
                 'about_us'                 => $request->about_us,
+                'existing_machine'          => $request->existing_machine,
                 'status'                   => $request->status,
             ]);
     
@@ -385,8 +401,9 @@ class OrganizationController extends Controller
     
                 if (
                     empty($c['name']) &&
-                    empty($c['phone']) &&
-                    empty($c['email'])
+                    empty($c['phone']) && empty($c['email']) &&
+                    empty(array_filter($c['phone_numbers'] ?? [])) &&
+                    empty(array_filter($c['email_addresses'] ?? []))
                 ) {
                     continue;
                 }
@@ -432,9 +449,11 @@ class OrganizationController extends Controller
                     'organization_id' => $org->id,
                     'title'           => $c['title'] ?? null,
                     'name'            => $c['name'] ?? null,
-                    'phone'           => $c['phone'] ?? null,
-                    'email'           => $c['email'] ?? null,
-                    'phone_two'       => $c['phone_two'] ?? null,
+                    'phone'           => collect($c['phone_numbers'] ?? [$c['phone'] ?? null])->filter()->values()->get(0),
+                    'email'           => collect($c['email_addresses'] ?? [$c['email'] ?? null])->filter()->values()->get(0),
+                    'phone_two'       => collect($c['phone_numbers'] ?? [$c['phone'] ?? null, $c['phone_two'] ?? null])->filter()->values()->get(1),
+                    'phone_numbers'   => collect($c['phone_numbers'] ?? [$c['phone'] ?? null, $c['phone_two'] ?? null])->filter()->values()->all(),
+                    'email_addresses' => collect($c['email_addresses'] ?? [$c['email'] ?? null])->filter()->values()->all(),
                     'address'         => $c['address'] ?? null,
                     'additional_info' => $c['additional_info'] ?? null,
                     'department_id'   => $c['department_id'] ?? null,
@@ -541,7 +560,7 @@ class OrganizationController extends Controller
     {
         $divisionId = $request->get('division_id');
         $rows = District::where('division_id', $divisionId)->where('is_active',1);
-        if (CrmAccess::isStaff()) $rows->whereIn('id', auth()->user()->areaAssignments()->pluck('district_id'));
+        if (CrmAccess::hasAreaRestriction()) $rows->whereIn('id', auth()->user()->areaAssignments()->pluck('district_id'));
         $rows = $rows->orderBy('name')->get(['id','name']);
         return response()->json(['status'=>true,'data'=>$rows]);
     }
@@ -550,7 +569,7 @@ class OrganizationController extends Controller
     {
         $districtId = $request->get('district_id');
         $rows = Upazila::where('district_id', $districtId)->where('is_active',1);
-        if (CrmAccess::isStaff()) {
+        if (CrmAccess::hasAreaRestriction()) {
             $assignments = auth()->user()->areaAssignments()->where('district_id',$districtId)->get();
             if ($assignments->isEmpty()) return response()->json(['status'=>true,'data'=>[]]);
             if (!$assignments->contains(fn($x)=>is_null($x->upazila_id))) $rows->whereIn('id',$assignments->pluck('upazila_id'));
@@ -562,7 +581,7 @@ class OrganizationController extends Controller
     public function unions(Request $request)
     {
         $upazilaId = $request->get('upazila_id');
-        if (CrmAccess::isStaff()) {
+        if (CrmAccess::hasAreaRestriction()) {
             $upazila = Upazila::findOrFail($upazilaId);
             CrmAccess::ensureAreaAllowed((int)$upazila->district_id,(int)$upazila->id);
         }

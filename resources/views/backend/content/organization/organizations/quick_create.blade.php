@@ -242,6 +242,10 @@
 </div>
 
 
+
+@endsection
+
+@push('scripts')
 <script>
 let i = 1;
 
@@ -472,5 +476,4 @@ $('#quickForm').on('submit', function(e){
 
 });
 </script>
-
-@endsection
+@endpush

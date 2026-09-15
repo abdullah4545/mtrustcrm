@@ -7,7 +7,9 @@
 <script src="{{ asset('public/backend/vendors/js/circle-progress.min.js') }}"></script>
  
 <script src="{{ asset('public/backend/js/common-init.min.js') }}"></script>
+@if(request()->routeIs('dashboard'))
 <script src="{{ asset('public/backend/js/dashboard-init.min.js') }}"></script>
+@endif
  
 <script src="{{ asset('public/backend/js/theme-customizer-init.min.js') }}"></script>
  

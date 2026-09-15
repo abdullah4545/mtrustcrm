@@ -335,48 +335,66 @@ $('#addMore').on('click', function(){
     i++;
 });
 
-// Geo dependent Select2 dropdowns — data is loaded with the page.
-// This makes the chain deterministic: Division -> District -> Upazila -> Union.
-const GEO_DISTRICTS = @json($geoDistricts);
-const GEO_UPAZILAS  = @json($geoUpazilas);
-const GEO_UNIONS    = @json($geoUnions);
+// Geo dropdowns: exact same working AJAX pattern as Organization Edit.
+$('#division_id').on('change', function () {
 
-function geoEsc(value) {
-    return $('<div>').text(value == null ? '' : String(value)).html();
-}
-function fillGeo(selector, placeholder, rows) {
-    const $el = $(selector);
-    let html = `<option value="">${placeholder}</option>`;
-    rows.forEach(row => html += `<option value="${row.id}">${geoEsc(row.name)}</option>`);
-    $el.html(html).prop('disabled', false).trigger('change.select2');
-}
-function clearGeo(selector, placeholder, disabled = true) {
-    $(selector).html(`<option value="">${placeholder}</option>`)
-        .prop('disabled', disabled).val('').trigger('change.select2');
-}
+    let id = $(this).val();
 
-$(document).on('change', '#division_id', function () {
-    const id = Number($(this).val() || 0);
-    clearGeo('#district_id', 'Select District', !id);
-    clearGeo('#upazila_id', 'Select Upazila', true);
-    clearGeo('#union_id', 'Select Union', true);
-    if (!id) return;
-    fillGeo('#district_id', 'Select District', GEO_DISTRICTS.filter(x => Number(x.division_id) === id));
+    $('#district_id').html('<option>Loading...</option>');
+    $('#upazila_id').html('<option value="">Select Upazila</option>');
+    $('#union_id').html('<option value="">Select Union</option>');
+
+    if(!id) return;
+
+    $.get("{{ route('org.geo.districts') }}", {division_id:id}, function(res){
+
+        let html = '<option value="">Select District</option>';
+
+        res.data.forEach(function(item){
+            html += `<option value="${item.id}">${item.name}</option>`;
+        });
+
+        $('#district_id').html(html);
+    });
 });
 
-$(document).on('change', '#district_id', function () {
-    const id = Number($(this).val() || 0);
-    clearGeo('#upazila_id', 'Select Upazila', !id);
-    clearGeo('#union_id', 'Select Union', true);
-    if (!id) return;
-    fillGeo('#upazila_id', 'Select Upazila', GEO_UPAZILAS.filter(x => Number(x.district_id) === id));
+$('#district_id').on('change', function () {
+
+    let id = $(this).val();
+
+    $('#upazila_id').html('<option>Loading...</option>');
+    $('#union_id').html('<option value="">Select Union</option>');
+
+    if(!id) return;
+
+    $.get("{{ route('org.geo.upazilas') }}", {district_id:id}, function(res){
+
+        let html = '<option value="">Select Upazila</option>';
+
+        res.data.forEach(function(item){
+            html += `<option value="${item.id}">${item.name}</option>`;
+        });
+
+        $('#upazila_id').html(html);
+    });
 });
 
-$(document).on('change', '#upazila_id', function () {
-    const id = Number($(this).val() || 0);
-    clearGeo('#union_id', 'Select Union', !id);
-    if (!id) return;
-    fillGeo('#union_id', 'Select Union', GEO_UNIONS.filter(x => Number(x.upazila_id) === id));
+$('#upazila_id').on('change', function () {
+
+    let id = $(this).val();
+
+    if(!id) return;
+
+    $.get("{{ route('org.geo.unions') }}", {upazila_id:id}, function(res){
+
+        let html = '<option value="">Select Union</option>';
+
+        res.data.forEach(function(item){
+            html += `<option value="${item.id}">${item.name}</option>`;
+        });
+
+        $('#union_id').html(html);
+    });
 });
 
 $('#quickForm').on('submit', function(e){

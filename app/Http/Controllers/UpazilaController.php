@@ -12,17 +12,8 @@ class UpazilaController extends Controller
 {
     public function __construct()
     {
-        // Geo uses ONE permission for the whole module.
-        // Do not attach separate create/edit/delete permission middleware.
-        $this->middleware(function ($request, $next) {
-            $user = $request->user();
-
-            if (!$user || (!$user->hasRole('superadmin') && !$user->can('geo.view'))) {
-                abort(403, 'You do not have permission to manage Geo.');
-            }
-
-            return $next($request);
-        });
+        // One permission controls the complete Geo module.
+        $this->middleware('permission:geo.view');
     }
 
 public function index()

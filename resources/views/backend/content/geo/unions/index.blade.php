@@ -293,8 +293,7 @@ $(document).ready(function () {
             return;
         }
 
-        payload._method = 'PUT';
-        $.post(ROUTE_UPDATE+'/'+id, payload)
+                $.post(ROUTE_UPDATE+'/'+id+'/update', payload)
             .done(function(res){
                 Swal.fire('Success', res.message ?? 'Updated', 'success');
                 unionModal.hide();
@@ -307,7 +306,8 @@ $(document).ready(function () {
     $(document).on('click', '.btn-edit', function(){
         const id = $(this).data('id');
 
-        $.get(ROUTE_SHOW+'/'+id, function(res){
+        $.get(ROUTE_SHOW+'/'+id+'/edit-data', function(res){
+            if (!res || !res.data || !res.data.id) { showAjaxError({responseJSON:{message:'Invalid Geo edit response'}}); return; }
             clearForm();
             $('#modalTitle').text('Edit Union');
 
@@ -339,10 +339,9 @@ $(document).ready(function () {
         }).then((result) => {
             if(!result.isConfirmed) return;
 
-            $.post(ROUTE_DELETE+'/'+id, {
+            $.post(ROUTE_DELETE+'/'+id+'/delete', {
                 _token: $('meta[name="csrf-token"]').attr('content'),
-                _method: 'DELETE'
-            })
+                            })
             .done(function(res){
                 Swal.fire('Deleted', res.message ?? 'Deleted', 'success');
                 table.ajax.reload(null,false);

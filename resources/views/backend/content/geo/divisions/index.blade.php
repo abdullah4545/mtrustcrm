@@ -195,9 +195,8 @@ $(document).on('click', '#btnSave', function(e){
     }
 
     // ✅ Update
-    payload._method = "PUT";
     $.ajax({
-        url: ROUTE_UPDATE + '/' + id,
+        url: ROUTE_UPDATE + '/' + id + '/update',
         type: "POST",
         data: payload,
         success: function(res){
@@ -215,7 +214,8 @@ $(document).on('click', '#btnSave', function(e){
 $(document).on('click', '.btn-edit', function(){
     let id = $(this).data('id');
 
-    $.get(ROUTE_SHOW + '/' + id, function(res){
+    $.get(ROUTE_SHOW + '/' + id + '/edit-data', function(res){
+        if (!res || !res.data || !res.data.id) { showAjaxError({responseJSON:{message:'Invalid Geo edit response'}}); return; }
         clearForm();
         $('#modalTitle').text('Edit Division');
         $('#division_id').val(res.data.id);
@@ -242,12 +242,11 @@ $(document).on('click', '.btn-delete', function(){
         if(!result.isConfirmed) return;
 
         $.ajax({
-            url: ROUTE_DELETE + '/' + id,
+            url: ROUTE_DELETE + '/' + id + '/delete',
             type: "POST",
             data: {
                 _token: $('meta[name="csrf-token"]').attr('content'),
-                _method: 'DELETE'
-            },
+                            },
             success: function(res){
                 Swal.fire('Deleted', res.message ?? 'Deleted', 'success');
                 table.ajax.reload(null, false);

@@ -251,27 +251,27 @@ Route::middleware('auth')->group(function () {
         Route::get('divisions/datatable', [DivisionController::class, 'datatable'])->name('divisions.datatable');
 
         Route::post('divisions', [DivisionController::class, 'store'])->name('divisions.store');
-        Route::get('divisions/{division}', [DivisionController::class, 'show'])->name('divisions.show');
-        Route::put('divisions/{division}', [DivisionController::class, 'update'])->name('divisions.update');
-        Route::delete('divisions/{division}', [DivisionController::class, 'destroy'])->name('divisions.destroy');
+        Route::get('divisions/{division}/edit-data', [DivisionController::class, 'show'])->name('divisions.show');
+        Route::post('divisions/{division}/update', [DivisionController::class, 'update'])->name('divisions.update');
+        Route::post('divisions/{division}/delete', [DivisionController::class, 'destroy'])->name('divisions.destroy');
         
         // district
         Route::get('districts', [DistrictController::class, 'index'])->name('districts.index');
         Route::get('district/datatable', [DistrictController::class, 'datatable'])->name('districts.datatable');
 
         Route::post('districts', [DistrictController::class, 'store'])->name('districts.store');
-        Route::get('district/{district}', [DistrictController::class, 'show'])->name('districts.show');
-        Route::put('district/{district}', [DistrictController::class, 'update'])->name('districts.update');
-        Route::delete('district/{district}', [DistrictController::class, 'destroy'])->name('districts.destroy');
+        Route::get('districts/{district}/edit-data', [DistrictController::class, 'show'])->name('districts.show');
+        Route::post('districts/{district}/update', [DistrictController::class, 'update'])->name('districts.update');
+        Route::post('districts/{district}/delete', [DistrictController::class, 'destroy'])->name('districts.destroy');
 
         // upazila
         Route::get('upazilas', [UpazilaController::class, 'index'])->name('upazilas.index');
         Route::get('upazila/datatable', [UpazilaController::class, 'datatable'])->name('upazilas.datatable');
 
         Route::post('upazilas', [UpazilaController::class, 'store'])->name('upazilas.store');
-        Route::get('upazila/{upazila}', [UpazilaController::class, 'show'])->name('upazilas.show');
-        Route::put('upazila/{upazila}', [UpazilaController::class, 'update'])->name('upazilas.update');
-        Route::delete('upazila/{upazila}', [UpazilaController::class, 'destroy'])->name('upazilas.destroy');
+        Route::get('upazilas/{upazila}/edit-data', [UpazilaController::class, 'show'])->name('upazilas.show');
+        Route::post('upazilas/{upazila}/update', [UpazilaController::class, 'update'])->name('upazilas.update');
+        Route::post('upazilas/{upazila}/delete', [UpazilaController::class, 'destroy'])->name('upazilas.destroy');
 
         Route::get('ajax/districts', [UpazilaController::class, 'ajaxDistricts'])->name('ajax.districts');
 
@@ -280,9 +280,9 @@ Route::middleware('auth')->group(function () {
         Route::get('union/datatable', [UnionController::class, 'datatable'])->name('unions.datatable');
 
         Route::post('unions', [UnionController::class, 'store'])->name('unions.store');
-        Route::get('union/{union}', [UnionController::class, 'show'])->name('unions.show');
-        Route::put('union/{union}', [UnionController::class, 'update'])->name('unions.update');
-        Route::delete('union/{union}', [UnionController::class, 'destroy'])->name('unions.destroy');
+        Route::get('unions/{union}/edit-data', [UnionController::class, 'show'])->name('unions.show');
+        Route::post('unions/{union}/update', [UnionController::class, 'update'])->name('unions.update');
+        Route::post('unions/{union}/delete', [UnionController::class, 'destroy'])->name('unions.destroy');
   
         Route::get('ajax/upazilas', [UnionController::class, 'ajaxUpazilas'])->name('geo.ajax.upazilas');
         

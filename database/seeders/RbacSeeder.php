@@ -66,6 +66,15 @@ class RbacSeeder extends Seeder
             'activity.delete',
             'activity.approve',
 
+            // Reports (access + data visibility scope)
+            'report.sales.view',
+            'report.leads.view',
+            'report.collections.view',
+            'report.activity.view',
+            'report.view_all',
+            'report.view_branch',
+            'report.view_self',
+
             // Products
             'product.view',
             'product.create',
@@ -155,6 +164,7 @@ class RbacSeeder extends Seeder
 
                 'lead.view_all_branches','lead.create','lead.edit','lead.delete','lead.activity.view','lead.activity.add',
                 'activity.view_all','activity.create','activity.create_for_others','activity.edit','activity.delete','activity.approve',
+                'report.sales.view','report.leads.view','report.collections.view','report.activity.view','report.view_all',
 
                 'product.view','product.create','product.edit','product.delete',
                 'product.category.manage','product.subcategory.manage','brand.manage',
@@ -177,6 +187,7 @@ class RbacSeeder extends Seeder
 
                 'lead.view_branch',
                 'activity.view_branch','activity.create','activity.edit',
+                'report.sales.view','report.collections.view','report.activity.view','report.view_branch',
 
                 'quotation.view_branch','quotation.pdf','quotation.mail',
 
@@ -194,6 +205,7 @@ class RbacSeeder extends Seeder
                 'platform.manage','status_stage.manage',
                 'lead.view_all_branches','lead.create','lead.edit','lead.activity.view','lead.activity.add',
                 'activity.view_all','activity.create','activity.create_for_others','activity.edit','activity.approve',
+                'report.sales.view','report.leads.view','report.collections.view','report.activity.view','report.view_all',
                 'quotation.view_all_branches','quotation.create','quotation.edit','quotation.pdf','quotation.mail','quotation.convert_to_sale',
                 'sale.view_all_branches','sale.create','sale.edit','sale.pdf','sale.mail','sale.payment.view','sale.payment.add',
                 'product.view','user.view_all_branches','user.profile.update',
@@ -214,6 +226,7 @@ class RbacSeeder extends Seeder
 
                 'lead.view_branch','lead.create','lead.edit','lead.delete','lead.activity.view','lead.activity.add',
                 'activity.view_branch','activity.create','activity.create_for_others','activity.edit','activity.delete','activity.approve',
+                'report.sales.view','report.leads.view','report.collections.view','report.activity.view','report.view_branch',
 
                 'quotation.view_branch','quotation.create','quotation.edit','quotation.delete','quotation.pdf','quotation.mail','quotation.convert_to_sale',
 
@@ -236,6 +249,7 @@ class RbacSeeder extends Seeder
 
                 'lead.view_self','lead.create','lead.edit','lead.activity.view','lead.activity.add',
                 'activity.view_self','activity.create','activity.edit',
+                'report.sales.view','report.leads.view','report.collections.view','report.activity.view','report.view_self',
 
                 // optional: staff can create quotation/sale from lead (if you want)
                 'quotation.view_self','quotation.create','quotation.edit','quotation.pdf',

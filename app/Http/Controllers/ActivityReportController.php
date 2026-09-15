@@ -20,7 +20,8 @@ class ActivityReportController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('permission:activity.view_all|activity.view_branch|activity.view_self');
+        $this->middleware('permission:report.activity.view');
+        $this->middleware('permission:report.view_all|report.view_branch|report.view_self');
     }
 
     
@@ -68,15 +69,15 @@ class ActivityReportController extends Controller
         
         $userQuery = DB::table('users')->select('id','name')->orderBy('name');
         if (!Auth::user()->can('staff.filter')) $userQuery->whereRaw('1 = 0');
-        if (Auth::user()->can('activity.view_branch') && !Auth::user()->can('activity.view_all')) {
+        if (Auth::user()->can('report.view_branch') && !Auth::user()->can('report.view_all')) {
             $userQuery->where('branch_id', Auth::user()->branch_id);
-        } elseif (Auth::user()->can('activity.view_self') && !Auth::user()->can('activity.view_branch') && !Auth::user()->can('activity.view_all')) {
+        } elseif (Auth::user()->can('activity.view_self') && !Auth::user()->can('report.view_branch') && !Auth::user()->can('report.view_all')) {
             $userQuery->where('id', Auth::id());
         }
         $users = $userQuery->get();
 
         $branchQuery = Branch::query()->orderBy('branch_name');
-        if (!Auth::user()->can('activity.view_all')) $branchQuery->whereKey(Auth::user()->branch_id);
+        if (!Auth::user()->can('report.view_all')) $branchQuery->whereKey(Auth::user()->branch_id);
         $branches = $branchQuery->get(['id','branch_name','branch_code']);
 
         return view('backend.content.activity.report.index', [
@@ -366,9 +367,9 @@ class ActivityReportController extends Controller
             unset($validated['created_by']);
         }
 
-        if ($u->can('activity.view_all')) {
+        if ($u->can('report.view_all')) {
             // requested branch/user filters are allowed only with staff.filter
-        } elseif ($u->can('activity.view_branch')) {
+        } elseif ($u->can('report.view_branch')) {
             $validated['branch_id'] = $u->branch_id;
         } else {
             $validated['branch_id'] = $u->branch_id;

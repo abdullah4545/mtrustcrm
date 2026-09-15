@@ -15,17 +15,19 @@ class CrmReportController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('permission:sale.view_all_branches|sale.view_branch|sale.view_self')->only(['sales','collections']);
-        $this->middleware('permission:lead.view_all_branches|lead.view_branch|lead.view_self')->only(['leads']);
+        $this->middleware('permission:report.sales.view')->only(['sales']);
+        $this->middleware('permission:report.leads.view')->only(['leads']);
+        $this->middleware('permission:report.collections.view')->only(['collections']);
+        $this->middleware('permission:report.view_all|report.view_branch|report.view_self')->only(['sales','leads','collections']);
     }
 
-    private function applyScope($query, string $allPermission, string $branchPermission, string $selfColumn, string $branchColumn = 'branch_id')
+    private function applyReportScope($query, string $selfColumn, string $branchColumn = 'branch_id')
     {
         $u = Auth::user();
-        if ($u->can($allPermission)) {
+        if ($u->can('report.view_all')) {
             return $query;
         }
-        if ($u->can($branchPermission)) {
+        if ($u->can('report.view_branch')) {
             return $query->where($branchColumn, $u->branch_id);
         }
         return $query->where($selfColumn, $u->id);
@@ -36,7 +38,7 @@ class CrmReportController extends Controller
         $from = $request->get('from', now()->startOfMonth()->toDateString());
         $to = $request->get('to', now()->toDateString());
 
-        $sales = $this->applyScope(Sale::query(), 'sale.view_all_branches', 'sale.view_branch', 'sold_by');
+        $sales = $this->applyReportScope(Sale::query(), 'sold_by');
         $sales->whereBetween('sale_date', [$from, $to]);
         if (Auth::user()->can('staff.filter') && $request->filled('user_id')) $sales->where('sold_by', $request->integer('user_id'));
 
@@ -49,7 +51,7 @@ class CrmReportController extends Controller
 
         $rows = $sales->with('soldBy:id,name')->latest('sale_date')->paginate(30)->withQueryString();
         $u = Auth::user();
-        $staffs = User::where('status',1)->when(!$u->can('sale.view_all_branches'), fn($q)=>$q->where('branch_id',$u->branch_id))->orderBy('name')->get(['id','name']);
+        $staffs = User::where('status',1)->when(!$u->can('report.view_all'), fn($q)=>$q->where('branch_id',$u->branch_id))->orderBy('name')->get(['id','name']);
         return view('backend.content.reports.sales', compact('summary','rows','from','to','staffs'));
     }
 
@@ -58,7 +60,7 @@ class CrmReportController extends Controller
         $from = $request->get('from', now()->startOfMonth()->toDateString());
         $to = $request->get('to', now()->toDateString());
 
-        $leads = $this->applyScope(Lead::query(), 'lead.view_all_branches', 'lead.view_branch', 'assigned_user_id')
+        $leads = $this->applyReportScope(Lead::query(), 'created_by')
             ->whereBetween('created_at', [$from.' 00:00:00', $to.' 23:59:59']);
         if (Auth::user()->can('staff.filter') && $request->filled('user_id')) $leads->where('created_by', $request->integer('user_id'));
 
@@ -71,7 +73,7 @@ class CrmReportController extends Controller
 
         $rows = $leads->with(['statusStage:id,name,color','creator:id,name'])->latest()->paginate(30)->withQueryString();
         $u = Auth::user();
-        $staffs = User::where('status',1)->when(!$u->can('lead.view_all_branches'), fn($q)=>$q->where('branch_id',$u->branch_id))->orderBy('name')->get(['id','name']);
+        $staffs = User::where('status',1)->when(!$u->can('report.view_all'), fn($q)=>$q->where('branch_id',$u->branch_id))->orderBy('name')->get(['id','name']);
         return view('backend.content.reports.leads', compact('summary','rows','from','to','staffs'));
     }
 
@@ -82,12 +84,13 @@ class CrmReportController extends Controller
 
         $u = Auth::user();
         $payments = SalePayment::query();
-        if ($u->can('sale.view_all_branches')) {
+        if ($u->can('report.view_all')) {
             // all branches
-        } elseif ($u->can('sale.view_branch')) {
+        } elseif ($u->can('report.view_branch')) {
             $payments->where('branch_id', $u->branch_id);
         } else {
-            $payments->whereIn('sale_id', Sale::where('sold_by', $u->id)->select('id'));
+            // Self report = collections/payment entries received by this user.
+            $payments->where('received_by', $u->id);
         }
         $payments->whereBetween('payment_date', [$from, $to]);
         if ($u->can('staff.filter') && $request->filled('user_id')) $payments->where('received_by', $request->integer('user_id'));
@@ -99,7 +102,7 @@ class CrmReportController extends Controller
 
         $rows = $payments->with(['sale:id,invoice_no,client_name,client_phone','receiver:id,name'])
             ->latest('payment_date')->paginate(30)->withQueryString();
-        $staffs = User::where('status',1)->when(!$u->can('sale.view_all_branches'), fn($q)=>$q->where('branch_id',$u->branch_id))->orderBy('name')->get(['id','name']);
+        $staffs = User::where('status',1)->when(!$u->can('report.view_all'), fn($q)=>$q->where('branch_id',$u->branch_id))->orderBy('name')->get(['id','name']);
 
         return view('backend.content.reports.collections', compact('summary','rows','from','to','staffs'));
     }

@@ -86,17 +86,17 @@
                 </li>
                 @endcanany
 
-                @canany(['sale.view_all_branches','sale.view_branch','lead.view_all_branches','lead.view_branch','activity.view_all','activity.view_branch'])
+                @canany(['report.sales.view','report.leads.view','report.collections.view','report.activity.view'])
                 <li class="nxl-item nxl-hasmenu">
                     <a href="javascript:void(0);" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-bar-chart-2"></i></span>
                         <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        @canany(['sale.view_all_branches','sale.view_branch'])<li class="nxl-item"><a class="nxl-link" href="{{ route('reports.sales') }}">Sales Report</a></li>@endcanany
-                        @canany(['lead.view_all_branches','lead.view_branch'])<li class="nxl-item"><a class="nxl-link" href="{{ route('reports.leads') }}">Leads Report</a></li>@endcanany
-                        @canany(['sale.view_all_branches','sale.view_branch'])<li class="nxl-item"><a class="nxl-link" href="{{ route('reports.collections') }}">Collection Report</a></li>@endcanany
-                        @canany(['activity.view_all','activity.view_branch'])<li class="nxl-item"><a class="nxl-link" href="{{ route('activities.report.index') }}">Activity Report</a></li>@endcanany
+                        @can('report.sales.view')<li class="nxl-item"><a class="nxl-link" href="{{ route('reports.sales') }}">Sales Report</a></li>@endcan
+                        @can('report.leads.view')<li class="nxl-item"><a class="nxl-link" href="{{ route('reports.leads') }}">Leads Report</a></li>@endcan
+                        @can('report.collections.view')<li class="nxl-item"><a class="nxl-link" href="{{ route('reports.collections') }}">Collection Report</a></li>@endcan
+                        @can('report.activity.view')<li class="nxl-item"><a class="nxl-link" href="{{ route('activities.report.index') }}">Activity Report</a></li>@endcan
                     </ul>
                 </li>
                 @endcanany

@@ -562,34 +562,35 @@ class OrganizationController extends Controller
     // ✅ Geo dependent dropdown helpers (filter + modal both)
     public function districts(Request $request)
     {
-        $divisionId = $request->get('division_id');
-        $rows = District::where('division_id', $divisionId)->where('is_active',1);
-        if (CrmAccess::hasAreaRestriction()) $rows->whereIn('id', auth()->user()->areaAssignments()->pluck('district_id'));
-        $rows = $rows->orderBy('name')->get(['id','name']);
-        return response()->json(['status'=>true,'data'=>$rows]);
+        $request->validate(['division_id' => 'required|integer|exists:divisions,id']);
+
+        $rows = District::where('division_id', $request->integer('division_id'))
+            ->orderBy('name')
+            ->get(['id','name']);
+
+        return response()->json(['status' => true, 'data' => $rows]);
     }
 
     public function upazilas(Request $request)
     {
-        $districtId = $request->get('district_id');
-        $rows = Upazila::where('district_id', $districtId)->where('is_active',1);
-        if (CrmAccess::hasAreaRestriction()) {
-            $assignments = auth()->user()->areaAssignments()->where('district_id',$districtId)->get();
-            if ($assignments->isEmpty()) return response()->json(['status'=>true,'data'=>[]]);
-            if (!$assignments->contains(fn($x)=>is_null($x->upazila_id))) $rows->whereIn('id',$assignments->pluck('upazila_id'));
-        }
-        $rows = $rows->orderBy('name')->get(['id','name']);
-        return response()->json(['status'=>true,'data'=>$rows]);
+        $request->validate(['district_id' => 'required|integer|exists:districts,id']);
+
+        $rows = Upazila::where('district_id', $request->integer('district_id'))
+            ->orderBy('name')
+            ->get(['id','name']);
+
+        return response()->json(['status' => true, 'data' => $rows]);
     }
 
     public function unions(Request $request)
     {
-        $upazilaId = $request->get('upazila_id');
-        if (CrmAccess::hasAreaRestriction()) {
-            $upazila = Upazila::findOrFail($upazilaId);
-            CrmAccess::ensureAreaAllowed((int)$upazila->district_id,(int)$upazila->id);
-        }
-        $rows = Union::where('upazila_id', $upazilaId)->where('is_active',1)->orderBy('name')->get(['id','name']);
-        return response()->json(['status'=>true,'data'=>$rows]);
+        $request->validate(['upazila_id' => 'required|integer|exists:upazilas,id']);
+
+        $rows = Union::where('upazila_id', $request->integer('upazila_id'))
+            ->orderBy('name')
+            ->get(['id','name']);
+
+        return response()->json(['status' => true, 'data' => $rows]);
     }
+
 }

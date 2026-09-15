@@ -368,88 +368,56 @@ $('#addMore').on('click', function(){
     i++;
 });
 
-// Reliable dependent geo dropdowns. Requests are aborted when the parent changes
-// quickly, so an older/slower response can never overwrite the latest selection.
-let geoRequests = { district: null, upazila: null, union: null };
+// Quick Create geo data is preloaded by the controller. Filtering locally keeps
+// Select2 searchable and avoids AJAX timing/race problems and dropdown lag.
+const quickDistricts = @json($quickDistricts);
+const quickUpazilas  = @json($quickUpazilas);
+const quickUnions    = @json($quickUnions);
 
-function geoReset($el, placeholder, disabled = false){
-    $el.html(`<option value="">${placeholder}</option>`).prop('disabled', disabled);
-    if ($el.hasClass('select2-hidden-accessible')) $el.trigger('change.select2');
-}
-
-function geoLoading($el){
-    $el.html('<option value="">Loading...</option>').prop('disabled', true);
-    if ($el.hasClass('select2-hidden-accessible')) $el.trigger('change.select2');
-}
-
-function geoFill($el, rows, placeholder){
+function geoSetOptions($el, rows, placeholder, disabled = false) {
     let html = `<option value="">${placeholder}</option>`;
-    (Array.isArray(rows) ? rows : []).forEach(item => {
+    rows.forEach(item => {
         html += `<option value="${item.id}">${$('<div>').text(item.name || '').html()}</option>`;
     });
-    $el.html(html).prop('disabled', false);
+    $el.html(html).prop('disabled', disabled);
+    // Notify Select2 without causing the dependent change handler to run again.
     if ($el.hasClass('select2-hidden-accessible')) $el.trigger('change.select2');
 }
 
-function geoError($el, placeholder, xhr){
-    geoReset($el, placeholder, true);
-    const message = xhr.status === 403
-        ? 'You do not have permission to load this location.'
-        : 'Location data could not be loaded. Please try again.';
-    if (window.toastr) toastr.error(message); else console.error(message, xhr.responseText || '');
-}
+function resetDistricts() { geoSetOptions($('#district_id'), [], 'Select District', true); }
+function resetUpazilas()  { geoSetOptions($('#upazila_id'), [], 'Select Upazila', true); }
+function resetUnions()    { geoSetOptions($('#union_id'), [], 'Select Union', true); }
 
-$('#division_id').on('change', function () {
-    const id = $(this).val();
-    if (geoRequests.district) geoRequests.district.abort();
-    if (geoRequests.upazila) geoRequests.upazila.abort();
-    if (geoRequests.union) geoRequests.union.abort();
+$('#division_id').on('change.quickGeo', function () {
+    const divisionId = String($(this).val() || '');
+    resetUpazilas();
+    resetUnions();
+    if (!divisionId) return resetDistricts();
 
-    geoReset($('#upazila_id'), 'Select Upazila', true);
-    geoReset($('#union_id'), 'Select Union', true);
-    if (!id) return geoReset($('#district_id'), 'Select District', true);
-
-    geoLoading($('#district_id'));
-    geoRequests.district = $.ajax({
-        url: "{{ route('org.geo.districts') }}", data: {division_id:id}, dataType:'json'
-    }).done(res => geoFill($('#district_id'), res.data || res, 'Select District'))
-      .fail((xhr, status) => { if(status !== 'abort') geoError($('#district_id'), 'Select District', xhr); })
-      .always(() => { geoRequests.district = null; });
+    const rows = quickDistricts.filter(x => String(x.division_id) === divisionId);
+    geoSetOptions($('#district_id'), rows, 'Select District', rows.length === 0);
 });
 
-$('#district_id').on('change', function () {
-    const id = $(this).val();
-    if (geoRequests.upazila) geoRequests.upazila.abort();
-    if (geoRequests.union) geoRequests.union.abort();
+$('#district_id').on('change.quickGeo', function () {
+    const districtId = String($(this).val() || '');
+    resetUnions();
+    if (!districtId) return resetUpazilas();
 
-    geoReset($('#union_id'), 'Select Union', true);
-    if (!id) return geoReset($('#upazila_id'), 'Select Upazila', true);
-
-    geoLoading($('#upazila_id'));
-    geoRequests.upazila = $.ajax({
-        url: "{{ route('org.geo.upazilas') }}", data: {district_id:id}, dataType:'json'
-    }).done(res => geoFill($('#upazila_id'), res.data || res, 'Select Upazila'))
-      .fail((xhr, status) => { if(status !== 'abort') geoError($('#upazila_id'), 'Select Upazila', xhr); })
-      .always(() => { geoRequests.upazila = null; });
+    const rows = quickUpazilas.filter(x => String(x.district_id) === districtId);
+    geoSetOptions($('#upazila_id'), rows, 'Select Upazila', rows.length === 0);
 });
 
-$('#upazila_id').on('change', function () {
-    const id = $(this).val();
-    if (geoRequests.union) geoRequests.union.abort();
-    if (!id) return geoReset($('#union_id'), 'Select Union', true);
+$('#upazila_id').on('change.quickGeo', function () {
+    const upazilaId = String($(this).val() || '');
+    if (!upazilaId) return resetUnions();
 
-    geoLoading($('#union_id'));
-    geoRequests.union = $.ajax({
-        url: "{{ route('org.geo.unions') }}", data: {upazila_id:id}, dataType:'json'
-    }).done(res => geoFill($('#union_id'), res.data || res, 'Select Union'))
-      .fail((xhr, status) => { if(status !== 'abort') geoError($('#union_id'), 'Select Union', xhr); })
-      .always(() => { geoRequests.union = null; });
+    const rows = quickUnions.filter(x => String(x.upazila_id) === upazilaId);
+    geoSetOptions($('#union_id'), rows, 'Select Union', rows.length === 0);
 });
 
-// Children stay disabled until their parent is selected.
-geoReset($('#district_id'), 'Select District', true);
-geoReset($('#upazila_id'), 'Select Upazila', true);
-geoReset($('#union_id'), 'Select Union', true);
+resetDistricts();
+resetUpazilas();
+resetUnions();
 
 $('#quickForm').on('submit', function(e){
     e.preventDefault();

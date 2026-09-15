@@ -243,10 +243,25 @@
 
 
 <script>
-// Organization Quick Create intentionally uses native selects.
-// The global Select2 initializer runs after this view, so mark these first to avoid
-// intermittent Select2 open/focus issues and lag on this dynamic form.
+// Keep Select2 on Quick Create, but own its lifecycle locally.
+// no-select2 prevents the global observer from initializing the same element twice.
 $('#quickForm select').addClass('no-select2');
+
+function initQuickSelect2(scope) {
+    if (!$.fn.select2) return;
+    const $scope = scope ? $(scope) : $('#quickForm');
+    $scope.find('select.no-select2').addBack('select.no-select2').each(function () {
+        const $el = $(this);
+        if ($el.hasClass('select2-hidden-accessible')) return;
+        $el.select2({
+            width: '100%',
+            allowClear: false,
+            dropdownParent: $('#quickForm')
+        });
+    });
+}
+
+initQuickSelect2('#quickForm');
 
 let i = 1;
 
@@ -336,7 +351,9 @@ $('#addMore').on('click', function(){
         </div>
     </div>`;
 
-    $('#contactBox').append(html);
+    const $row = $(html);
+    $('#contactBox').append($row);
+    initQuickSelect2($row);
     i++;
 });
 
@@ -447,6 +464,10 @@ $('#quickForm').on('submit', function(e){
                 Swal.fire('Success', res.message ?? 'Created', 'success');
 
                 $('#quickForm')[0].reset();
+                $('#quickForm select.select2-hidden-accessible').trigger('change.select2');
+                geoReset($('#district_id'), 'Select District', true);
+                geoReset($('#upazila_id'), 'Select Upazila', true);
+                geoReset($('#union_id'), 'Select Union', true);
                 $('#contactBox').html('');
                 i = 0;
                 $('#addMore').click();

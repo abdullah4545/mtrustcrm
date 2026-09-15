@@ -57,7 +57,8 @@ public function index()
                 'district:id,name',
                 'upazila:id,name',
             ])
-            ->select(['id', 'division_id', 'district_id', 'upazila_id', 'name', 'code', 'is_active', 'created_at']);
+            ->select(['id', 'division_id', 'district_id', 'upazila_id', 'name', 'code', 'is_active', 'created_at'])
+            ->orderByDesc('id');
 
         if ($request->filled('division_id')) $query->where('division_id', $request->division_id);
         if ($request->filled('district_id')) $query->where('district_id', $request->district_id);

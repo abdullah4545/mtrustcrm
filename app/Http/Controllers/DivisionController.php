@@ -23,7 +23,7 @@ public function index()
     // ✅ Yajra server-side datatable + search
     public function datatable(Request $request)
     {
-        $query = Division::query()->select(['id', 'name', 'code', 'is_active', 'created_at']);
+        $query = Division::query()->select(['id', 'name', 'code', 'is_active', 'created_at'])->orderByDesc('id');
 
         return DataTables::of($query)
             ->addIndexColumn()

@@ -25,7 +25,8 @@ public function index()
     {
         $query = District::query()
             ->with('division:id,name')
-            ->select(['id', 'division_id', 'name', 'code', 'is_active', 'created_at']);
+            ->select(['id', 'division_id', 'name', 'code', 'is_active', 'created_at'])
+            ->orderByDesc('id');
 
         // ✅ Division filter
         if ($request->filled('division_id')) {

@@ -41,7 +41,8 @@ public function index()
     {
         $query = Upazila::query()
             ->with(['division:id,name', 'district:id,name'])
-            ->select(['id', 'division_id', 'district_id', 'name', 'code', 'is_active', 'created_at']);
+            ->select(['id', 'division_id', 'district_id', 'name', 'code', 'is_active', 'created_at'])
+            ->orderByDesc('id');
 
         if ($request->filled('division_id')) {
             $query->where('division_id', $request->division_id);

@@ -512,4 +512,28 @@ $('#quickForm').on('submit', function(e){
 });
 </script>
 
+@push('scripts')
+<script>
+// Select2 is loaded after maincontent in backend.master, so initialize this form from the scripts stack.
+(function ($) {
+    function bootOrganizationQuickCreateSelect2() {
+        if (!$.fn.select2) {
+            setTimeout(bootOrganizationQuickCreateSelect2, 100);
+            return;
+        }
+        $('#quickForm select.no-select2').each(function () {
+            var $el = $(this);
+            if ($el.hasClass('select2-hidden-accessible')) $el.select2('destroy');
+            $el.select2({
+                width: '100%',
+                minimumResultsForSearch: 0,
+                dropdownParent: $(document.body)
+            });
+        });
+    }
+    bootOrganizationQuickCreateSelect2();
+})(jQuery);
+</script>
+@endpush
+
 @endsection

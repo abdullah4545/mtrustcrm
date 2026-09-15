@@ -6,31 +6,22 @@ use App\Models\Division;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Http;
+
 class DivisionController extends Controller
 {
     public function __construct()
-    { 
-        $this->middleware('permission:geo.view')->only(['index','datatable','show']);
- 
-        $this->middleware('permission:geo.manage')->only(['store','update','destroy']);
- 
-        $this->middleware(function ($request, $next) {
-            if (auth()->user()?->can('geo.manage')) {
-                return $next($request);
-            } 
-            abort_unless(auth()->user()?->can('geo.view'), 403);
-            return $next($request);
-        })->only(['index','datatable','show']);
+    {
+        $this->middleware('permission:geo.view')->only(['index', 'datatable', 'show', 'store', 'update', 'destroy']);
     }
     public function index()
-    {   
+    {
         return view('backend.content.geo.divisions.index');
     }
 
     // ✅ Yajra server-side datatable + search
     public function datatable(Request $request)
     {
-        $query = Division::query()->select(['id','name','code','is_active','created_at']);
+        $query = Division::query()->select(['id', 'name', 'code', 'is_active', 'created_at']);
 
         return DataTables::of($query)
             ->addIndexColumn()
@@ -41,13 +32,13 @@ class DivisionController extends Controller
             })
             ->addColumn('action', function ($row) {
                 return '
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-sm btn-primary btn-edit" data-id="'.$row->id.'">Edit</button>
-                        <button class="btn btn-sm btn-danger btn-delete" data-id="'.$row->id.'">Delete</button>
+                    <div class="gap-2 d-flex">
+                        <button class="btn btn-sm btn-primary btn-edit" data-id="' . $row->id . '">Edit</button>
+                        <button class="btn btn-sm btn-danger btn-delete" data-id="' . $row->id . '">Delete</button>
                     </div>
                 ';
             })
-            ->rawColumns(['is_active','action'])
+            ->rawColumns(['is_active', 'action'])
             ->make(true);
     }
 
@@ -82,7 +73,7 @@ class DivisionController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:150',
-            'code' => 'nullable|string|max:20|unique:divisions,code,'.$division->id,
+            'code' => 'nullable|string|max:20|unique:divisions,code,' . $division->id,
             'is_active' => 'nullable|boolean',
         ]);
 

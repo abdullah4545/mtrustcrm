@@ -10,22 +10,12 @@ use Yajra\DataTables\Facades\DataTables;
 class DistrictController extends Controller
 {
     public function __construct()
-    { 
-        $this->middleware('permission:geo.view')->only(['index','datatable','show']);
- 
-        $this->middleware('permission:geo.manage')->only(['store','update','destroy']);
- 
-        $this->middleware(function ($request, $next) {
-            if (auth()->user()?->can('geo.manage')) {
-                return $next($request);
-            } 
-            abort_unless(auth()->user()?->can('geo.view'), 403);
-            return $next($request);
-        })->only(['index','datatable','show']);
+    {
+        $this->middleware('permission:geo.view')->only(['index', 'datatable', 'show', 'store', 'update', 'destroy']);
     }
     public function index()
-    {  
-        $divisions = Division::select('id','name')->orderBy('name')->get();
+    {
+        $divisions = Division::select('id', 'name')->orderBy('name')->get();
         return view('backend.content.geo.districts.index', compact('divisions'));
     }
 
@@ -33,7 +23,7 @@ class DistrictController extends Controller
     {
         $query = District::query()
             ->with('division:id,name')
-            ->select(['id','division_id','name','code','is_active','created_at']);
+            ->select(['id', 'division_id', 'name', 'code', 'is_active', 'created_at']);
 
         // ✅ Division filter
         if ($request->filled('division_id')) {
@@ -52,13 +42,13 @@ class DistrictController extends Controller
             })
             ->addColumn('action', function ($row) {
                 return '
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-sm btn-primary btn-edit" data-id="'.$row->id.'">Edit</button>
-                        <button class="btn btn-sm btn-danger btn-delete" data-id="'.$row->id.'">Delete</button>
+                    <div class="gap-2 d-flex">
+                        <button class="btn btn-sm btn-primary btn-edit" data-id="' . $row->id . '">Edit</button>
+                        <button class="btn btn-sm btn-danger btn-delete" data-id="' . $row->id . '">Delete</button>
                     </div>
                 ';
             })
-            ->rawColumns(['is_active','action'])
+            ->rawColumns(['is_active', 'action'])
             ->make(true);
     }
 

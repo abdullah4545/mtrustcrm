@@ -32,7 +32,7 @@
 
 <div class="main-content">
 
-<form id="quickForm" class="organization-quick-create-form" method="POST" enctype="multipart/form-data">
+<form id="quickForm" method="POST" enctype="multipart/form-data">
 @csrf
 
 <div class="section-box">
@@ -43,7 +43,7 @@
 
         <div class="col-md-4">
             <label>Category</label>
-            <select name="organization_category_id" class="form-control no-select2">
+            <select name="organization_category_id" class="form-control">
                 <option value="">Select Category</option>
                 @foreach($categories as $c)
                     <option value="{{ $c->id }}">{{ $c->name }}</option>
@@ -53,7 +53,7 @@
 
         <div class="col-md-4">
             <label>Type</label>
-            <select name="organization_type_id" class="form-control no-select2">
+            <select name="organization_type_id" class="form-control">
                 <option value="">Select Type</option>
                 @foreach($types as $t)
                     <option value="{{ $t->id }}">{{ $t->name }}</option>
@@ -63,7 +63,7 @@
 
         <div class="col-md-4">
             <label>Status</label>
-            <select name="status" class="form-control no-select2">
+            <select name="status" class="form-control">
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
             </select>
@@ -81,7 +81,7 @@
 
         <div class="col-md-3">
             <label>Division</label>
-            <select name="division_id" id="division_id" class="form-control no-select2">
+            <select name="division_id" id="division_id" class="form-control">
                 <option value="">Select Division</option>
                 @foreach($divisions as $d)
                     <option value="{{ $d->id }}">{{ $d->name }}</option>
@@ -91,21 +91,21 @@
 
         <div class="col-md-3">
             <label>District</label>
-            <select name="district_id" id="district_id" class="form-control no-select2">
+            <select name="district_id" id="district_id" class="form-control">
                 <option value="">Select District</option>
             </select>
         </div>
 
         <div class="col-md-3">
             <label>Upazila</label>
-            <select name="upazila_id" id="upazila_id" class="form-control no-select2">
+            <select name="upazila_id" id="upazila_id" class="form-control">
                 <option value="">Select Upazila</option>
             </select>
         </div>
 
         <div class="col-md-3">
             <label>Union</label>
-            <select name="union_id" id="union_id" class="form-control no-select2">
+            <select name="union_id" id="union_id" class="form-control">
                 <option value="">Select Union</option>
             </select>
         </div>
@@ -242,38 +242,7 @@
 </div>
 
 
-<style>
-/* Quick Create: always keep the Select2 search field visible and usable. */
-.select2-container--open { z-index: 99999 !important; }
-.select2-search--dropdown { display: block !important; padding: 8px !important; }
-.select2-search--dropdown .select2-search__field {
-    display: block !important; width: 100% !important; min-height: 38px;
-    padding: 6px 10px; border: 1px solid #ced4da; border-radius: 6px;
-}
-</style>
-
 <script>
-// Keep Select2 on Quick Create, but own its lifecycle locally.
-// no-select2 prevents the global observer from initializing the same element twice.
-$('#quickForm select').addClass('no-select2');
-
-function initQuickSelect2(scope) {
-    if (!$.fn.select2) return;
-    const $scope = scope ? $(scope) : $('#quickForm');
-    $scope.find('select.no-select2').addBack('select.no-select2').each(function () {
-        const $el = $(this);
-        if ($el.hasClass('select2-hidden-accessible')) return;
-        $el.select2({
-            width: '100%',
-            allowClear: false,
-            minimumResultsForSearch: 0,
-            dropdownParent: $(document.body)
-        });
-    });
-}
-
-initQuickSelect2('#quickForm');
-
 let i = 1;
 
 
@@ -313,7 +282,7 @@ $('#addMore').on('click', function(){
             </div>
 
             <div class="col-md-3">
-                <select name="contacts[${i}][department_id]" class="form-control no-select2">
+                <select name="contacts[${i}][department_id]" class="form-control">
                     <option value="">Select Department</option>
                     @foreach($departments as $department)
                         <option value="{{ $department->id }}">{{ $department->title }}</option>
@@ -322,7 +291,7 @@ $('#addMore').on('click', function(){
             </div>
 
             <div class="col-md-3">
-                <select name="contacts[${i}][designation_id]" class="form-control no-select2">
+                <select name="contacts[${i}][designation_id]" class="form-control">
                     <option value="">Select Designation</option>
                     @foreach($designations as $designation)
                         <option value="{{ $designation->id }}">{{ $designation->title }}</option>
@@ -335,7 +304,7 @@ $('#addMore').on('click', function(){
             </div>
 
             <div class="col-md-3">
-                <select name="contacts[${i}][status]" class="form-control no-select2">
+                <select name="contacts[${i}][status]" class="form-control">
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                 </select>
@@ -362,62 +331,90 @@ $('#addMore').on('click', function(){
         </div>
     </div>`;
 
-    const $row = $(html);
-    $('#contactBox').append($row);
-    initQuickSelect2($row);
+    $('#contactBox').append(html);
     i++;
 });
 
-// Quick Create geo data is preloaded by the controller. Filtering locally keeps
-// Select2 searchable and avoids AJAX timing/race problems and dropdown lag.
-const quickDistricts = @json($quickDistricts);
-const quickUpazilas  = @json($quickUpazilas);
-const quickUnions    = @json($quickUnions);
-
-function geoSetOptions($el, rows, placeholder, disabled = false) {
-    let html = `<option value="">${placeholder}</option>`;
-    rows.forEach(item => {
-        html += `<option value="${item.id}">${$('<div>').text(item.name || '').html()}</option>`;
-    });
-    $el.html(html).prop('disabled', disabled);
-    // Notify Select2 without causing the dependent change handler to run again.
-    if ($el.hasClass('select2-hidden-accessible')) $el.trigger('change.select2');
+// Geo dependent Select2 dropdowns
+// IMPORTANT: these endpoints are available to authenticated org-create users too.
+function geoRows(res) {
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.data)) return res.data;
+    return [];
 }
 
-function resetDistricts() { geoSetOptions($('#district_id'), [], 'Select District', true); }
-function resetUpazilas()  { geoSetOptions($('#upazila_id'), [], 'Select Upazila', true); }
-function resetUnions()    { geoSetOptions($('#union_id'), [], 'Select Union', true); }
+function setGeoOptions(selector, placeholder, rows) {
+    const $el = $(selector);
+    let html = `<option value="">${placeholder}</option>`;
+    rows.forEach(function (item) {
+        html += `<option value="${item.id}">${$('<div>').text(item.name || '').html()}</option>`;
+    });
+    $el.html(html).prop('disabled', false).trigger('change.select2');
+}
 
-$('#division_id').on('change.quickGeo', function () {
-    const divisionId = String($(this).val() || '');
-    resetUpazilas();
-    resetUnions();
-    if (!divisionId) return resetDistricts();
+function resetGeo(selector, placeholder, disabled = true) {
+    $(selector)
+        .html(`<option value="">${placeholder}</option>`)
+        .prop('disabled', disabled)
+        .trigger('change.select2');
+}
 
-    const rows = quickDistricts.filter(x => String(x.division_id) === divisionId);
-    geoSetOptions($('#district_id'), rows, 'Select District', rows.length === 0);
+$('#division_id').on('change', function () {
+    const id = $(this).val();
+    resetGeo('#district_id', id ? 'Loading...' : 'Select District', !id);
+    resetGeo('#upazila_id', 'Select Upazila', true);
+    resetGeo('#union_id', 'Select Union', true);
+    if (!id) return;
+
+    $.ajax({
+        url: "{{ route('org.geo.districts') }}",
+        type: 'GET',
+        dataType: 'json',
+        data: { division_id: id }
+    }).done(function (res) {
+        setGeoOptions('#district_id', 'Select District', geoRows(res));
+    }).fail(function (xhr) {
+        console.error('District load failed:', xhr.status, xhr.responseText);
+        resetGeo('#district_id', 'Failed to load districts', false);
+    });
 });
 
-$('#district_id').on('change.quickGeo', function () {
-    const districtId = String($(this).val() || '');
-    resetUnions();
-    if (!districtId) return resetUpazilas();
+$('#district_id').on('change', function () {
+    const id = $(this).val();
+    resetGeo('#upazila_id', id ? 'Loading...' : 'Select Upazila', !id);
+    resetGeo('#union_id', 'Select Union', true);
+    if (!id) return;
 
-    const rows = quickUpazilas.filter(x => String(x.district_id) === districtId);
-    geoSetOptions($('#upazila_id'), rows, 'Select Upazila', rows.length === 0);
+    $.ajax({
+        url: "{{ route('org.geo.upazilas') }}",
+        type: 'GET',
+        dataType: 'json',
+        data: { district_id: id }
+    }).done(function (res) {
+        setGeoOptions('#upazila_id', 'Select Upazila', geoRows(res));
+    }).fail(function (xhr) {
+        console.error('Upazila load failed:', xhr.status, xhr.responseText);
+        resetGeo('#upazila_id', 'Failed to load upazilas', false);
+    });
 });
 
-$('#upazila_id').on('change.quickGeo', function () {
-    const upazilaId = String($(this).val() || '');
-    if (!upazilaId) return resetUnions();
+$('#upazila_id').on('change', function () {
+    const id = $(this).val();
+    resetGeo('#union_id', id ? 'Loading...' : 'Select Union', !id);
+    if (!id) return;
 
-    const rows = quickUnions.filter(x => String(x.upazila_id) === upazilaId);
-    geoSetOptions($('#union_id'), rows, 'Select Union', rows.length === 0);
+    $.ajax({
+        url: "{{ route('org.geo.unions') }}",
+        type: 'GET',
+        dataType: 'json',
+        data: { upazila_id: id }
+    }).done(function (res) {
+        setGeoOptions('#union_id', 'Select Union', geoRows(res));
+    }).fail(function (xhr) {
+        console.error('Union load failed:', xhr.status, xhr.responseText);
+        resetGeo('#union_id', 'Failed to load unions', false);
+    });
 });
-
-resetDistricts();
-resetUpazilas();
-resetUnions();
 
 $('#quickForm').on('submit', function(e){
     e.preventDefault();
@@ -443,10 +440,6 @@ $('#quickForm').on('submit', function(e){
                 Swal.fire('Success', res.message ?? 'Created', 'success');
 
                 $('#quickForm')[0].reset();
-                $('#quickForm select.select2-hidden-accessible').trigger('change.select2');
-                geoReset($('#district_id'), 'Select District', true);
-                geoReset($('#upazila_id'), 'Select Upazila', true);
-                geoReset($('#union_id'), 'Select Union', true);
                 $('#contactBox').html('');
                 i = 0;
                 $('#addMore').click();
@@ -479,29 +472,5 @@ $('#quickForm').on('submit', function(e){
 
 });
 </script>
-
-@push('scripts')
-<script>
-// Select2 is loaded after maincontent in backend.master, so initialize this form from the scripts stack.
-(function ($) {
-    function bootOrganizationQuickCreateSelect2() {
-        if (!$.fn.select2) {
-            setTimeout(bootOrganizationQuickCreateSelect2, 100);
-            return;
-        }
-        $('#quickForm select.no-select2').each(function () {
-            var $el = $(this);
-            if ($el.hasClass('select2-hidden-accessible')) $el.select2('destroy');
-            $el.select2({
-                width: '100%',
-                minimumResultsForSearch: 0,
-                dropdownParent: $(document.body)
-            });
-        });
-    }
-    bootOrganizationQuickCreateSelect2();
-})(jQuery);
-</script>
-@endpush
 
 @endsection

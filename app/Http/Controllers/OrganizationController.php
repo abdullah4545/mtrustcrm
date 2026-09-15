@@ -52,41 +52,12 @@ class OrganizationController extends Controller
     {
         $categories = OrganizationCategory::where('is_active',1)->get();
         $types      = OrganizationType::where('is_active',1)->get();
-        $divisions  = Division::where('is_active',1)->orderBy('name')->get(['id','name']);
-
-        // Preload geo data for Quick Create. This removes the AJAX race/disabled
-        // Select2 issue and makes Division -> District -> Upazila -> Union instant.
-        $districtQuery = District::where('is_active', 1);
-        $upazilaQuery  = Upazila::where('is_active', 1);
-
-        if (CrmAccess::hasAreaRestriction()) {
-            $assignments = auth()->user()->areaAssignments()->get(['district_id','upazila_id']);
-            $districtIds = $assignments->pluck('district_id')->filter()->unique()->values();
-            $districtQuery->whereIn('id', $districtIds);
-
-            $allDistrictIds = $assignments->whereNull('upazila_id')->pluck('district_id')->filter()->unique();
-            $specificUpazilaIds = $assignments->pluck('upazila_id')->filter()->unique();
-            $upazilaQuery->where(function ($q) use ($allDistrictIds, $specificUpazilaIds) {
-                if ($allDistrictIds->isNotEmpty()) $q->whereIn('district_id', $allDistrictIds);
-                if ($specificUpazilaIds->isNotEmpty()) {
-                    $method = $allDistrictIds->isNotEmpty() ? 'orWhereIn' : 'whereIn';
-                    $q->{$method}('id', $specificUpazilaIds);
-                }
-            });
-        }
-
-        $quickDistricts = $districtQuery->orderBy('name')->get(['id','division_id','name']);
-        $quickUpazilas  = $upazilaQuery->orderBy('name')->get(['id','district_id','name']);
-        $quickUnions    = Union::where('is_active',1)
-            ->whereIn('upazila_id', $quickUpazilas->pluck('id'))
-            ->orderBy('name')->get(['id','upazila_id','name']);
-
+        $divisions  = Division::where('is_active',1)->get();
         $departments = Department::where('status','active')->get();
         $designations = Designation::where('status','active')->get();
 
         return view('backend.content.organization.organizations.quick_create', compact(
-            'categories','types','divisions','departments','designations',
-            'quickDistricts','quickUpazilas','quickUnions'
+            'categories','types','divisions','departments','designations'
         ));
     }
 

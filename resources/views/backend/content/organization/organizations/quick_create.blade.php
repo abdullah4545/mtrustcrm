@@ -335,85 +335,48 @@ $('#addMore').on('click', function(){
     i++;
 });
 
-// Geo dependent Select2 dropdowns
-// IMPORTANT: these endpoints are available to authenticated org-create users too.
-function geoRows(res) {
-    if (Array.isArray(res)) return res;
-    if (res && Array.isArray(res.data)) return res.data;
-    return [];
-}
+// Geo dependent Select2 dropdowns — data is loaded with the page.
+// This makes the chain deterministic: Division -> District -> Upazila -> Union.
+const GEO_DISTRICTS = @json($geoDistricts);
+const GEO_UPAZILAS  = @json($geoUpazilas);
+const GEO_UNIONS    = @json($geoUnions);
 
-function setGeoOptions(selector, placeholder, rows) {
+function geoEsc(value) {
+    return $('<div>').text(value == null ? '' : String(value)).html();
+}
+function fillGeo(selector, placeholder, rows) {
     const $el = $(selector);
     let html = `<option value="">${placeholder}</option>`;
-    rows.forEach(function (item) {
-        html += `<option value="${item.id}">${$('<div>').text(item.name || '').html()}</option>`;
-    });
+    rows.forEach(row => html += `<option value="${row.id}">${geoEsc(row.name)}</option>`);
     $el.html(html).prop('disabled', false).trigger('change.select2');
 }
-
-function resetGeo(selector, placeholder, disabled = true) {
-    $(selector)
-        .html(`<option value="">${placeholder}</option>`)
-        .prop('disabled', disabled)
-        .trigger('change.select2');
+function clearGeo(selector, placeholder, disabled = true) {
+    $(selector).html(`<option value="">${placeholder}</option>`)
+        .prop('disabled', disabled).val('').trigger('change.select2');
 }
 
-$('#division_id').on('change', function () {
-    const id = $(this).val();
-    resetGeo('#district_id', id ? 'Loading...' : 'Select District', !id);
-    resetGeo('#upazila_id', 'Select Upazila', true);
-    resetGeo('#union_id', 'Select Union', true);
+$(document).on('change', '#division_id', function () {
+    const id = Number($(this).val() || 0);
+    clearGeo('#district_id', 'Select District', !id);
+    clearGeo('#upazila_id', 'Select Upazila', true);
+    clearGeo('#union_id', 'Select Union', true);
     if (!id) return;
-
-    $.ajax({
-        url: "{{ route('org.geo.districts') }}",
-        type: 'GET',
-        dataType: 'json',
-        data: { division_id: id }
-    }).done(function (res) {
-        setGeoOptions('#district_id', 'Select District', geoRows(res));
-    }).fail(function (xhr) {
-        console.error('District load failed:', xhr.status, xhr.responseText);
-        resetGeo('#district_id', 'Failed to load districts', false);
-    });
+    fillGeo('#district_id', 'Select District', GEO_DISTRICTS.filter(x => Number(x.division_id) === id));
 });
 
-$('#district_id').on('change', function () {
-    const id = $(this).val();
-    resetGeo('#upazila_id', id ? 'Loading...' : 'Select Upazila', !id);
-    resetGeo('#union_id', 'Select Union', true);
+$(document).on('change', '#district_id', function () {
+    const id = Number($(this).val() || 0);
+    clearGeo('#upazila_id', 'Select Upazila', !id);
+    clearGeo('#union_id', 'Select Union', true);
     if (!id) return;
-
-    $.ajax({
-        url: "{{ route('org.geo.upazilas') }}",
-        type: 'GET',
-        dataType: 'json',
-        data: { district_id: id }
-    }).done(function (res) {
-        setGeoOptions('#upazila_id', 'Select Upazila', geoRows(res));
-    }).fail(function (xhr) {
-        console.error('Upazila load failed:', xhr.status, xhr.responseText);
-        resetGeo('#upazila_id', 'Failed to load upazilas', false);
-    });
+    fillGeo('#upazila_id', 'Select Upazila', GEO_UPAZILAS.filter(x => Number(x.district_id) === id));
 });
 
-$('#upazila_id').on('change', function () {
-    const id = $(this).val();
-    resetGeo('#union_id', id ? 'Loading...' : 'Select Union', !id);
+$(document).on('change', '#upazila_id', function () {
+    const id = Number($(this).val() || 0);
+    clearGeo('#union_id', 'Select Union', !id);
     if (!id) return;
-
-    $.ajax({
-        url: "{{ route('org.geo.unions') }}",
-        type: 'GET',
-        dataType: 'json',
-        data: { upazila_id: id }
-    }).done(function (res) {
-        setGeoOptions('#union_id', 'Select Union', geoRows(res));
-    }).fail(function (xhr) {
-        console.error('Union load failed:', xhr.status, xhr.responseText);
-        resetGeo('#union_id', 'Failed to load unions', false);
-    });
+    fillGeo('#union_id', 'Select Union', GEO_UNIONS.filter(x => Number(x.upazila_id) === id));
 });
 
 $('#quickForm').on('submit', function(e){

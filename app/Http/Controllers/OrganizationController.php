@@ -52,12 +52,48 @@ class OrganizationController extends Controller
     {
         $categories = OrganizationCategory::where('is_active',1)->get();
         $types      = OrganizationType::where('is_active',1)->get();
-        $divisions  = Division::where('is_active',1)->get();
+        $divisions  = Division::where('is_active',1)->orderBy('name')->get(['id','name']);
         $departments = Department::where('status','active')->get();
         $designations = Designation::where('status','active')->get();
 
+        // Load the geo tree with the page. Quick Create no longer depends on three
+        // separate AJAX requests, which also avoids Select2/race/permission issues.
+        $districtQuery = District::where('is_active',1);
+        $upazilaQuery  = Upazila::where('is_active',1);
+        $unionQuery    = Union::where('is_active',1);
+
+        if (CrmAccess::hasAreaRestriction()) {
+            $assignments = auth()->user()->areaAssignments()->get(['district_id','upazila_id']);
+            $districtIds = $assignments->pluck('district_id')->filter()->unique()->values();
+            $districtQuery->whereIn('id', $districtIds);
+            $upazilaQuery->whereIn('district_id', $districtIds);
+            $unionQuery->whereIn('district_id', $districtIds);
+
+            // For districts without an all-upazilas assignment, keep only assigned upazilas.
+            $allDistricts = $assignments->whereNull('upazila_id')->pluck('district_id')->unique();
+            $specificUpazilas = $assignments->whereNotNull('upazila_id')->pluck('upazila_id')->unique();
+            if ($allDistricts->isEmpty()) {
+                $upazilaQuery->whereIn('id', $specificUpazilas);
+                $unionQuery->whereIn('upazila_id', $specificUpazilas);
+            } else {
+                $upazilaQuery->where(function ($q) use ($allDistricts, $specificUpazilas) {
+                    $q->whereIn('district_id', $allDistricts);
+                    if ($specificUpazilas->isNotEmpty()) $q->orWhereIn('id', $specificUpazilas);
+                });
+                $unionQuery->where(function ($q) use ($allDistricts, $specificUpazilas) {
+                    $q->whereIn('district_id', $allDistricts);
+                    if ($specificUpazilas->isNotEmpty()) $q->orWhereIn('upazila_id', $specificUpazilas);
+                });
+            }
+        }
+
+        $geoDistricts = $districtQuery->orderBy('name')->get(['id','division_id','name']);
+        $geoUpazilas  = $upazilaQuery->orderBy('name')->get(['id','division_id','district_id','name']);
+        $geoUnions    = $unionQuery->orderBy('name')->get(['id','division_id','district_id','upazila_id','name']);
+
         return view('backend.content.organization.organizations.quick_create', compact(
-            'categories','types','divisions','departments','designations'
+            'categories','types','divisions','departments','designations',
+            'geoDistricts','geoUpazilas','geoUnions'
         ));
     }
 

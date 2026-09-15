@@ -27,7 +27,7 @@ class RbacSeeder extends Seeder
             'branch.manage',
             'business.manage',
 
-            // Geo (mostly view only)
+            // Geo: geo.view grants full Geo management (view/create/edit/delete)
             'geo.view',
 
             // org

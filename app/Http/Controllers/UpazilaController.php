@@ -12,7 +12,7 @@ class UpazilaController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:geo.view')->only(['index', 'datatable', 'show', 'store', 'update', 'destroy']);
+        $this->middleware('permission:geo.view');
     }
     public function index()
     {

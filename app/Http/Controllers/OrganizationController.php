@@ -26,8 +26,7 @@ class OrganizationController extends Controller
     {
         $this->middleware('auth');
         $this->middleware('permission:org.view')->only([
-            'index','datatable','show','profile','companyProfilePdfView','companyProfileDownload',
-            'districts','upazilas','unions'
+            'index','datatable','show','profile','companyProfilePdfView','companyProfileDownload'
         ]);
         $this->middleware('permission:org.create')->only(['store','quickCreate','quickStore']);
         $this->middleware('permission:org.edit')->only(['update']);

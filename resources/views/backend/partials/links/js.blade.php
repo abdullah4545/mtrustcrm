@@ -38,8 +38,26 @@
     $(function(){
         globalSelect2Init(document);
         $(document).on('shown.bs.modal', '.modal', function(){ globalSelect2Init(this); });
-        const obs=new MutationObserver(function(ms){
-            ms.forEach(m=>m.addedNodes.forEach(n=>{ if(n.nodeType===1) globalSelect2Init(n); }));
+        // Batch DOM changes instead of re-scanning on every mutation. This keeps
+        // Select2 responsive on pages that append rows/modals dynamically.
+        let select2Frame = null;
+        const pendingRoots = new Set();
+        const obs = new MutationObserver(function(ms){
+            ms.forEach(m => m.addedNodes.forEach(n => {
+                if (n.nodeType !== 1) return;
+                if (n.matches?.('select.form-control, select.form-select') || n.querySelector?.('select.form-control, select.form-select')) {
+                    pendingRoots.add(n);
+                }
+            }));
+            if (!pendingRoots.size || select2Frame) return;
+            select2Frame = requestAnimationFrame(function(){
+                pendingRoots.forEach(n => {
+                    if (n.matches?.('select.form-control, select.form-select')) globalSelect2Init(n.parentNode || document);
+                    else globalSelect2Init(n);
+                });
+                pendingRoots.clear();
+                select2Frame = null;
+            });
         });
         obs.observe(document.body,{childList:true,subtree:true});
     });

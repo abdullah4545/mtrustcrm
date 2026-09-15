@@ -32,7 +32,7 @@
 
 <div class="main-content">
 
-<form id="quickForm" method="POST" enctype="multipart/form-data">
+<form id="quickForm" class="organization-quick-create-form" method="POST" enctype="multipart/form-data">
 @csrf
 
 <div class="section-box">
@@ -43,7 +43,7 @@
 
         <div class="col-md-4">
             <label>Category</label>
-            <select name="organization_category_id" class="form-control">
+            <select name="organization_category_id" class="form-control no-select2">
                 <option value="">Select Category</option>
                 @foreach($categories as $c)
                     <option value="{{ $c->id }}">{{ $c->name }}</option>
@@ -53,7 +53,7 @@
 
         <div class="col-md-4">
             <label>Type</label>
-            <select name="organization_type_id" class="form-control">
+            <select name="organization_type_id" class="form-control no-select2">
                 <option value="">Select Type</option>
                 @foreach($types as $t)
                     <option value="{{ $t->id }}">{{ $t->name }}</option>
@@ -63,7 +63,7 @@
 
         <div class="col-md-4">
             <label>Status</label>
-            <select name="status" class="form-control">
+            <select name="status" class="form-control no-select2">
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
             </select>
@@ -81,7 +81,7 @@
 
         <div class="col-md-3">
             <label>Division</label>
-            <select name="division_id" id="division_id" class="form-control">
+            <select name="division_id" id="division_id" class="form-control no-select2">
                 <option value="">Select Division</option>
                 @foreach($divisions as $d)
                     <option value="{{ $d->id }}">{{ $d->name }}</option>
@@ -91,21 +91,21 @@
 
         <div class="col-md-3">
             <label>District</label>
-            <select name="district_id" id="district_id" class="form-control">
+            <select name="district_id" id="district_id" class="form-control no-select2">
                 <option value="">Select District</option>
             </select>
         </div>
 
         <div class="col-md-3">
             <label>Upazila</label>
-            <select name="upazila_id" id="upazila_id" class="form-control">
+            <select name="upazila_id" id="upazila_id" class="form-control no-select2">
                 <option value="">Select Upazila</option>
             </select>
         </div>
 
         <div class="col-md-3">
             <label>Union</label>
-            <select name="union_id" id="union_id" class="form-control">
+            <select name="union_id" id="union_id" class="form-control no-select2">
                 <option value="">Select Union</option>
             </select>
         </div>
@@ -243,6 +243,11 @@
 
 
 <script>
+// Organization Quick Create intentionally uses native selects.
+// The global Select2 initializer runs after this view, so mark these first to avoid
+// intermittent Select2 open/focus issues and lag on this dynamic form.
+$('#quickForm select').addClass('no-select2');
+
 let i = 1;
 
 
@@ -282,7 +287,7 @@ $('#addMore').on('click', function(){
             </div>
 
             <div class="col-md-3">
-                <select name="contacts[${i}][department_id]" class="form-control">
+                <select name="contacts[${i}][department_id]" class="form-control no-select2">
                     <option value="">Select Department</option>
                     @foreach($departments as $department)
                         <option value="{{ $department->id }}">{{ $department->title }}</option>
@@ -291,7 +296,7 @@ $('#addMore').on('click', function(){
             </div>
 
             <div class="col-md-3">
-                <select name="contacts[${i}][designation_id]" class="form-control">
+                <select name="contacts[${i}][designation_id]" class="form-control no-select2">
                     <option value="">Select Designation</option>
                     @foreach($designations as $designation)
                         <option value="{{ $designation->id }}">{{ $designation->title }}</option>
@@ -304,7 +309,7 @@ $('#addMore').on('click', function(){
             </div>
 
             <div class="col-md-3">
-                <select name="contacts[${i}][status]" class="form-control">
+                <select name="contacts[${i}][status]" class="form-control no-select2">
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                 </select>

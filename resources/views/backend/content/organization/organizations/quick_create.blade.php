@@ -242,6 +242,16 @@
 </div>
 
 
+<style>
+/* Quick Create: always keep the Select2 search field visible and usable. */
+.select2-container--open { z-index: 99999 !important; }
+.select2-search--dropdown { display: block !important; padding: 8px !important; }
+.select2-search--dropdown .select2-search__field {
+    display: block !important; width: 100% !important; min-height: 38px;
+    padding: 6px 10px; border: 1px solid #ced4da; border-radius: 6px;
+}
+</style>
+
 <script>
 // Keep Select2 on Quick Create, but own its lifecycle locally.
 // no-select2 prevents the global observer from initializing the same element twice.
@@ -256,7 +266,8 @@ function initQuickSelect2(scope) {
         $el.select2({
             width: '100%',
             allowClear: false,
-            dropdownParent: $('#quickForm')
+            minimumResultsForSearch: 0,
+            dropdownParent: $(document.body)
         });
     });
 }

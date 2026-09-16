@@ -33,7 +33,7 @@
             const $el=$(this);
             if($el.hasClass('no-select2') || $el.hasClass('select2-hidden-accessible') || $el.closest('.dataTables_length').length) return;
             const $modal=$el.closest('.modal');
-            $el.select2({width:'100%',allowClear:!$el.prop('required'),dropdownParent:$modal.length?$modal:$(document.body)});
+            $el.select2({width:'100%',allowClear:false,dropdownParent:$modal.length?$modal:$(document.body)});
         });
     }
     window.globalSelect2Init=globalSelect2Init;

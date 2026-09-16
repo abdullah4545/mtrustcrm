@@ -114,9 +114,9 @@
     </div>
     @endif
 
-    <div class="col-12 col-md-4"><label>Organization *</label><select id="organization_id" class="form-control" required><option value="">Select Organization</option></select></div>
+    <div class="col-12 col-md-4"><label>Organization <span class="text-muted">(Optional)</span></label><select id="organization_id" class="form-control"><option value="">Select Organization</option></select></div>
     <div class="col-12 col-md-4"><label>Department <span class="text-muted">(Optional)</span></label><select id="department" class="form-control"><option value="">Select Department</option></select></div>
-    <div class="col-12 col-md-4"><label>Contact Person</label><select id="contact_id" class="form-control"><option value="">Select Contact</option></select></div>
+    <div class="col-12 col-md-4"><label>Contact Person</label><input type="text" id="contact_person" class="form-control" value="{{ $editing ? $activity->contact_person : '' }}" placeholder="Type contact person name"></div>
 
     <div class="col-12">
         <div class="activity-section">
@@ -138,7 +138,7 @@
         </div>
     </div>
 
-    <div class="col-12"><label>Visit Output</label><textarea id="work_details" class="form-control" rows="4">{{ $editing?$activity->work_details:'' }}</textarea></div>
+    <div class="col-12"><label>Visit Output *</label><textarea id="work_details" class="form-control" rows="4" required>{{ $editing?$activity->work_details:'' }}</textarea></div>
     <div class="col-12"><label>Remarks</label><textarea id="remarks" class="form-control" rows="3">{{ $editing?$activity->remarks:'' }}</textarea></div>
 
     <div class="col-12"><div class="summary-box row g-2 text-center"><div class="col-4"><small>Total TA</small><h5 class="mb-0" id="taText">0.00</h5></div><div class="col-4"><small>Total DA</small><h5 class="mb-0" id="daText">0.00</h5></div><div class="col-4"><small>Grand Total</small><h5 class="mb-0" id="totalText">0.00</h5></div></div></div>
@@ -322,7 +322,7 @@ $(function(){
     travelModal = new bootstrap.Modal(document.getElementById('travelModal'), {backdrop:true, keyboard:true, focus:true});
     expenseModal = new bootstrap.Modal(document.getElementById('expenseModal'), {backdrop:true, keyboard:true, focus:true});
 
-    $('#department,#contact_id,#staff_id').each(function(){ if(this && !$(this).hasClass('select2-hidden-accessible')) $(this).select2({width:'100%'}); });
+    $('#department,#staff_id').each(function(){ if(this && !$(this).hasClass('select2-hidden-accessible')) $(this).select2({width:'100%'}); });
     if($('#organization_id').hasClass('select2-hidden-accessible')) $('#organization_id').select2('destroy');
     $('#organization_id').select2({
         width:'100%', placeholder:'Search organization...', minimumInputLength:0,
@@ -343,12 +343,10 @@ $(function(){
 $('#organization_id').on('change',function(){
     const v=$(this).val();
     $('#department').html('<option value="">Select Department</option>').trigger('change.select2');
-    $('#contact_id').html('<option value="">Select Contact</option>').trigger('change.select2');
-    if(v) loadDepartments(v);
+    if(v) loadDepartments(v); else $('#department').html('<option value="">Select Department</option>').trigger('change.select2');
 });
 $('#department').on('change',function(){
     const org=$('#organization_id').val(), d=$(this).val();
-    $('#contact_id').html('<option value="">Select Contact</option>').trigger('change.select2');
     if(org) loadContacts(org,d);
 });
 
@@ -389,7 +387,7 @@ $(document).on('click','.delete-expense',function(){
 });
 
 $('#btnSave').on('click',function(){
-    if(!$('#organization_id').val()){ Swal.fire('Error','Organization is required','error'); return; }
+    if(!$.trim($('#work_details').val())){ Swal.fire('Error','Visit Output is required','error'); return; }
     const fd=new FormData();
     if(CAN_MANAGE_ENTRY){
         fd.append('staff_id',$('#staff_id').val()||'');
@@ -398,8 +396,8 @@ $('#btnSave').on('click',function(){
     fd.append('organization_id',$('#organization_id').val());
     fd.append('department_id',$('#department').val());
     fd.append('department',$('#department').val() ? ($('#department option:selected').data('title')||$('#department option:selected').text()) : '');
-    fd.append('contact_id',$('#contact_id').val()||'');
-    fd.append('contact_person',$('#contact_id option:selected').data('name')||'');
+    fd.append('contact_id','');
+    fd.append('contact_person',$.trim($('#contact_person').val()));
     fd.append('work_details',$('#work_details').val());
     fd.append('remarks',$('#remarks').val());
 

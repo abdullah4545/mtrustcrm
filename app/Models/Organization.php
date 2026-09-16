@@ -22,7 +22,9 @@ class Organization extends Model
         'union_id',
         'phone_primary',
         'phone_secondary',
+        'phone_numbers',
         'email',
+        'email_addresses',
         'website',
         'map_location_link',
         'dghs_facility_id',
@@ -38,6 +40,8 @@ class Organization extends Model
     protected $casts = [
         'latitude' => 'decimal:7',
         'longitude' => 'decimal:7',
+        'phone_numbers' => 'array',
+        'email_addresses' => 'array',
     ];
 
     public function category()

@@ -53,7 +53,6 @@
                     <tr>
                         <th>#</th>
                         <th>Name</th>
-                        <th>Created By</th>
                         <th>Category</th>
                         <th>Type</th> 
                         <th>Geo</th>
@@ -309,7 +308,6 @@ $(document).ready(function(){
         columns:[
             {data:'DT_RowIndex', orderable:false, searchable:false},
             {data:'name', name:'name'},
-            {data:'staff_name', orderable:false, searchable:false},
             {data:'category', orderable:false, searchable:false},
             {data:'type', orderable:false, searchable:false}, 
             {data:'geo', orderable:false, searchable:false},
@@ -334,7 +332,6 @@ $(document).ready(function(){
                     <h6 class="mb-1">${item.name}</h6>
 
                     <div class="small text-muted">
-                        <b>Created By:</b> ${item.staff_name ?? '-'}<br>
                         ${item.category ?? ''} | ${item.type ?? ''}
                     </div>
 

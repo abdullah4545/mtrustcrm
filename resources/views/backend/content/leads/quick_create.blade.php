@@ -253,7 +253,7 @@
     $org.select2({
         width:'100%',
         placeholder:'Search organization...',
-        allowClear:true,
+        allowClear:false,
         minimumInputLength:0,
         ajax:{
             url:ROUTE_ORG_OPTIONS,

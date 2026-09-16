@@ -115,20 +115,8 @@
             <input type="number" min="0" name="no_of_beds" class="form-control" placeholder="Hospital size">
         </div>
 
-        <div class="col-md-4">
-            <label>Phone Primary</label>
-            <input type="text" name="phone_primary" class="form-control" placeholder="01XXXXXXXXX">
-        </div>
-
-        <div class="col-md-4">
-            <label>Phone Secondary</label>
-            <input type="text" name="phone_secondary" class="form-control" placeholder="Optional">
-        </div>
-
-        <div class="col-md-4">
-            <label>Email</label>
-            <input type="email" name="email" class="form-control" placeholder="example@mail.com">
-        </div>
+        <div class="col-md-6"><label>Phone</label><div id="orgPhoneList"><div class="repeat-field"><div class="input-group"><input type="text" name="phone_numbers[]" class="form-control" placeholder="01XXXXXXXXX"><button type="button" class="btn btn-outline-primary org-add-repeat" data-kind="phone">+</button></div></div></div></div>
+        <div class="col-md-6"><label>Email</label><div id="orgEmailList"><div class="repeat-field"><div class="input-group"><input type="email" name="email_addresses[]" class="form-control" placeholder="example@mail.com"><button type="button" class="btn btn-outline-primary org-add-repeat" data-kind="email">+</button></div></div></div></div>
 
         <div class="col-md-6">
             <label>Website</label>
@@ -144,7 +132,7 @@
         <div class="col-md-12">
             <label>About Organization</label>
             <textarea name="about_us" class="form-control" placeholder="Write something about this Organization..."></textarea>
-            <div class="mt-3"><label>Existing Machine</label><textarea name="existing_machine" class="form-control" rows="3" placeholder="Existing machine / equipment details"></textarea></div>
+            <div class="mt-3"><label>Existing Machine *</label><textarea id="existing_machine_editor" name="existing_machine" class="form-control" rows="5" required placeholder="Existing machine / equipment details"></textarea></div>
         </div>
 
         <div class="col-md-12">
@@ -202,7 +190,7 @@
                 </div>
 
                 <div class="col-md-3">
-                    <input type="file" name="contacts[0][image]" class="form-control">
+                    <label class="form-label">Visiting Card</label><input type="file" name="contacts[0][image]" class="form-control">
                 </div>
 
                 <div class="col-md-3">
@@ -246,7 +234,12 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
 <script>
+let existingMachineEditor = null;
+ClassicEditor.create(document.querySelector('#existing_machine_editor'), {toolbar:['heading','|','bold','italic','link','bulletedList','numberedList','|','undo','redo']}).then(editor=>{ existingMachineEditor=editor; }).catch(console.error);
+$(document).on('click','.org-add-repeat',function(){ const kind=$(this).data('kind'), list=kind==='phone'?'#orgPhoneList':'#orgEmailList', type=kind==='email'?'email':'text', name=kind==='email'?'email_addresses[]':'phone_numbers[]'; $(list).append(`<div class="repeat-field mt-1"><div class="input-group"><input type="${type}" name="${name}" class="form-control" placeholder="Additional ${kind==='email'?'Email':'Phone'}"><button type="button" class="btn btn-outline-danger org-remove-repeat">−</button></div></div>`); });
+$(document).on('click','.org-remove-repeat',function(){ $(this).closest('.repeat-field').remove(); });
 let i = 1;
 
 
@@ -304,7 +297,7 @@ $('#addMore').on('click', function(){
             </div>
 
             <div class="col-md-3">
-                <input type="file" name="contacts[${i}][image]" class="form-control">
+                <label class="form-label">Visiting Card</label><input type="file" name="contacts[${i}][image]" class="form-control">
             </div>
 
             <div class="col-md-3">
@@ -423,6 +416,7 @@ $('#addMore').on('click', function(){
 $('#quickForm').on('submit', function(e){
     e.preventDefault();
 
+    if(existingMachineEditor){ document.querySelector('#existing_machine_editor').value = existingMachineEditor.getData(); }
     let form = $('#quickForm')[0];
     let formData = new FormData(form);
     let btn = $('#quickForm').find('button[type="submit"]');

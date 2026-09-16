@@ -576,22 +576,22 @@
         $('#created_by,#status,#branch_id,#organization_id').each(function(){ if($(this).hasClass('select2-hidden-accessible')) $(this).select2('destroy'); });
         $('#created_by').select2({
             placeholder: 'All Users',
-            allowClear: true,
+            allowClear: false,
             width: '100%'
         });
 
         $('#status').select2({
             placeholder: 'All Status',
-            allowClear: true,
+            allowClear: false,
             minimumResultsForSearch: Infinity,
             width: '100%'
         });
 
-        $('#branch_id').select2({placeholder:'All Permitted Branches',allowClear:true,width:'100%'});
+        $('#branch_id').select2({placeholder:'All Permitted Branches',allowClear:false,width:'100%'});
 
         $('#organization_id').select2({
             placeholder: 'Search organization...',
-            allowClear: true,
+            allowClear: false,
             width: '100%',
             minimumInputLength: 0,
             ajax: {

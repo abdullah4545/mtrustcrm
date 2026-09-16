@@ -70,10 +70,14 @@ class OrganizationController extends Controller
             'name'   => 'required|string|max:255',
             'no_of_beds' => 'nullable|integer|min:0',
             'status' => 'required|in:active,inactive',
-            'existing_machine' => 'nullable|string',
+            'existing_machine' => 'required|string',
     
             'email'         => 'nullable|email',
             'phone_primary' => 'nullable|string|max:20',
+            'phone_numbers' => 'nullable|array|max:10',
+            'phone_numbers.*' => 'nullable|string|max:30',
+            'email_addresses' => 'nullable|array|max:10',
+            'email_addresses.*' => 'nullable|email|max:150',
             'map_location_link' => 'nullable|string|max:1000',
     
             'contacts' => 'nullable|array',
@@ -114,9 +118,11 @@ class OrganizationController extends Controller
                 'district_id'              => $request->district_id,
                 'upazila_id'               => $request->upazila_id,
                 'union_id'                 => $request->union_id,
-                'phone_primary'            => $request->phone_primary,
-                'phone_secondary'          => $request->phone_secondary,
-                'email'                    => $request->email,
+                'phone_primary'            => collect($request->phone_numbers ?? [$request->phone_primary])->filter()->values()->get(0),
+                'phone_secondary'          => collect($request->phone_numbers ?? [])->filter()->values()->get(1),
+                'phone_numbers'            => collect($request->phone_numbers ?? [$request->phone_primary])->filter()->values()->all(),
+                'email'                    => collect($request->email_addresses ?? [$request->email])->filter()->values()->get(0),
+                'email_addresses'          => collect($request->email_addresses ?? [$request->email])->filter()->values()->all(),
                 'website'                  => $request->website,
                 'map_location_link'        => $request->map_location_link,
                 'notes'                    => $request->notes,
@@ -280,12 +286,16 @@ class OrganizationController extends Controller
             'union_id'                 => 'nullable|exists:unions,id',
             'phone_primary'            => 'nullable|string|max:30',
             'phone_secondary'          => 'nullable|string|max:30',
+            'phone_numbers'            => 'nullable|array|max:10',
+            'phone_numbers.*'          => 'nullable|string|max:30',
             'email'                    => 'nullable|email|max:150',
+            'email_addresses'          => 'nullable|array|max:10',
+            'email_addresses.*'        => 'nullable|email|max:150',
             'website'                  => 'nullable|string|max:150',
             'map_location_link'        => 'nullable|string|max:1000',
             'notes'                    => 'nullable|string',
             'about_us'                 => 'nullable|string',
-            'existing_machine'         => 'nullable|string',
+            'existing_machine'         => 'required|string',
             'status'                   => 'required|in:active,inactive',
         ]);
 
@@ -294,6 +304,11 @@ class OrganizationController extends Controller
             CrmAccess::ensureAreaAllowed((int)$data['district_id'], (int)$data['upazila_id']);
         }
         $data['created_by'] = auth()->id();
+        $data['phone_numbers'] = collect($request->phone_numbers ?? [$request->phone_primary])->filter()->values()->all();
+        $data['email_addresses'] = collect($request->email_addresses ?? [$request->email])->filter()->values()->all();
+        $data['phone_primary'] = $data['phone_numbers'][0] ?? null;
+        $data['phone_secondary'] = $data['phone_numbers'][1] ?? null;
+        $data['email'] = $data['email_addresses'][0] ?? null;
 
         Organization::create($data);
 
@@ -333,10 +348,14 @@ class OrganizationController extends Controller
             'name'   => 'required|string|max:255',
             'no_of_beds' => 'nullable|integer|min:0',
             'status' => 'required|in:active,inactive',
-            'existing_machine' => 'nullable|string',
+            'existing_machine' => 'required|string',
     
             'email'         => 'nullable|email',
             'phone_primary' => 'nullable|string|max:20',
+            'phone_numbers' => 'nullable|array|max:10',
+            'phone_numbers.*' => 'nullable|string|max:30',
+            'email_addresses' => 'nullable|array|max:10',
+            'email_addresses.*' => 'nullable|email|max:150',
     
             'contacts' => 'nullable|array',
     
@@ -381,9 +400,11 @@ class OrganizationController extends Controller
                 'district_id'              => $request->district_id,
                 'upazila_id'               => $request->upazila_id,
                 'union_id'                 => $request->union_id,
-                'phone_primary'            => $request->phone_primary,
-                'phone_secondary'          => $request->phone_secondary,
-                'email'                    => $request->email,
+                'phone_primary'            => collect($request->phone_numbers ?? [$request->phone_primary])->filter()->values()->get(0),
+                'phone_secondary'          => collect($request->phone_numbers ?? [])->filter()->values()->get(1),
+                'phone_numbers'            => collect($request->phone_numbers ?? [$request->phone_primary])->filter()->values()->all(),
+                'email'                    => collect($request->email_addresses ?? [$request->email])->filter()->values()->get(0),
+                'email_addresses'          => collect($request->email_addresses ?? [$request->email])->filter()->values()->all(),
                 'website'                  => $request->website,
                 'map_location_link'        => $request->map_location_link,
                 'notes'                    => $request->notes,

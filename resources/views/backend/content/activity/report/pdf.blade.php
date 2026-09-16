@@ -141,12 +141,7 @@
         .column-contact_person {
             width: 9.8%;
         }
-
-        .column-details {
-            width: 11%;
-        }
-
-        .column-from_location {
+.column-from_location {
             width: 9.5%;
         }
 

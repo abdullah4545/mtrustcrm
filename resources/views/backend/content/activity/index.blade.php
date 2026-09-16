@@ -33,7 +33,7 @@
         <div class="card">
             <div class="card-body">
                 <div class="row g-2 mb-3">
-                    @can('staff.filter')
+                    @if($showStaffColumn && auth()->user()->can('staff.filter'))
                     <div class="col-md-4">
                         <label class="form-label">Staff / Created By</label>
                         <select id="f_created_by" class="form-control">
@@ -43,7 +43,7 @@
                             @endforeach
                         </select>
                     </div>
-                    @endcan
+                    @endif
                 </div>
 
                 <table class="table table-bordered" id="activityTable">
@@ -51,8 +51,8 @@
                     <tr>
                         <th>#</th>
                         <th>Date</th>
-                        <th>Staff</th>
-                        <th>Organization</th>
+                        @if($showStaffColumn)<th>Staff</th>@endif
+                        <th>Organization / Contact</th>
                         <th>From</th>
                         <th>To</th>
                         <th>TA</th>
@@ -214,8 +214,10 @@
             columns:[
                 {data:'DT_RowIndex', orderable:false, searchable:false},
                 {data:'date'},
+                @if($showStaffColumn)
                 {data:'staff_name', orderable:false, searchable:false},
-                {data:'organization_name'},
+                @endif
+                {data:'organization_contact', name:'organization_name'},
                 {data:'from_location'},
                 {data:'to_location'},
                 {data:'ta'},

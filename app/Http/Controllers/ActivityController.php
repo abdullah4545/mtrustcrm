@@ -93,7 +93,8 @@ class ActivityController extends Controller
         $staffs = User::where('status',1)
             ->when(!$u->can('activity.view_all'), fn($q) => $q->where('branch_id',$u->branch_id))
             ->orderBy('name')->get(['id','name']);
-        return view('backend.content.activity.index', compact('staffs'));
+                $showStaffColumn = $u->can('activity.view_all') || $u->can('activity.view_branch');
+        return view('backend.content.activity.index', compact('staffs', 'showStaffColumn'));
     }
 
     public function datatable(Request $request)
@@ -103,6 +104,11 @@ class ActivityController extends Controller
         return DataTables::of($query)
             ->addIndexColumn()
             ->addColumn('staff_name', fn($row) => e($row->creator?->name ?? '-'))
+            ->addColumn('organization_contact', function($row) {
+                $org = e($row->organization_name ?: '-');
+                $contact = trim((string) ($row->contact_person ?? ''));
+                return $contact !== '' ? $org.'<br><strong>'.e($contact).'</strong>' : $org;
+            })
             ->editColumn('date', fn($row) => optional($row->activity_at)->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?? optional($row->date)->format('d M Y'))
             ->addColumn('status', fn($row) => '<span class="badge bg-'.($row->status==='approved'?'success':($row->status==='rejected'?'danger':'secondary')).'">'.e($row->status).'</span>')
             ->addColumn('action', function($row){
@@ -137,7 +143,7 @@ class ActivityController extends Controller
                 }
 
                 return $html.'</div>';
-            })->rawColumns(['status','action'])->make(true);
+            })->rawColumns(['organization_contact','status','action'])->make(true);
     }
 
     public function quickCreate()

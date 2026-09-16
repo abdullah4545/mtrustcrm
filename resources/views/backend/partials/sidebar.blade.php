@@ -19,59 +19,6 @@
                 </li>
                 @endcan
 
-                @canany(['activity.view_all','activity.view_branch','activity.view_self','activity.create'])
-                <li class="nxl-item nxl-hasmenu">
-                    <a href="javascript:void(0);" class="nxl-link">
-                        <span class="nxl-micon"><i class="feather-map-pin"></i></span>
-                        <span class="nxl-mtext">Field Activity</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                    </a>
-                    <ul class="nxl-submenu">
-                        @can('activity.create')<li class="nxl-item"><a class="nxl-link" href="{{ route('activities.quick.create') }}">Activity Entry</a></li>@endcan
-                        @canany(['activity.view_all','activity.view_branch','activity.view_self'])<li class="nxl-item"><a class="nxl-link" href="{{ route('activities.index') }}">Field Activity</a></li>@endcanany
-                    </ul>
-                </li>
-                @endcanany
-
-                @canany(['lead.view_all_branches','lead.view_branch','lead.view_self','lead.create'])
-                <li class="nxl-item nxl-hasmenu">
-                    <a href="javascript:void(0);" class="nxl-link">
-                        <span class="nxl-micon"><i class="feather-target"></i></span>
-                        <span class="nxl-mtext">Leads</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                    </a>
-                    <ul class="nxl-submenu">
-                        @canany(['lead.view_all_branches','lead.view_branch','lead.view_self'])<li class="nxl-item"><a class="nxl-link" href="{{ route('leads.index') }}">Leads</a></li>@endcanany
-                        @canany(['lead.view_all_branches','lead.view_branch','lead.view_self'])<li class="nxl-item"><a class="nxl-link" href="{{ route('followups.index') }}">Follow-ups</a></li>@endcanany
-                        @can('lead.create')<li class="nxl-item"><a class="nxl-link" href="{{ route('leads.quickCreate') }}">Lead Entry</a></li>@endcan
-                    </ul>
-                </li>
-                @endcanany
-
-                @canany(['quotation.view_all_branches','quotation.view_branch','quotation.view_self','quotation.create'])
-                <li class="nxl-item nxl-hasmenu">
-                    <a href="javascript:void(0);" class="nxl-link">
-                        <span class="nxl-micon"><i class="feather-file-text"></i></span>
-                        <span class="nxl-mtext">Quotations</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                    </a>
-                    <ul class="nxl-submenu">
-                        @canany(['quotation.view_all_branches','quotation.view_branch','quotation.view_self'])<li class="nxl-item"><a class="nxl-link" href="{{ route('quotations.index') }}">Quotations</a></li>@endcanany
-                        @can('quotation.create')<li class="nxl-item"><a class="nxl-link" href="{{ route('quotations.create') }}">Create Quotation</a></li>@endcan
-                    </ul>
-                </li>
-                @endcanany
-
-                @canany(['sale.view_all_branches','sale.view_branch','sale.view_self','sale.create'])
-                <li class="nxl-item nxl-hasmenu">
-                    <a href="javascript:void(0);" class="nxl-link">
-                        <span class="nxl-micon"><i class="feather-shopping-cart"></i></span>
-                        <span class="nxl-mtext">Sales</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                    </a>
-                    <ul class="nxl-submenu">
-                        @canany(['sale.view_all_branches','sale.view_branch','sale.view_self'])<li class="nxl-item"><a class="nxl-link" href="{{ route('sales.index') }}">Sales</a></li>@endcanany
-                        @can('sale.create')<li class="nxl-item"><a class="nxl-link" href="{{ route('sales.create') }}">Create Sale</a></li>@endcan
-                    </ul>
-                </li>
-                @endcanany
-
                 @canany(['org.view','org.create','org.edit','org_category.manage','org_type.manage'])
                 <li class="nxl-item nxl-hasmenu">
                     <a href="javascript:void(0);" class="nxl-link">
@@ -82,6 +29,19 @@
                         @can('org_category.manage')<li class="nxl-item"><a class="nxl-link" href="{{ route('org.categories.index') }}">Category</a></li>@endcan
                         @can('org_type.manage')<li class="nxl-item"><a class="nxl-link" href="{{ route('org.types.index') }}">Type</a></li>@endcan
                         @canany(['org.view','org.create','org.edit'])<li class="nxl-item"><a class="nxl-link" href="{{ route('org.manage.index') }}">Organization</a></li>@endcanany
+                    </ul>
+                </li>
+                @endcanany
+
+                @canany(['activity.view_all','activity.view_branch','activity.view_self','activity.create'])
+                <li class="nxl-item nxl-hasmenu">
+                    <a href="javascript:void(0);" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-map-pin"></i></span>
+                        <span class="nxl-mtext">Daily Activity</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                    </a>
+                    <ul class="nxl-submenu">
+                        @can('activity.create')<li class="nxl-item"><a class="nxl-link" href="{{ route('activities.quick.create') }}">Create Activity</a></li>@endcan
+                        @canany(['activity.view_all','activity.view_branch','activity.view_self'])<li class="nxl-item"><a class="nxl-link" href="{{ route('activities.index') }}">Activity List</a></li>@endcanany
                     </ul>
                 </li>
                 @endcanany
@@ -100,6 +60,47 @@
                     </ul>
                 </li>
                 @endcanany
+
+                @canany(['lead.view_all_branches','lead.view_branch','lead.view_self','lead.create'])
+                <li class="nxl-item nxl-hasmenu">
+                    <a href="javascript:void(0);" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-target"></i></span>
+                        <span class="nxl-mtext">Leads</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                    </a>
+                    <ul class="nxl-submenu">
+                        @canany(['lead.view_all_branches','lead.view_branch','lead.view_self'])<li class="nxl-item"><a class="nxl-link" href="{{ route('leads.index') }}">Leads</a></li>@endcanany
+                        @canany(['lead.view_all_branches','lead.view_branch','lead.view_self'])<li class="nxl-item"><a class="nxl-link" href="{{ route('followups.index') }}">Follow-ups</a></li>@endcanany
+                        @can('lead.create')<li class="nxl-item"><a class="nxl-link" href="{{ route('leads.quickCreate') }}">Lead Entry</a></li>@endcan
+                    </ul>
+                </li>
+                @endcanany
+
+                {{-- @canany(['quotation.view_all_branches','quotation.view_branch','quotation.view_self','quotation.create'])
+                <li class="nxl-item nxl-hasmenu">
+                    <a href="javascript:void(0);" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-file-text"></i></span>
+                        <span class="nxl-mtext">Quotations</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                    </a>
+                    <ul class="nxl-submenu">
+                        @canany(['quotation.view_all_branches','quotation.view_branch','quotation.view_self'])<li class="nxl-item"><a class="nxl-link" href="{{ route('quotations.index') }}">Quotations</a></li>@endcanany
+                        @can('quotation.create')<li class="nxl-item"><a class="nxl-link" href="{{ route('quotations.create') }}">Create Quotation</a></li>@endcan
+                    </ul>
+                </li>
+                @endcanany --}}
+
+                @canany(['sale.view_all_branches','sale.view_branch','sale.view_self','sale.create'])
+                <li class="nxl-item nxl-hasmenu">
+                    <a href="javascript:void(0);" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-shopping-cart"></i></span>
+                        <span class="nxl-mtext">Sales</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                    </a>
+                    <ul class="nxl-submenu">
+                        @canany(['sale.view_all_branches','sale.view_branch','sale.view_self'])<li class="nxl-item"><a class="nxl-link" href="{{ route('sales.index') }}">Sales</a></li>@endcanany
+                        @can('sale.create')<li class="nxl-item"><a class="nxl-link" href="{{ route('sales.create') }}">Create Sale</a></li>@endcan
+                    </ul>
+                </li>
+                @endcanany
+
 
                 @canany(['product.view','product.create','product.edit','product.category.manage','brand.manage'])
                 <li class="nxl-item nxl-hasmenu">

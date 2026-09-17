@@ -146,9 +146,10 @@ class ActivityReportController extends Controller
     {
         $validated = $this->validateFilters($request);
 
-        $columns = $this->resolveColumns(
-            $validated['columns'] ?? []
-        );
+        $columns = array_values(array_filter(
+            $this->resolveColumns($validated['columns'] ?? []),
+            fn (string $column) => $column !== 'work_details'
+        ));
 
         $activities = $this->reportQuery($validated)
             ->with('creator')
@@ -195,9 +196,10 @@ class ActivityReportController extends Controller
     {
         $validated = $this->validateFilters($request);
 
-        $columns = $this->resolveColumns(
-            $validated['columns'] ?? []
-        );
+        $columns = array_values(array_filter(
+            $this->resolveColumns($validated['columns'] ?? []),
+            fn (string $column) => $column !== 'work_details'
+        ));
 
         $activities = $this->reportQuery($validated)
             ->with('creator')

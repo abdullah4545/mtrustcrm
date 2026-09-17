@@ -132,7 +132,7 @@
         <div class="col-md-12">
             <label>About Organization</label>
             <textarea name="about_us" class="form-control" placeholder="Write something about this Organization..."></textarea>
-            <div class="mt-3"><label>Existing Machine *</label><textarea id="existing_machine_editor" name="existing_machine" class="form-control" rows="5" required placeholder="Existing machine / equipment details"></textarea></div>
+            <div class="mt-3"><label>Existing Machine *</label><textarea id="existing_machine_editor" name="existing_machine" class="form-control" rows="5" placeholder="Existing machine / equipment details"></textarea></div>
         </div>
 
         <div class="col-md-12">
@@ -416,7 +416,16 @@ $('#addMore').on('click', function(){
 $('#quickForm').on('submit', function(e){
     e.preventDefault();
 
-    if(existingMachineEditor){ document.querySelector('#existing_machine_editor').value = existingMachineEditor.getData(); }
+    if(existingMachineEditor){
+        const existingMachineValue = existingMachineEditor.getData().trim();
+        document.querySelector('#existing_machine_editor').value = existingMachineValue;
+        if (!existingMachineValue || existingMachineValue === '<p>&nbsp;</p>') {
+            e.preventDefault();
+            Swal.fire('Validation Error', 'Existing Machine is required.', 'warning');
+            existingMachineEditor.editing.view.focus();
+            return false;
+        }
+    }
     let form = $('#quickForm')[0];
     let formData = new FormData(form);
     let btn = $('#quickForm').find('button[type="submit"]');

@@ -71,8 +71,7 @@ class SaleController extends Controller
     {
         $u = Auth::user();
         if ($u->can('sale.view_all_branches')) return;
-        if ($u->can('sale.view_branch') && (int)$sale->branch_id === (int)$u->branch_id) return;
-        if ($u->can('sale.view_self') && (int)$sale->sold_by === (int)$u->id) return;
+        if ((int)$sale->sold_by === (int)$u->id) return;
         abort(403);
     }
 
@@ -134,7 +133,9 @@ class SaleController extends Controller
     {
         $statuses = StatusStage::where('status', 1)->where('is_for', 'sales')->orderBy('name')->get();
         $u = Auth::user();
-        $staffs = User::where('status',1)->when(!$u->can('sale.view_all_branches'), fn($q)=>$q->where('branch_id',$u->branch_id))->orderBy('name')->get(['id','name']);
+        $staffs = $u->can('sale.view_all_branches') && $u->can('staff.filter')
+            ? User::where('status',1)->orderBy('name')->get(['id','name'])
+            : User::whereKey($u->id)->get(['id','name']);
         return view('backend.content.sales.index', compact('statuses','staffs'));
     }
 
@@ -148,15 +149,13 @@ class SaleController extends Controller
 
         if ($u->can('sale.view_all_branches')) {
             if ($request->filled('branch_id')) $q->where('branch_id', $request->branch_id);
-        } elseif ($u->can('sale.view_branch')) {
-            $q->where('branch_id', $u->branch_id);
         } else {
             $q->where('sold_by', $u->id);
         }
 
         if ($request->filled('status_stage_id')) $q->where('status_stage_id', $request->status_stage_id);
         if ($request->filled('payment_status')) $q->where('payment_status', $request->payment_status);
-        if ($u->can('staff.filter') && $request->filled('sold_by')) $q->where('sold_by', $request->integer('sold_by'));
+        if ($u->can('sale.view_all_branches') && $u->can('staff.filter') && $request->filled('sold_by')) $q->where('sold_by', $request->integer('sold_by'));
 
         if ($request->filled('date_from') && $request->filled('date_to')) {
             $q->whereBetween('sale_date', [$request->date_from, $request->date_to]);

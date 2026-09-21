@@ -75,18 +75,7 @@
                 </li>
                 @endcanany
 
-                {{-- @canany(['quotation.view_all_branches','quotation.view_branch','quotation.view_self','quotation.create'])
-                <li class="nxl-item nxl-hasmenu">
-                    <a href="javascript:void(0);" class="nxl-link">
-                        <span class="nxl-micon"><i class="feather-file-text"></i></span>
-                        <span class="nxl-mtext">Quotations</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                    </a>
-                    <ul class="nxl-submenu">
-                        @canany(['quotation.view_all_branches','quotation.view_branch','quotation.view_self'])<li class="nxl-item"><a class="nxl-link" href="{{ route('quotations.index') }}">Quotations</a></li>@endcanany
-                        @can('quotation.create')<li class="nxl-item"><a class="nxl-link" href="{{ route('quotations.create') }}">Create Quotation</a></li>@endcan
-                    </ul>
-                </li>
-                @endcanany --}}
+
 
                 @canany(['sale.view_all_branches','sale.view_branch','sale.view_self','sale.create'])
                 <li class="nxl-item nxl-hasmenu">

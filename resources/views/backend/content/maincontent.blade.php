@@ -36,7 +36,6 @@
                     @can('activity.create')<a href="{{ route('activities.quick.create') }}" class="crm-action-chip primary"><i class="feather-plus"></i> Activity</a>@endcan
                     @can('lead.create')<a href="{{ route('leads.quickCreate') }}" class="crm-action-chip"><i class="feather-user-plus"></i> Lead</a>@endcan
                     @canany(['lead.view_all_branches','lead.view_branch','lead.view_self'])<a href="{{ route('followups.index') }}" class="crm-action-chip"><i class="feather-phone-call"></i> Follow-up</a>@endcanany
-                    @can('quotation.create')<a href="{{ route('quotations.create') }}" class="crm-action-chip"><i class="feather-file-text"></i> Quotation</a>@endcan
                 </div>
             </div>
             <div class="crm-mini-kpis">

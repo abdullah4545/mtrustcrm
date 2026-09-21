@@ -63,8 +63,7 @@ class UserManagementController extends Controller
                 $parts = [];
                 foreach ($groups as $rows) {
                     $district = $rows->first()->district?->name ?? 'District';
-                    if ($rows->contains(fn($x) => is_null($x->upazila_id))) $parts[] = '<b>'.e($district).'</b>: All Upazilas';
-                    else $parts[] = '<b>'.e($district).'</b>: '.e($rows->pluck('upazila.name')->filter()->join(', '));
+                    $parts[] = '<b>'.e($district).'</b>';
                 }
                 return implode('<br>', $parts);
             })
@@ -131,18 +130,11 @@ class UserManagementController extends Controller
         $normalized = [];
         foreach ($areas as $area) {
             $districtId = (int)($area['district_id'] ?? 0);
-            $upazilas = $area['upazila_ids'] ?? [];
-            $all = (bool)($area['all_upazilas'] ?? false);
             if (!$districtId || !District::whereKey($districtId)->exists()) continue;
-
-            if ($all) {
-                $normalized[] = ['district_id'=>$districtId,'upazila_id'=>null];
-                continue;
-            }
-            $validIds = Upazila::where('district_id',$districtId)->whereIn('id', array_map('intval',(array)$upazilas))->pluck('id');
-            foreach ($validIds as $upazilaId) $normalized[] = ['district_id'=>$districtId,'upazila_id'=>(int)$upazilaId];
+            // District selection automatically means every upazila under that district.
+            $normalized[] = ['district_id'=>$districtId,'upazila_id'=>null];
         }
-        if (!$normalized && count($areas)) throw ValidationException::withMessages(['areas'=>'Assigned district-এর জন্য All Upazila অথবা অন্তত একটি Upazila select করুন।']);
+        if (!$normalized && count($areas)) throw ValidationException::withMessages(['areas'=>'Please select a valid district.']);
         return collect($normalized)->unique(fn($x)=>$x['district_id'].'-'.($x['upazila_id'] ?? 'all'))->values()->all();
     }
 

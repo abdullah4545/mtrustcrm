@@ -33,13 +33,15 @@
             const $el=$(this);
             if($el.hasClass('no-select2') || $el.hasClass('select2-hidden-accessible') || $el.closest('.dataTables_length').length) return;
             const $modal=$el.closest('.modal');
-            $el.select2({width:'100%',allowClear:false,dropdownParent:$modal.length?$modal:$(document.body)});
+            const $parent=$modal.length ? ($modal.find('.modal-content').first().length ? $modal.find('.modal-content').first() : $modal) : $(document.body);
+            $el.select2({width:'100%',allowClear:false,dropdownParent:$parent});
         });
     }
     window.globalSelect2Init=globalSelect2Init;
     $(function(){
         globalSelect2Init(document);
-        $(document).on('shown.bs.modal', '.modal', function(){ globalSelect2Init(this); });
+        $(document).on('shown.bs.modal', '.modal', function(){ globalSelect2Init(this); $(this).find('.modal-body').scrollTop(0); });
+        $(document).on('select2:open', function(){ setTimeout(function(){ document.querySelector('.select2-container--open .select2-search__field')?.focus({preventScroll:true}); }, 0); });
         const obs=new MutationObserver(function(ms){
             ms.forEach(m=>m.addedNodes.forEach(n=>{ if(n.nodeType===1) globalSelect2Init(n); }));
         });

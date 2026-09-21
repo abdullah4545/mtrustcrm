@@ -190,7 +190,7 @@
 
     function loadDropdowns(){
         if($.fn.select2){
-            $('#organization_id').select2({width:'100%',placeholder:'Search organization...',ajax:{url:ROUTE_ORG,dataType:'json',delay:300,data:p=>({q:p.term||'',page:p.page||1}),processResults:r=>r,cache:true}});
+            $('#organization_id').select2({width:'100%',placeholder:'Search organization...',dropdownParent:$('#organization_id').closest('.modal').length?$('#organization_id').closest('.modal').find('.modal-content').first():$(document.body),ajax:{url:ROUTE_ORG,dataType:'json',delay:300,data:p=>({q:p.term||'',page:p.page||1}),processResults:r=>r,cache:true}});
         }
 
         // department

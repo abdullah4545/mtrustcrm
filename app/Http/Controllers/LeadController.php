@@ -58,8 +58,6 @@ class LeadController extends Controller
         $assignees = collect();
         if (Auth::user()->can('lead.view_all_branches')) {
             $assignees = User::where('status',1)->orderBy('name')->get(['id','name','branch_id']);
-        } elseif (Auth::user()->can('lead.view_branch')) {
-            $assignees = User::where('status',1)->where('branch_id',Auth::user()->branch_id)->orderBy('name')->get(['id','name','branch_id']);
         } else {
             $assignees = User::whereKey(Auth::id())->get(['id','name','branch_id']);
         }
@@ -82,7 +80,7 @@ class LeadController extends Controller
         $request->validate([
             'person_name'  => 'required',
             'person_phone' => 'required',
-            'existing_machine' => 'nullable|string|max:255',
+            'existing_machine' => 'nullable|string|max:10000',
         ]);
         $u = Auth::user();
         if ($request->filled('organization_id')) {
@@ -133,7 +131,6 @@ class LeadController extends Controller
     {
         $u = Auth::user();
         if ($u->can('lead.view_all_branches')) return $q;
-        if ($u->can('lead.view_branch')) return $q->where('branch_id', $u->branch_id);
         return $q->where('assigned_user_id', $u->id);
     }
 
@@ -141,8 +138,7 @@ class LeadController extends Controller
     {
         $u = Auth::user();
         if ($u->can('lead.view_all_branches')) return;
-        if ($u->can('lead.view_branch') && (int)$lead->branch_id === (int)$u->branch_id) return;
-        if ($u->can('lead.view_self') && (int)$lead->assigned_user_id === (int)$u->id) return;
+        if ((int)$lead->assigned_user_id === (int)$u->id) return;
         abort(403);
     }
 
@@ -248,7 +244,6 @@ class LeadController extends Controller
             ->addColumn('action', function($row){
                 $html = '<div class="d-flex flex-wrap gap-1">';
                 if (Auth::user()->can('lead.activity.add')) $html .= '<button class="btn btn-sm btn-info btn-activity" data-id="'.$row->id.'"><i class="feather-phone-call"></i> Follow-up</button>';
-                if (Auth::user()->can('quotation.create')) $html .= '<a class="btn btn-sm btn-dark" href="'.route('leads.quotation.create',$row->id).'"><i class="feather-file-text"></i> Quotation</a>';
                 if (Auth::user()->can('sale.create')) {
                     if (!empty($row->converted_sale_id)) $html .= '<span class="btn btn-sm btn-light disabled"><i class="feather-check"></i> Sale Created</span>';
                     else $html .= '<a class="btn btn-sm btn-success" href="'.route('leads.sales.create',$row->id).'"><i class="feather-shopping-cart"></i> Make Sale</a>';
@@ -278,7 +273,7 @@ class LeadController extends Controller
             'subject' => 'nullable|string|max:255',
             'note' => 'nullable|string',
             'expected_value' => 'nullable|numeric|min:0',
-            'existing_machine' => 'nullable|string|max:255',
+            'existing_machine' => 'nullable|string|max:10000',
 
             'next_followup_at' => 'nullable|date',
             'next_action_type' => 'nullable|string|max:30',
@@ -367,7 +362,7 @@ class LeadController extends Controller
             'subject' => 'nullable|string|max:255',
             'note' => 'nullable|string',
             'expected_value' => 'nullable|numeric|min:0',
-            'existing_machine' => 'nullable|string|max:255',
+            'existing_machine' => 'nullable|string|max:10000',
 
             'next_followup_at' => 'nullable|date',
             'next_action_type' => 'nullable|string|max:30',

@@ -6,7 +6,6 @@ use App\Models\Activity;
 use App\Models\Lead;
 use App\Models\Organization;
 use App\Models\Product;
-use App\Models\Quotation;
 use App\Models\Sale;
 use App\Models\User;
 use App\Support\CrmAccess;
@@ -53,16 +52,6 @@ class HeaderToolsController extends Controller
         if ($user->can('product.view')) {
             foreach (Product::query()->where(function ($x) use ($like) { $x->where('name','like',$like)->orWhere('sku','like',$like); })->limit(5)->get(['id','name','sku']) as $row) {
                 $results[] = ['type'=>'Product','title'=>$row->name,'subtitle'=>$row->sku ?: 'Product','url'=>route('products.index',['q'=>$row->sku ?: $row->name]),'icon'=>'feather-box'];
-            }
-        }
-
-        if ($user->can('quotation.view_all_branches') || $user->can('quotation.view_branch') || $user->can('quotation.view_self')) {
-            $query = Quotation::query()->where(function ($x) use ($like) { $x->where('quotation_no','like',$like)->orWhere('client_name','like',$like)->orWhere('client_phone','like',$like); });
-            if ($user->can('quotation.view_all_branches')) { /* all branches */ }
-            elseif ($user->can('quotation.view_branch')) $query->where('branch_id',$user->branch_id);
-            else $query->where('prepared_by',$user->id);
-            foreach ($query->latest()->limit(4)->get(['id','quotation_no','client_name','client_phone']) as $row) {
-                $results[] = ['type'=>'Quotation','title'=>$row->quotation_no,'subtitle'=>trim(($row->client_name ?: '').' · '.($row->client_phone ?: ''), ' ·'),'url'=>route('quotations.show',$row->id),'icon'=>'feather-file-text'];
             }
         }
 

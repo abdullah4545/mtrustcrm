@@ -67,9 +67,7 @@ class ActivityReportController extends Controller
         
         $userQuery = DB::table('users')->select('id','name')->orderBy('name');
         if (!Auth::user()->can('staff.filter')) $userQuery->whereRaw('1 = 0');
-        if (Auth::user()->can('report.view_branch') && !Auth::user()->can('report.view_all')) {
-            $userQuery->where('branch_id', Auth::user()->branch_id);
-        } elseif (Auth::user()->can('activity.view_self') && !Auth::user()->can('report.view_branch') && !Auth::user()->can('report.view_all')) {
+        if (!Auth::user()->can('report.view_all')) {
             $userQuery->where('id', Auth::id());
         }
         $users = $userQuery->get();
@@ -146,10 +144,7 @@ class ActivityReportController extends Controller
     {
         $validated = $this->validateFilters($request);
 
-        $columns = array_values(array_filter(
-            $this->resolveColumns($validated['columns'] ?? []),
-            fn (string $column) => $column !== 'work_details'
-        ));
+        $columns = $this->resolveColumns($validated['columns'] ?? []);
 
         $activities = $this->reportQuery($validated)
             ->with('creator')
@@ -196,10 +191,7 @@ class ActivityReportController extends Controller
     {
         $validated = $this->validateFilters($request);
 
-        $columns = array_values(array_filter(
-            $this->resolveColumns($validated['columns'] ?? []),
-            fn (string $column) => $column !== 'work_details'
-        ));
+        $columns = $this->resolveColumns($validated['columns'] ?? []);
 
         $activities = $this->reportQuery($validated)
             ->with('creator')
@@ -367,11 +359,7 @@ class ActivityReportController extends Controller
             unset($validated['created_by']);
         }
 
-        if ($u->can('report.view_all')) {
-            // requested branch/user filters are allowed only with staff.filter
-        } elseif ($u->can('report.view_branch')) {
-            $validated['branch_id'] = $u->branch_id;
-        } else {
+        if (!$u->can('report.view_all')) {
             $validated['branch_id'] = $u->branch_id;
             $validated['created_by'] = $u->id;
         }

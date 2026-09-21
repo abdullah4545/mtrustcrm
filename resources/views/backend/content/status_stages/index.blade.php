@@ -36,7 +36,7 @@
                             <option value="">All Module</option>
                             <option value="lead">Lead</option>
                             <option value="sales">Sales</option>
-                            <option value="quotation">Quotation</option>
+                            
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -88,7 +88,7 @@
                             <select id="is_for" class="form-control">
                                 <option value="lead">Lead</option>
                                 <option value="sales">Sales</option>
-                                <option value="quotation">Quotation</option>
+                                
                             </select>
                         </div>
 

@@ -48,19 +48,19 @@
 
                     {{-- Name --}}
                     <div class="col-md-4">
-                        <label class="form-label">Person Name</label>
+                        <label class="form-label">Contact Person Name</label>
                         <input type="text" name="person_name" id="person_name" class="form-control">
                     </div>
 
                     {{-- Phone --}}
                     <div class="col-md-4">
-                        <label class="form-label">Person Phone</label>
+                        <label class="form-label">Contact Person Phone</label>
                         <input type="text" name="person_phone" id="person_phone" class="form-control">
                     </div>
 
                     {{-- Email --}}
                     <div class="col-md-4">
-                        <label class="form-label">Person Email</label>
+                        <label class="form-label">Contact Person Email</label>
                         <input type="email" name="person_email" id="person_email" class="form-control">
                     </div>
 
@@ -103,7 +103,7 @@
 
                     <div class="col-md-12">
                         <label class="form-label">Existing Machine</label>
-                        <input type="text" name="existing_machine" id="existing_machine" class="form-control" placeholder="Existing machine / model">
+                        <textarea name="existing_machine" id="existing_machine" class="form-control" rows="5" placeholder="Existing machine / model"></textarea>
                     </div>
 
                     {{-- Note --}}
@@ -158,6 +158,11 @@
 </div>
 @endsection
 @push('scripts')
+<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
+<script>
+window.quickLeadExistingMachineEditor=null;
+ClassicEditor.create(document.querySelector('#existing_machine'), {toolbar:['heading','|','bold','italic','link','bulletedList','numberedList','|','undo','redo']}).then(e=>window.quickLeadExistingMachineEditor=e).catch(console.error);
+</script>
 <script>
     const ROUTE_ORG_OPTIONS = "{{ route('leads.org_options') }}";
     const ROUTE_ORG_CONTACTS = "{{ url('organizations') }}";
@@ -179,13 +184,13 @@
             $.ajax({
                 url: "{{ route('leads.quickStore') }}",
                 type: "POST",
-                data: new FormData(this),
+                data: (function(form){ if(window.quickLeadExistingMachineEditor) $('#existing_machine').val(window.quickLeadExistingMachineEditor.getData()); return new FormData(form); })(this),
                 processData: false,
                 contentType: false,
 
                 success: function (res) {
                     Swal.fire('Success', res.message, 'success');
-                    $('#quickLeadForm')[0].reset();
+                    $('#quickLeadForm')[0].reset(); if(window.quickLeadExistingMachineEditor) window.quickLeadExistingMachineEditor.setData('');
                 },
 
                 error: function (xhr) {

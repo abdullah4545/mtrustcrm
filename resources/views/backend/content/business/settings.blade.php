@@ -31,7 +31,7 @@
             <div class="col-xl-12">
                 <div class="card invoice-container">
                     <div class="card-header">
-                        <div><h5 class="mb-1">Company & Brand Identity</h5><small class="text-muted">Used across CRM, login, invoices and quotations.</small></div>
+                        <div><h5 class="mb-1">Company & Brand Identity</h5><small class="text-muted">Used across CRM, login and invoices.</small></div>
                     </div>
                     <div class="card-body">
 

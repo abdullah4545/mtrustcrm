@@ -322,10 +322,11 @@ $(function(){
     travelModal = new bootstrap.Modal(document.getElementById('travelModal'), {backdrop:true, keyboard:true, focus:true});
     expenseModal = new bootstrap.Modal(document.getElementById('expenseModal'), {backdrop:true, keyboard:true, focus:true});
 
-    $('#department,#staff_id').each(function(){ if(this && !$(this).hasClass('select2-hidden-accessible')) $(this).select2({width:'100%'}); });
+    $('#department,#staff_id').each(function(){ if(this && !$(this).hasClass('select2-hidden-accessible')) $(this).select2({width:'100%',dropdownParent:$(this).closest('.modal').length?$(this).closest('.modal').find('.modal-content').first():$(document.body)}); });
     if($('#organization_id').hasClass('select2-hidden-accessible')) $('#organization_id').select2('destroy');
     $('#organization_id').select2({
         width:'100%', placeholder:'Search organization...', minimumInputLength:0,
+        dropdownParent: $('#organization_id').closest('.modal').length ? $('#organization_id').closest('.modal').find('.modal-content').first() : $(document.body),
         ajax:{url:ORG_URL,dataType:'json',delay:300,data:p=>({q:p.term||'',page:p.page||1}),processResults:r=>r,cache:true}
     });
     if(OLD_ORG){

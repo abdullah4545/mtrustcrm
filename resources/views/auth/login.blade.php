@@ -30,7 +30,7 @@
             <div class="eyebrow">Enterprise CRM Platform</div>
             <h1 class="brand-title">Connected teams.<br>Better field execution.</h1>
             <div class="brand-rule"></div>
-            <p class="brand-copy">A secure workspace for field activity, leads, organizations, quotations, sales, follow-ups, reports and business operations.</p>
+            <p class="brand-copy">A secure workspace for field activity, leads, organizations, sales, follow-ups, reports and business operations.</p>
             <div class="brand-contact">
                 {{ $business?->business_address ?? 'House # 1148, Avenue # 10, Road # 9/A, Mirpur DOHS, Mirpur, Dhaka-1216, Bangladesh' }}<br>
                 {{ $business?->business_phone ?? '+88 01711-924911, 01711-220161, 01711-994343' }} &nbsp;·&nbsp; {{ $business?->business_email ?? 'meditrustsolution@gmail.com' }}

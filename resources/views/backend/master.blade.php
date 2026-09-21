@@ -195,8 +195,19 @@
         .modal .modal-content {
             background: #fff !important;
         }
-        body.modal-open {
-            overflow: hidden !important;
+        body.modal-open { overflow: hidden !important; touch-action: none; }
+        .modal { overflow-x: hidden; overflow-y: auto !important; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+        .modal-dialog-scrollable { max-height: calc(100dvh - 1rem); }
+        .modal-dialog-scrollable .modal-content { max-height: calc(100dvh - 1rem); }
+        .modal-dialog-scrollable .modal-body { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+        .select2-container--open { z-index: 2000 !important; }
+        .select2-dropdown { max-width: calc(100vw - 20px); }
+        @media (max-width: 767.98px) {
+            .modal-dialog { margin: .35rem; min-height: calc(100dvh - .7rem); }
+            .modal-dialog-centered { min-height: calc(100dvh - .7rem); }
+            .modal-content { max-height: calc(100dvh - .7rem); }
+            .modal-body { overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
+            .select2-container .select2-selection--single { min-height: 44px; }
         }
     </style>
     <script>
@@ -252,6 +263,11 @@
             const visibleModals = document.querySelectorAll('.modal.show');
             if (visibleModals.length > 0) {
                 document.body.classList.add('modal-open');
+            } else {
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('overflow');
+                document.body.style.removeProperty('padding-right');
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
             }
         });
     </script>

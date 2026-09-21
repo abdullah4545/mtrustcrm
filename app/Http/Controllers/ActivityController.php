@@ -79,7 +79,6 @@ class ActivityController extends Controller
         $u = Auth::user();
         $q = Activity::query()->with(['creator:id,name']);
         if ($u->can('activity.view_all')) return $q;
-        if ($u->can('activity.view_branch')) return $q->where('branch_id',$u->branch_id);
         return $q->where('created_by',$u->id);
     }
 
@@ -90,17 +89,17 @@ class ActivityController extends Controller
 
     public function index(){
         $u = Auth::user();
-        $staffs = User::where('status',1)
-            ->when(!$u->can('activity.view_all'), fn($q) => $q->where('branch_id',$u->branch_id))
-            ->orderBy('name')->get(['id','name']);
-                $showStaffColumn = $u->can('activity.view_all') || $u->can('activity.view_branch');
+        $staffs = $u->can('activity.view_all') && $u->can('staff.filter')
+            ? User::where('status',1)->orderBy('name')->get(['id','name'])
+            : User::whereKey($u->id)->get(['id','name']);
+        $showStaffColumn = $u->can('activity.view_all');
         return view('backend.content.activity.index', compact('staffs', 'showStaffColumn'));
     }
 
     public function datatable(Request $request)
     {
         $query = $this->visibleQuery()->latest('activity_at')->latest('id');
-        if (Auth::user()->can('staff.filter') && $request->filled('created_by')) $query->where('created_by', $request->integer('created_by'));
+        if (Auth::user()->can('activity.view_all') && Auth::user()->can('staff.filter') && $request->filled('created_by')) $query->where('created_by', $request->integer('created_by'));
         return DataTables::of($query)
             ->addIndexColumn()
             ->addColumn('staff_name', fn($row) => e($row->creator?->name ?? '-'))

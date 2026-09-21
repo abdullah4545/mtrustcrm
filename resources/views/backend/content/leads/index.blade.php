@@ -158,17 +158,17 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label">Person Name</label>
+                            <label class="form-label">Contact Person Name</label>
                             <input type="text" id="person_name" class="form-control" placeholder="Auto from contact or type custom">
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label">Person Phone</label>
+                            <label class="form-label">Contact Person Phone</label>
                             <input type="text" id="person_phone" class="form-control">
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label">Person Email</label>
+                            <label class="form-label">Contact Person Email</label>
                             <input type="email" id="person_email" class="form-control">
                         </div>
 
@@ -216,7 +216,7 @@
 
                         <div class="col-md-12">
                             <label class="form-label">Existing Machine</label>
-                            <input type="text" id="existing_machine" class="form-control" placeholder="Existing machine / model">
+                            <textarea id="existing_machine" class="form-control" rows="5" placeholder="Existing machine / model"></textarea>
                         </div>
 
                         <div class="col-md-12">
@@ -343,6 +343,7 @@
 @endpush
 
 @push('scripts')
+<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
 <style>
     @media (max-width: 768px) {
 
@@ -507,7 +508,7 @@ $(document).ready(function(){
         fd.append('subject', $('#subject').val());
         fd.append('note', $('#note').val());
         fd.append('expected_value', $('#expected_value').val());
-        fd.append('existing_machine', $('#existing_machine').val());
+        fd.append('existing_machine', window.leadExistingMachineEditor ? window.leadExistingMachineEditor.getData() : $('#existing_machine').val());
 
         fd.append('next_followup_at', $('#next_followup_at').val());
         fd.append('next_action_type', $('#next_action_type').val());
@@ -552,7 +553,7 @@ $(document).ready(function(){
             $('#subject').val(d.subject);
             $('#note').val(d.note);
             $('#expected_value').val(d.expected_value);
-            $('#existing_machine').val(d.existing_machine || '');
+            if(window.leadExistingMachineEditor) window.leadExistingMachineEditor.setData(d.existing_machine || ''); else $('#existing_machine').val(d.existing_machine || '');
 
             $('#next_followup_at').val(d.next_followup_at ? d.next_followup_at.replace(' ','T') : '');
             $('#next_action_type').val(d.next_action_type);
@@ -585,6 +586,7 @@ function loadOrganizations(selectedId = null){
         placeholder:'Search organization...',
         allowClear:false,
         minimumInputLength:0,
+        dropdownParent: $('#leadModal').length ? $('#leadModal') : $(document.body),
         ajax:{
             url:ROUTE_ORG_OPTIONS,
             dataType:'json',
@@ -609,7 +611,7 @@ function clearForm(){
     $('#lead_id').val('');
     document.getElementById('leadForm').reset();
     $('#expected_value').val('0');
-    $('#existing_machine').val('');
+    if(window.leadExistingMachineEditor) window.leadExistingMachineEditor.setData(''); else $('#existing_machine').val('');
     $('#lead_state').val('open');
     $('#assigned_user_id').val('{{ auth()->id() }}');
     $('#organization_contact_id').html(`<option value="">-- Select Contact --</option>`);
@@ -629,17 +631,18 @@ function showAjaxError(xhr){
     Swal.fire('Error', msg, 'error');
 }
 
-// ✅ Quotation button (placeholder)
-$(document).on('click', '.btn-quotation', function(){
-    const leadId = $(this).data('id');
-    Swal.fire('Quotation', 'Create Quotation from Lead ID: ' + leadId, 'info');
-});
-
 // ✅ Sales button (placeholder)
 $(document).on('click', '.btn-sales', function(){
     const leadId = $(this).data('id');
     Swal.fire('Sales', 'Create Sales from Lead ID: ' + leadId, 'success');
 });
+
+window.leadExistingMachineEditor = null;
+if (window.ClassicEditor && document.querySelector('#existing_machine')) {
+    ClassicEditor.create(document.querySelector('#existing_machine'), {toolbar:['heading','|','bold','italic','link','bulletedList','numberedList','|','undo','redo']})
+        .then(editor => { window.leadExistingMachineEditor = editor; })
+        .catch(console.error);
+}
 
 const ROUTE_ACTIVITIES = "{{ url('leads') }}"; // /{id}/activities
 let activityModal;

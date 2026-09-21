@@ -27,10 +27,6 @@ class FollowupController extends Controller
             return $query;
         }
 
-        if ($u->can('lead.view_branch')) {
-            return $query->where('branch_id', $u->branch_id);
-        }
-
         return $query->where('assigned_user_id', $u->id);
     }
 
@@ -38,8 +34,7 @@ class FollowupController extends Controller
     {
         $u = Auth::user();
         if ($u->can('lead.view_all_branches')) return;
-        if ($u->can('lead.view_branch') && (int)$lead->branch_id === (int)$u->branch_id) return;
-        if ($u->can('lead.view_self') && (int)$lead->assigned_user_id === (int)$u->id) return;
+        if ((int)$lead->assigned_user_id === (int)$u->id) return;
         abort(403);
     }
 
@@ -62,7 +57,8 @@ class FollowupController extends Controller
             $query->whereBetween('next_followup_at', [now()->startOfDay(), now()->endOfDay()]);
         }
 
-        if ($u->can('staff.filter') && $request->filled('user_id')) $query->where('assigned_user_id', $request->integer('user_id'));
+        $u = Auth::user();
+        if ($u->can('lead.view_all_branches') && $u->can('staff.filter') && $request->filled('user_id')) $query->where('assigned_user_id', $request->integer('user_id'));
 
         if ($request->filled('q')) {
             $s = trim($request->q);
@@ -74,8 +70,9 @@ class FollowupController extends Controller
         }
 
         $followups = $query->orderBy('next_followup_at')->paginate(25)->withQueryString();
-        $u = Auth::user();
-        $staffs = User::where('status',1)->when(!$u->can('lead.view_all_branches'), fn($q)=>$q->where('branch_id',$u->branch_id))->orderBy('name')->get(['id','name']);
+        $staffs = $u->can('lead.view_all_branches') && $u->can('staff.filter')
+            ? User::where('status',1)->orderBy('name')->get(['id','name'])
+            : User::whereKey($u->id)->get(['id','name']);
 
         $base = Lead::query()->where('lead_state', 'open')->whereNotNull('next_followup_at');
         $this->scopeVisible($base);
@@ -102,8 +99,8 @@ class FollowupController extends Controller
 
         LeadActivity::create([
             'lead_id' => $lead->id,
-            'activity_type' => $data['next_action_type'] ?: 'note',
-            'activity_text' => $data['activity_text'] ?: ('Follow-up completed: '.$data['outcome_status']),
+            'activity_type' => ($data['next_action_type'] ?? null) ?: 'note',
+            'activity_text' => ($data['activity_text'] ?? null) ?: ('Follow-up completed: '.$data['outcome_status']),
             'activity_at' => now(),
             'outcome_status' => $data['outcome_status'],
             'next_followup_at' => $data['next_followup_at'] ?? null,

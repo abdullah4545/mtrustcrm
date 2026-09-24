@@ -84,4 +84,19 @@ class Organization extends Model
         return $this->belongsTo(\App\Models\User::class, 'created_by');
     }
 
+    public function activities()
+    {
+        return $this->hasMany(\App\Models\Activity::class, 'organization_id');
+    }
+
+    public function leads()
+    {
+        return $this->hasMany(\App\Models\Lead::class, 'organization_id');
+    }
+
+    public function sales()
+    {
+        return $this->hasMany(\App\Models\Sale::class, 'organization_id');
+    }
+
 }

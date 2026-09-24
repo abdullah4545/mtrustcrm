@@ -229,7 +229,16 @@ class OrganizationController extends Controller
     {
         $q = CrmAccess::applyOrganizationScope(Organization::query())
             ->with(['category:id,name','type:id,name','division:id,name','district:id,name','upazila:id,name','union:id,name','creator:id,name'])
-            ->select('organizations.*')->latest();
+            ->select('organizations.*')
+            ->withCount(['activities','leads','sales'])
+            ->selectSub(function ($sub) {
+                $sub->from('lead_activities')
+                    ->join('leads', 'leads.id', '=', 'lead_activities.lead_id')
+                    ->whereColumn('leads.organization_id', 'organizations.id')
+                    ->whereNull('leads.deleted_at')
+                    ->selectRaw('COUNT(*)');
+            }, 'followups_count')
+            ->latest();
 
         // ✅ Filters
         if($request->filled('organization_category_id')) $q->where('organization_category_id', $request->organization_category_id);
@@ -254,6 +263,18 @@ class OrganizationController extends Controller
             ->addColumn('staff_name', fn($row) => e($row->creator?->name ?? '-'))
             ->addColumn('category', fn($row) => $row->category?->name ?? '-')
             ->addColumn('type', fn($row) => $row->type?->name ?? '-')
+            ->addColumn('activity_summary', function($row){
+                $has=(int)$row->activities_count > 0;
+                return '<span class="badge '.($has?'bg-success':'bg-secondary').'">'.($has?'Yes':'No').'</span>'
+                    .' <span class="text-muted small">('.(int)$row->activities_count.')</span>';
+            })
+            ->addColumn('history_summary', function($row){
+                return '<div class="d-flex flex-wrap gap-1">'
+                    .'<span class="badge bg-light text-dark border">A: '.(int)$row->activities_count.'</span>'
+                    .'<span class="badge bg-light text-dark border">L: '.(int)$row->leads_count.'</span>'
+                    .'<span class="badge bg-light text-dark border">F: '.(int)$row->followups_count.'</span>'
+                    .'<span class="badge bg-light text-dark border">S: '.(int)$row->sales_count.'</span></div>';
+            })
             ->addColumn('geo', function($row){
                 $parts = array_filter([
                     $row->division?->name,
@@ -277,7 +298,7 @@ class OrganizationController extends Controller
                 if (auth()->user()->can('org.delete')) $html .= '<button class="btn btn-sm btn-danger btn-delete" data-id="'.$row->id.'"><i class="feather-trash-2"></i></button>';
                 return $html.'</div>';
             })
-            ->rawColumns(['name','status','action'])
+            ->rawColumns(['name','activity_summary','history_summary','status','action'])
             ->make(true);
     }
 
@@ -636,7 +657,13 @@ class OrganizationController extends Controller
         $leads=$range(Lead::with('creator')->where('organization_id',$org->id)); if($q)$leads->where(fn($x)=>$x->where('lead_no','like',"%$q%")->orWhere('person_name','like',"%$q%"));
         $followups=$range(LeadActivity::with(['lead','creator'])->whereHas('lead',fn($x)=>$x->where('organization_id',$org->id)),'activity_at'); if($q)$followups->where('activity_text','like',"%$q%");
         $sales=$range(Sale::with('soldBy')->where('organization_id',$org->id),'sale_date'); if($q)$sales->where(fn($x)=>$x->where('sale_no','like',"%$q%")->orWhere('client_name','like',"%$q%"));
-        return view('backend.content.organization.organizations.history',['org'=>$org,'activities'=>$activities->latest('date')->paginate(15,['*'],'activities_page')->withQueryString(),'leads'=>$leads->latest()->paginate(15,['*'],'leads_page')->withQueryString(),'followups'=>$followups->latest('activity_at')->paginate(15,['*'],'followups_page')->withQueryString(),'sales'=>$sales->latest('sale_date')->paginate(15,['*'],'sales_page')->withQueryString()]);
+        $counts = [
+            'activities' => (clone $activities)->count(),
+            'leads' => (clone $leads)->count(),
+            'followups' => (clone $followups)->count(),
+            'sales' => (clone $sales)->count(),
+        ];
+        return view('backend.content.organization.organizations.history',['org'=>$org,'counts'=>$counts,'activities'=>$activities->latest('date')->paginate(15,['*'],'activities_page')->withQueryString(),'leads'=>$leads->latest()->paginate(15,['*'],'leads_page')->withQueryString(),'followups'=>$followups->latest('activity_at')->paginate(15,['*'],'followups_page')->withQueryString(),'sales'=>$sales->latest('sale_date')->paginate(15,['*'],'sales_page')->withQueryString()]);
     }
 
 }

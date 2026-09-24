@@ -121,6 +121,7 @@ Route::middleware('auth')->group(function () {
     Route::get('leads/quick-create', [LeadController::class, 'quickCreate'])->name('leads.quickCreate');
     Route::post('leads/quick-store', [LeadController::class, 'quickStore'])->name('leads.quickStore');  
     Route::post('leads', [LeadController::class,'store'])->name('leads.store');
+    Route::get('leads/{id}/history', [LeadController::class,'history'])->name('leads.history');
     Route::get('leads/{id}', [LeadController::class,'show'])->name('leads.show');
     Route::post('leads/{id}', [LeadController::class,'update'])->name('leads.update');
     Route::post('leads/{id}/delete', [LeadController::class,'destroy'])->name('leads.destroy');

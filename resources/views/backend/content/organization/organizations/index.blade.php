@@ -54,7 +54,9 @@
                         <th>#</th>
                         <th>Name</th>
                         <th>Category</th>
-                        <th>Type</th> 
+                        <th>Type</th>
+                        <th>Activity</th>
+                        <th>History</th>
                         <th>Geo</th>
                         <th>Status</th>
                         <th width="140">Action</th>
@@ -309,7 +311,9 @@ $(document).ready(function(){
             {data:'DT_RowIndex', orderable:false, searchable:false},
             {data:'name', name:'name'},
             {data:'category', orderable:false, searchable:false},
-            {data:'type', orderable:false, searchable:false}, 
+            {data:'type', orderable:false, searchable:false},
+            {data:'activity_summary', orderable:false, searchable:false},
+            {data:'history_summary', orderable:false, searchable:false},
             {data:'geo', orderable:false, searchable:false},
             {data:'status', orderable:false, searchable:false},
             {data:'action', orderable:false, searchable:false},
@@ -340,6 +344,8 @@ $(document).ready(function(){
                     </div>
 
                     <div class="small">
+                        <b>Activity:</b> ${item.activity_summary ?? '-'}<br>
+                        <b>History:</b> ${item.history_summary ?? '-'}<br>
                         <b>Geo:</b> ${item.geo ?? '-'}
                     </div>
 

@@ -10,6 +10,7 @@ use App\Models\Branch;
 use App\Models\Organization;
 use App\Models\OrganizationContact;
 use App\Models\User;
+use App\Models\Sale;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -208,6 +209,10 @@ class LeadController extends Controller
 
         return DataTables::of($q)
             ->addIndexColumn()
+            ->editColumn('lead_no', function($row){
+                if (!Auth::user()->can('lead.details.view')) return e($row->lead_no);
+                return '<a class=\"fw-semibold text-primary text-decoration-none\" href=\"'.route('leads.history',$row->id).'\">'.e($row->lead_no).'</a>';
+            })
             ->addColumn('staff_name', fn($row) => e($row->creator?->name ?? '-'))
             ->addColumn('org_name', fn($row) => $row->organization ? e($row->organization->name) : '-')
             ->addColumn('contact_name', fn($row) => $row->organizationContact ? e($row->organizationContact->name) : '-')
@@ -245,6 +250,7 @@ class LeadController extends Controller
             })
             ->addColumn('action', function($row){
                 $html = '<div class="d-flex flex-wrap gap-1">';
+                if (Auth::user()->can('lead.details.view')) $html .= '<a class="btn btn-sm btn-outline-dark" href="'.route('leads.history',$row->id).'"><i class="feather-clock"></i> History</a>';
                 if (Auth::user()->can('lead.activity.add')) $html .= '<button class="btn btn-sm btn-info btn-activity" data-id="'.$row->id.'"><i class="feather-phone-call"></i> Follow-up</button>';
                 if (Auth::user()->can('sale.create')) {
                     if (!empty($row->converted_sale_id)) $html .= '<span class="btn btn-sm btn-light disabled"><i class="feather-check"></i> Sale Created</span>';
@@ -254,7 +260,7 @@ class LeadController extends Controller
                 if (Auth::user()->can('lead.delete')) $html .= '<button class="btn btn-sm btn-danger btn-delete" data-id="'.$row->id.'"><i class="feather-trash-2"></i></button>';
                 return $html.'</div>';
             })
-            ->rawColumns(['status_badge','lead_state','next_followup','action'])
+            ->rawColumns(['lead_no','status_badge','lead_state','next_followup','action'])
             ->make(true);
     }
 
@@ -331,6 +337,27 @@ class LeadController extends Controller
         ]);
 
         return response()->json(['status'=>true,'message'=>'Lead created successfully']);
+    }
+
+    public function history($id)
+    {
+        $lead = Lead::with([
+            'organization:id,name', 'organizationContact:id,name', 'platform:id,title',
+            'statusStage:id,name,color', 'assignedUser:id,name', 'creator:id,name'
+        ])->findOrFail($id);
+        $this->ensureLeadAccess($lead);
+
+        $activities = LeadActivity::with('creator:id,name')->where('lead_id', $lead->id)
+            ->orderByDesc('activity_at')->paginate(20, ['*'], 'activity_page');
+        $sales = Sale::with(['soldBy:id,name','statusStage:id,name,color'])->where('lead_id', $lead->id)
+            ->orderByDesc('sale_date')->paginate(20, ['*'], 'sale_page');
+        $followupCount = LeadActivity::where('lead_id',$lead->id)->where(function($q){
+            $q->whereNotNull('next_followup_at')->orWhereIn('activity_type',['feedback','call','visit','message','meeting']);
+        })->count();
+        $activityCount = LeadActivity::where('lead_id',$lead->id)->count();
+        $saleCount = Sale::where('lead_id',$lead->id)->count();
+
+        return view('backend.content.leads.history', compact('lead','activities','sales','followupCount','activityCount','saleCount'));
     }
 
     public function show($id)

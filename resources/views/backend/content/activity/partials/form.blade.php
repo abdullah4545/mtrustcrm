@@ -37,7 +37,7 @@
 
 <style>
 .activity-entry-card{border:0;border-radius:18px;box-shadow:0 10px 30px rgba(15,23,42,.07)}
-.activity-entry-card label{font-weight:600;margin-bottom:6px}
+.activity-entry-card label{font-weight:600;margin-bottom:6px;display:inline-flex;align-items:center;gap:3px;line-height:1.25}.required-mark{color:#111!important;font-weight:700;display:inline!important;line-height:1!important;vertical-align:baseline!important}
 .activity-section{border:1px solid #e8edf3;border-radius:16px;background:#fff;overflow:hidden}
 .activity-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #eef2f6;background:#fafbfc}
 .activity-section-body{padding:12px}
@@ -155,7 +155,7 @@
                     <div class="col-12"><label>From *</label><input id="travel_from" class="form-control" placeholder="From location"></div>
                     <div class="col-12"><label>To *</label><input id="travel_to" class="form-control" placeholder="To location"></div>
                     <div class="col-12 col-sm-6"><label>Vehicle</label><select id="travel_vehicle" class="form-control"><option value="">Select Vehicle</option></select></div>
-                    <div class="col-6 col-sm-3"><label>Distance (KM) <span class="text-danger">*</span></label><input type="number" min="0" step="0.01" id="travel_distance" class="form-control" value="0" required></div>
+                    <div class="col-6 col-sm-3"><label>Distance (KM) <span class="required-mark">*</span></label><input type="number" min="0" step="0.01" id="travel_distance" class="form-control" value="0" required></div>
                     <div class="col-6 col-sm-3"><label>Cost *</label><input type="number" min="0" step="0.01" id="travel_cost" class="form-control" value="0"></div>
                     <div class="col-12"><label>TA Image</label><input type="file" accept="image/*" id="travel_image" class="form-control"><small class="text-muted" id="travel_image_hint">JPG, PNG or WEBP - max 5 MB.</small></div>
                 </div>
@@ -288,7 +288,14 @@ function resetExpenseModal(){
 function openExpenseEdit(index){
     const r=expenses[index]; if(!r) return;
     $('#expenseEditIndex').val(index); $('#expenseModalTitle').text('Edit Cost');
-    $('#expense_type').val(String(r.expense_type_id||'')); $('#expense_amount').val(r.amount); $('#expense_note').val(r.note||''); $('#expense_image').val('');
+    const expenseTypeId=String(r.expense_type_id||'');
+    $('#expense_type').val(expenseTypeId).trigger('change.select2');
+    // Fallback for old DA rows where only the expense type name was saved.
+    if(!$('#expense_type').val() && r.expense_type){
+        $('#expense_type option').filter(function(){ return $.trim($(this).text()).toLowerCase() === $.trim(String(r.expense_type)).toLowerCase(); }).first().prop('selected',true);
+        $('#expense_type').trigger('change.select2');
+    }
+    $('#expense_amount').val(r.amount); $('#expense_note').val(r.note||''); $('#expense_image').val('');
     $('#expense_image_hint').text((r.image_file?.name || (r.image_url ? 'Current image attached. Choose a file only to replace it.' : 'JPG, PNG or WEBP - max 5 MB.')));
     expenseModal.show();
 }

@@ -23,6 +23,7 @@
         return [
             'id' => data_get($row, 'id'),
             'edit_count' => (int) data_get($row, 'edit_count', 0),
+            '_edited' => false,
             'last_edited_by_name' => (string) data_get($row, 'lastEditor.name', ''),
             'last_edited_at' => data_get($row, 'last_edited_at')
                 ? \Illuminate\Support\Carbon::parse(data_get($row, 'last_edited_at'))->timezone('Asia/Dhaka')->format('d M Y, h:i A')
@@ -47,6 +48,7 @@
         return [
             'id' => data_get($row, 'id'),
             'edit_count' => (int) data_get($row, 'edit_count', 0),
+            '_edited' => false,
             'last_edited_by_name' => (string) data_get($row, 'lastEditor.name', ''),
             'last_edited_at' => data_get($row, 'last_edited_at')
                 ? \Illuminate\Support\Carbon::parse(data_get($row, 'last_edited_at'))->timezone('Asia/Dhaka')->format('d M Y, h:i A')
@@ -315,6 +317,7 @@ function resetTravelModal(){
 }
 function openTravelEdit(index){
     const r=travels[index]; if(!r) return;
+    if(r.id && !CAN_MULTIPLE_TADA_EDIT && Number(r.edit_count||0) >= 1){ Swal.fire('Edit Locked','This TA has already been edited once.','info'); return; }
     $('#travelEditIndex').val(index); $('#travelModalTitle').text('Edit Travel');
     const ep=entryParts(r.entry_at); $('#travel_date').val(ep.date); $('#travel_time').val(ep.time); $('#travel_from').val(r.from_location); $('#travel_to').val(r.to_location); fillVehicleOptions(r.vehicle); $('#travel_distance').val(r.distance); $('#travel_cost').val(r.cost); $('#travel_image').val('');
     $('#travel_image_hint').text((r.image_file?.name || (r.image_url ? 'Current image attached. Choose a file only to replace it.' : 'JPG, PNG or WEBP - max 5 MB.')));
@@ -327,6 +330,7 @@ function resetExpenseModal(){
 }
 function openExpenseEdit(index){
     const r=expenses[index]; if(!r) return;
+    if(r.id && !CAN_MULTIPLE_TADA_EDIT && Number(r.edit_count||0) >= 1){ Swal.fire('Edit Locked','This DA has already been edited once.','info'); return; }
     $('#expenseEditIndex').val(index); $('#expenseModalTitle').text('Edit Cost');
     const ep=entryParts(r.entry_at); $('#expense_date').val(ep.date); $('#expense_time').val(ep.time);
     const expenseTypeId=String(r.expense_type_id||'');
@@ -407,7 +411,7 @@ $('#saveTravelRow').on('click',function(){
     const idx=$('#travelEditIndex').val();
     const oldRow = idx==='' ? {} : (travels[parseInt(idx,10)] || {});
     const imageFile = document.getElementById('travel_image').files[0] || oldRow.image_file || null;
-    const row={id:oldRow.id||null,edit_count:Number(oldRow.edit_count||0),last_edited_by_name:oldRow.last_edited_by_name||'',last_edited_at:oldRow.last_edited_at||'',entry_at:travelDate+'T'+travelTime,from_location:from,to_location:to,vehicle:$('#travel_vehicle').val()||'',distance:parseFloat($('#travel_distance').val())||0,cost:cost,image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
+    const row={id:oldRow.id||null,edit_count:(oldRow.id && idx!=='' ? Number(oldRow.edit_count||0)+1 : Number(oldRow.edit_count||0)),_edited:(oldRow.id && idx!=='' ? true : !!oldRow._edited),last_edited_by_name:oldRow.last_edited_by_name||'',last_edited_at:oldRow.last_edited_at||'',entry_at:travelDate+'T'+travelTime,from_location:from,to_location:to,vehicle:$('#travel_vehicle').val()||'',distance:parseFloat($('#travel_distance').val())||0,cost:cost,image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
     if(idx==='') travels.push(row); else travels[parseInt(idx,10)]=row;
     renderTravels(); travelModal.hide();
 });
@@ -428,7 +432,7 @@ $('#saveExpenseRow').on('click',function(){
     const oldRow = idx==='' ? {} : (expenses[parseInt(idx,10)] || {});
     const imageFile = document.getElementById('expense_image').files[0] || oldRow.image_file || null;
     if(!travels.length){Swal.fire('TA Required','Please add the corresponding TA/travel entry before adding DA.','warning');return;}
-    const row={id:oldRow.id||null,edit_count:Number(oldRow.edit_count||0),last_edited_by_name:oldRow.last_edited_by_name||'',last_edited_at:oldRow.last_edited_at||'',entry_at:expenseDate+'T'+expenseTime,expense_type_id:String(typeId),expense_type:$('#expense_type option:selected').data('name')||$('#expense_type option:selected').text(),amount:amount,note:$.trim($('#expense_note').val()),image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
+    const row={id:oldRow.id||null,edit_count:(oldRow.id && idx!=='' ? Number(oldRow.edit_count||0)+1 : Number(oldRow.edit_count||0)),_edited:(oldRow.id && idx!=='' ? true : !!oldRow._edited),last_edited_by_name:oldRow.last_edited_by_name||'',last_edited_at:oldRow.last_edited_at||'',entry_at:expenseDate+'T'+expenseTime,expense_type_id:String(typeId),expense_type:$('#expense_type option:selected').data('name')||$('#expense_type option:selected').text(),amount:amount,note:$.trim($('#expense_note').val()),image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
     if(idx==='') expenses.push(row); else expenses[parseInt(idx,10)]=row;
     renderExpenses(); expenseModal.hide();
 });
@@ -455,6 +459,7 @@ $('#btnSave').on('click',function(){
 
     travels.forEach((r,i)=>{
         if(r.id) fd.append(`travels[${i}][id]`,r.id);
+        if(r.id && r._edited) fd.append(`travels[${i}][_edited]`,'1');
         fd.append(`travels[${i}][entry_at]`,r.entry_at||'');
         fd.append(`travels[${i}][from_location]`,r.from_location||'');
         fd.append(`travels[${i}][to_location]`,r.to_location||'');
@@ -466,6 +471,7 @@ $('#btnSave').on('click',function(){
     });
     expenses.forEach((r,i)=>{
         if(r.id) fd.append(`expenses[${i}][id]`,r.id);
+        if(r.id && r._edited) fd.append(`expenses[${i}][_edited]`,'1');
         fd.append(`expenses[${i}][entry_at]`,r.entry_at||'');
         fd.append(`expenses[${i}][expense_type_id]`,r.expense_type_id||'');
         fd.append(`expenses[${i}][amount]`,r.amount||0);

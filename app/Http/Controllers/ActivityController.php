@@ -106,7 +106,9 @@ class ActivityController extends Controller
             : User::whereKey($u->id)->get(['id','name']);
         $showStaffColumn = $u->can('activity.view_all');
         $showEditAudit = false;// TA/DA edit audit is shown per row inside the activity form.
-        return view('backend.content.activity.index', compact('staffs', 'showStaffColumn', 'showEditAudit'));
+        // Only privileged/admin-level roles with activity.multiple_edit can see TA/DA edit audit on the list.
+        $showTaDaEditStatus = $u->can('activity.multiple_edit');
+        return view('backend.content.activity.index', compact('staffs', 'showStaffColumn', 'showEditAudit', 'showTaDaEditStatus'));
     }
 
     public function datatable(Request $request)
@@ -235,9 +237,9 @@ class ActivityController extends Controller
             'work_details'=>'required|string','remarks'=>'nullable|string','status'=>'nullable|in:pending,approved,rejected',
             'travels'=>'nullable|array','travels.*.id'=>'nullable|integer','travels.*.entry_at'=>'required_with:travels|date','travels.*.from_location'=>'nullable|string|max:255','travels.*.to_location'=>'nullable|string|max:255',
             'travels.*.vehicle'=>'nullable|string|max:255','travels.*.distance'=>'required_with:travels|numeric|min:0.01','travels.*.cost'=>'nullable|numeric|min:0',
-            'travels.*.existing_image_url'=>'nullable|string|max:500','travels.*.image'=>'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'travels.*.existing_image_url'=>'nullable|string|max:500','travels.*._edited'=>'nullable|boolean','travels.*.image'=>'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'expenses'=>'nullable|array','expenses.*.id'=>'nullable|integer','expenses.*.entry_at'=>'required_with:expenses|date','expenses.*.expense_type_id'=>'nullable|exists:expense_types,id','expenses.*.amount'=>'nullable|numeric|min:0','expenses.*.note'=>'nullable|string|max:500',
-            'expenses.*.existing_image_url'=>'nullable|string|max:500','expenses.*.image'=>'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'expenses.*.existing_image_url'=>'nullable|string|max:500','expenses.*._edited'=>'nullable|boolean','expenses.*.image'=>'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
     }
 
@@ -362,9 +364,15 @@ class ActivityController extends Controller
                 ];
 
                 if ($travel) {
+                    // _edited is set only when the user actually opens this existing TA row and presses Save in the TA modal.
+                    // This makes the one-time edit lock deterministic instead of depending only on Eloquent dirty comparison.
+                    $attemptedEdit = filter_var($r['_edited'] ?? false, FILTER_VALIDATE_BOOLEAN);
+                    if ($attemptedEdit && !$this->canMultipleEdit() && (int)$travel->edit_count >= 1) {
+                        throw ValidationException::withMessages(['travels'=>'This TA entry has already been edited once. You cannot edit it again.']);
+                    }
                     $travel->fill($values);
                     $changed = $travel->isDirty(['from_location','to_location','vehicle','distance','cost','entry_at','image_url']) || $newImageUploaded;
-                    if ($changed) {
+                    if ($attemptedEdit || $changed) {
                         if (!$this->canMultipleEdit() && (int)$travel->edit_count >= 1) {
                             throw ValidationException::withMessages(['travels'=>'This TA entry has already been edited once. You cannot edit it again.']);
                         }
@@ -399,9 +407,14 @@ class ActivityController extends Controller
                     'entry_at'=>\Carbon\Carbon::parse($r['entry_at'],'Asia/Dhaka'),'image_url'=>$imagePath];
 
                 if ($expense) {
+                    // Same one-time edit tracking for each individual DA row.
+                    $attemptedEdit = filter_var($r['_edited'] ?? false, FILTER_VALIDATE_BOOLEAN);
+                    if ($attemptedEdit && !$this->canMultipleEdit() && (int)$expense->edit_count >= 1) {
+                        throw ValidationException::withMessages(['expenses'=>'This DA entry has already been edited once. You cannot edit it again.']);
+                    }
                     $expense->fill($values);
                     $changed = $expense->isDirty(['expense_type_id','expense_type','amount','note','entry_at','image_url']) || $newImageUploaded;
-                    if ($changed) {
+                    if ($attemptedEdit || $changed) {
                         if (!$this->canMultipleEdit() && (int)$expense->edit_count >= 1) {
                             throw ValidationException::withMessages(['expenses'=>'This DA entry has already been edited once. You cannot edit it again.']);
                         }

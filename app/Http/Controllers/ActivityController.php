@@ -106,20 +106,13 @@ class ActivityController extends Controller
             : User::whereKey($u->id)->get(['id','name']);
         $showStaffColumn = $u->can('activity.view_all');
         $showEditAudit = false;// TA/DA edit audit is shown per row inside the activity form.
-        // Only privileged/admin-level roles with activity.multiple_edit can see TA/DA edit audit on the list.
-        $showTaDaEditStatus = $u->can('activity.multiple_edit');
-        return view('backend.content.activity.index', compact('staffs', 'showStaffColumn', 'showEditAudit', 'showTaDaEditStatus'));
+        // TA/DA edit status is intentionally not shown on the Activity List.
+        return view('backend.content.activity.index', compact('staffs', 'showStaffColumn', 'showEditAudit'));
     }
 
     public function datatable(Request $request)
     {
         $query = $this->visibleQuery()
-            ->withCount([
-                'travels as ta_total_count',
-                'travels as ta_edited_count' => fn($q) => $q->where('edit_count', '>', 0),
-                'expenses as da_total_count',
-                'expenses as da_edited_count' => fn($q) => $q->where('edit_count', '>', 0),
-            ])
             ->latest('activity_at')->latest('id');
         if (Auth::user()->can('activity.view_all') && Auth::user()->can('staff.filter') && $request->filled('created_by')) $query->where('created_by', $request->integer('created_by'));
         return DataTables::of($query)
@@ -132,20 +125,6 @@ class ActivityController extends Controller
             })
             ->editColumn('date', fn($row) => optional($row->activity_at)->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?? optional($row->date)->format('d M Y'))
             ->addColumn('status', fn($row) => '<span class="badge bg-'.($row->status==='approved'?'success':($row->status==='rejected'?'danger':'secondary')).'">'.e($row->status).'</span>')
-            ->addColumn('ta_da_edit_status', function($row) {
-                $taTotal = (int) ($row->ta_total_count ?? 0);
-                $taEdited = (int) ($row->ta_edited_count ?? 0);
-                $daTotal = (int) ($row->da_total_count ?? 0);
-                $daEdited = (int) ($row->da_edited_count ?? 0);
-
-                $taBadge = $taEdited > 0 ? 'bg-warning-subtle text-warning' : 'bg-light text-dark';
-                $daBadge = $daEdited > 0 ? 'bg-warning-subtle text-warning' : 'bg-light text-dark';
-
-                return '<div class="d-flex flex-column gap-1">'
-                    .'<span class="badge '.$taBadge.'">TA: '.$taTotal.' total · '.$taEdited.' edited</span>'
-                    .'<span class="badge '.$daBadge.'">DA: '.$daTotal.' total · '.$daEdited.' edited</span>'
-                    .'</div>';
-            })
             ->addColumn('edit_history', function($row) {
                 if (!Auth::user()->can('activity.multiple_edit')) return '';
                 $count = (int) ($row->edit_count ?? 0);
@@ -198,7 +177,7 @@ class ActivityController extends Controller
                 }
 
                 return $html.'</div>';
-            })->rawColumns(['organization_contact','status','ta_da_edit_status','edit_history','action'])->make(true);
+            })->rawColumns(['organization_contact','status','edit_history','action'])->make(true);
     }
 
     public function quickCreate()

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Activity;
+use App\Models\ActivityTravel;
+use App\Models\ActivityExpense;
 use App\Models\Department;
 use App\Models\ExpenseType;
 use App\Models\Organization;
@@ -91,7 +93,7 @@ class ActivityController extends Controller
 
     private function findVisible(int $id): Activity
     {
-        return $this->visibleQuery()->with(['travels','expenses'])->findOrFail($id);
+        return $this->visibleQuery()->with(['travels.lastEditor','expenses.lastEditor'])->findOrFail($id);
     }
 
     public function index(){
@@ -100,7 +102,7 @@ class ActivityController extends Controller
             ? User::where('status',1)->orderBy('name')->get(['id','name'])
             : User::whereKey($u->id)->get(['id','name']);
         $showStaffColumn = $u->can('activity.view_all');
-        $showEditAudit = $u->can('activity.multiple_edit');
+        $showEditAudit = false;// TA/DA edit audit is shown per row inside the activity form.
         return view('backend.content.activity.index', compact('staffs', 'showStaffColumn', 'showEditAudit'));
     }
 
@@ -136,9 +138,8 @@ class ActivityController extends Controller
 
                 $canMultipleEdit = $user->can('activity.multiple_edit');
                 $editCount = (int) ($row->edit_count ?? 0);
-                $withinEditLimit = $canMultipleEdit || $editCount < 1;
 
-                if ($user->can('activity.edit') && $canModifyLocked && $withinEditLimit) {
+                if ($user->can('activity.edit') && $canModifyLocked) {
                     $html.='<a href="'.route('activities.show',$row->id).'" class="btn btn-sm btn-primary">Edit</a>';
                 }
 
@@ -208,10 +209,10 @@ class ActivityController extends Controller
             'staff_id'=>'nullable|exists:users,id','activity_at'=>'nullable|date','organization_id'=>'nullable|exists:organizations,id','department'=>'nullable|string|max:255',
             'department_id'=>'nullable|exists:departments,id','contact_id'=>'nullable','contact_person'=>'nullable|string|max:255',
             'work_details'=>'required|string','remarks'=>'nullable|string','status'=>'nullable|in:pending,approved,rejected',
-            'travels'=>'nullable|array','travels.*.entry_at'=>'required_with:travels|date','travels.*.from_location'=>'nullable|string|max:255','travels.*.to_location'=>'nullable|string|max:255',
+            'travels'=>'nullable|array','travels.*.id'=>'nullable|integer','travels.*.entry_at'=>'required_with:travels|date','travels.*.from_location'=>'nullable|string|max:255','travels.*.to_location'=>'nullable|string|max:255',
             'travels.*.vehicle'=>'nullable|string|max:255','travels.*.distance'=>'required_with:travels|numeric|min:0.01','travels.*.cost'=>'nullable|numeric|min:0',
             'travels.*.existing_image_url'=>'nullable|string|max:500','travels.*.image'=>'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
-            'expenses'=>'nullable|array','expenses.*.entry_at'=>'required_with:expenses|date','expenses.*.expense_type_id'=>'nullable|exists:expense_types,id','expenses.*.amount'=>'nullable|numeric|min:0','expenses.*.note'=>'nullable|string|max:500',
+            'expenses'=>'nullable|array','expenses.*.id'=>'nullable|integer','expenses.*.entry_at'=>'required_with:expenses|date','expenses.*.expense_type_id'=>'nullable|exists:expense_types,id','expenses.*.amount'=>'nullable|numeric|min:0','expenses.*.note'=>'nullable|string|max:500',
             'expenses.*.existing_image_url'=>'nullable|string|max:500','expenses.*.image'=>'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
     }
@@ -241,15 +242,6 @@ class ActivityController extends Controller
         // Approval is a hard lock. Having activity.edit or activity.approve is not enough;
         // only the protected superadmin role may override an approved/rejected activity.
         $this->ensureUnlockedOrSuperAdmin($activity, 'edit');
-
-        // One successful edit maximum unless the user's role has the explicit
-        // activity.multiple_edit permission. This is enforced server-side too,
-        // so hiding the button cannot be bypassed with a direct URL/request.
-        if (!$this->canMultipleEdit() && (int) ($activity->edit_count ?? 0) >= 1) {
-            throw ValidationException::withMessages([
-                'activity' => 'This activity has already been edited once. You do not have permission to edit it again.',
-            ]);
-        }
 
         if ($this->isAdmin()) return;
 
@@ -321,43 +313,85 @@ class ActivityController extends Controller
                 $activity->branch_id = $owner->branch_id ?? $u->branch_id;
             }
 
-            if ($wasExisting) {
-                $activity->edit_count = ((int) ($activity->edit_count ?? 0)) + 1;
-                $activity->last_edited_by = $u->id;
-                $activity->last_edited_at = $now;
-            }
-
             $activity->save();
 
-            $activity->travels()->delete();
+            // Keep persisted TA/DA row IDs so each row has its own one-time edit history.
+            $existingTravels = $activity->travels()->get()->keyBy('id');
+            $submittedTravelIds = collect($travels)->pluck('id')->filter()->map(fn($id)=>(int)$id)->all();
             $keptTravelImages = [];
             foreach ($travels as $r) {
+                $travel = !empty($r['id']) ? $existingTravels->get((int)$r['id']) : null;
+                if (!empty($r['id']) && !$travel) abort(403, 'Invalid TA entry.');
+
                 $existing = $r['existing_image_url'] ?? null;
-                $imagePath = ($existing && in_array($existing, $oldTravelImages, true)) ? $existing : null;
-                if (!empty($r['image'])) {
+                $imagePath = ($existing && in_array($existing, $oldTravelImages, true)) ? $existing : ($travel?->image_url);
+                $newImageUploaded = !empty($r['image']);
+                if ($newImageUploaded) {
                     $newPath = $this->storeActivityImage($r['image'], 'ta');
                     if ($newPath) $imagePath = $newPath;
                 }
-                if ($imagePath) $keptTravelImages[] = $imagePath;
-                $activity->travels()->create([
-                    'from_location'=>$r['from_location']??null,'to_location'=>$r['to_location']??null,'vehicle'=>$r['vehicle']??null,
-                    'distance'=>(float)($r['distance']??0),'cost'=>(float)($r['cost']??0),'entry_at'=>\Carbon\Carbon::parse($r['entry_at'],'Asia/Dhaka'),'image_url'=>$imagePath,
-                ]);
-            }
 
-            $activity->expenses()->delete();
+                $values = [
+                    'from_location'=>$r['from_location']??null,'to_location'=>$r['to_location']??null,'vehicle'=>$r['vehicle']??null,
+                    'distance'=>(float)($r['distance']??0),'cost'=>(float)($r['cost']??0),'entry_at'=>
+                        \Carbon\Carbon::parse($r['entry_at'],'Asia/Dhaka'),'image_url'=>$imagePath,
+                ];
+
+                if ($travel) {
+                    $travel->fill($values);
+                    $changed = $travel->isDirty(['from_location','to_location','vehicle','distance','cost','entry_at','image_url']) || $newImageUploaded;
+                    if ($changed) {
+                        if (!$this->canMultipleEdit() && (int)$travel->edit_count >= 1) {
+                            throw ValidationException::withMessages(['travels'=>'This TA entry has already been edited once. You cannot edit it again.']);
+                        }
+                        $travel->edit_count = ((int)$travel->edit_count) + 1;
+                        $travel->last_edited_by = $u->id;
+                        $travel->last_edited_at = $now;
+                    }
+                    $travel->save();
+                } else {
+                    $travel = $activity->travels()->create($values);
+                }
+                if ($imagePath) $keptTravelImages[] = $imagePath;
+            }
+            // Existing rows omitted from the form are deletions, not edits.
+            $activity->travels()->whereNotIn('id', $submittedTravelIds ?: [0])->delete();
+
+            $existingExpenses = $activity->expenses()->get()->keyBy('id');
+            $submittedExpenseIds = collect($expenses)->pluck('id')->filter()->map(fn($id)=>(int)$id)->all();
             $keptExpenseImages = [];
             foreach ($expenses as $r) {
+                $expense = !empty($r['id']) ? $existingExpenses->get((int)$r['id']) : null;
+                if (!empty($r['id']) && !$expense) abort(403, 'Invalid DA entry.');
                 $type = !empty($r['expense_type_id']) ? ExpenseType::find($r['expense_type_id']) : null;
                 $existing = $r['existing_image_url'] ?? null;
-                $imagePath = ($existing && in_array($existing, $oldExpenseImages, true)) ? $existing : null;
-                if (!empty($r['image'])) {
+                $imagePath = ($existing && in_array($existing, $oldExpenseImages, true)) ? $existing : ($expense?->image_url);
+                $newImageUploaded = !empty($r['image']);
+                if ($newImageUploaded) {
                     $newPath = $this->storeActivityImage($r['image'], 'da');
                     if ($newPath) $imagePath = $newPath;
                 }
+                $values = ['expense_type_id'=>$type?->id,'expense_type'=>$type?->name,'amount'=>(float)($r['amount']??0),'note'=>$r['note']??null,
+                    'entry_at'=>\Carbon\Carbon::parse($r['entry_at'],'Asia/Dhaka'),'image_url'=>$imagePath];
+
+                if ($expense) {
+                    $expense->fill($values);
+                    $changed = $expense->isDirty(['expense_type_id','expense_type','amount','note','entry_at','image_url']) || $newImageUploaded;
+                    if ($changed) {
+                        if (!$this->canMultipleEdit() && (int)$expense->edit_count >= 1) {
+                            throw ValidationException::withMessages(['expenses'=>'This DA entry has already been edited once. You cannot edit it again.']);
+                        }
+                        $expense->edit_count = ((int)$expense->edit_count) + 1;
+                        $expense->last_edited_by = $u->id;
+                        $expense->last_edited_at = $now;
+                    }
+                    $expense->save();
+                } else {
+                    $expense = $activity->expenses()->create($values);
+                }
                 if ($imagePath) $keptExpenseImages[] = $imagePath;
-                $activity->expenses()->create(['expense_type_id'=>$type?->id,'expense_type'=>$type?->name,'amount'=>(float)($r['amount']??0),'note'=>$r['note']??null,'image_url'=>$imagePath]);
             }
+            $activity->expenses()->whereNotIn('id', $submittedExpenseIds ?: [0])->delete();
 
             foreach (array_diff($oldTravelImages, $keptTravelImages) as $oldImage) $this->deleteActivityImage($oldImage);
             foreach (array_diff($oldExpenseImages, $keptExpenseImages) as $oldImage) $this->deleteActivityImage($oldImage);

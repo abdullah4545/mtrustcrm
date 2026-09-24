@@ -14,8 +14,13 @@
             : collect());
     $expenseRows = $editing && $activity->expenses->count() ? $activity->expenses : collect();
     $canManageActivityEntry = $canManageActivityEntry ?? false;
+    $canMultipleTaDaEdit = auth()->user()?->can('activity.multiple_edit') ?? false;
 
     $initialTravels = $travelRows->map(fn($row) => [
+        'id' => $row?->id ?? null,
+        'edit_count' => (int)($row?->edit_count ?? 0),
+        'last_edited_by_name' => $row?->lastEditor?->name ?? '',
+        'last_edited_at' => $row?->last_edited_at ? $row->last_edited_at->timezone('Asia/Dhaka')->format('d M Y, h:i A') : '',
         'from_location' => $row?->from_location ?? '',
         'to_location' => $row?->to_location ?? '',
         'vehicle' => $row?->vehicle ?? '',
@@ -27,6 +32,10 @@
     ])->values();
 
     $initialExpenses = $expenseRows->map(fn($row) => [
+        'id' => $row?->id ?? null,
+        'edit_count' => (int)($row?->edit_count ?? 0),
+        'last_edited_by_name' => $row?->lastEditor?->name ?? '',
+        'last_edited_at' => $row?->last_edited_at ? $row->last_edited_at->timezone('Asia/Dhaka')->format('d M Y, h:i A') : '',
         'expense_type_id' => (string)($row?->expense_type_id ?? ''),
         'expense_type' => $row?->expense_type ?? '',
         'amount' => (float)($row?->amount ?? 0),
@@ -202,6 +211,7 @@ const OLD_ORG = @json($editing ? (string)$activity->organization_id : '');
 const OLD_DEPT = @json($editing ? (string)$activity->department_id : '');
 const OLD_CONTACT = @json($editing ? (string)$activity->contact_id : '');
 const CAN_MANAGE_ENTRY = @json((bool)$canManageActivityEntry);
+const CAN_MULTIPLE_TADA_EDIT = @json((bool)$canMultipleTaDaEdit);
 let travels = @json($initialTravels);
 let expenses = @json($initialExpenses);
 let vehicles = [];
@@ -241,7 +251,8 @@ function renderTravels(){
             <div class="activity-list-amount">৳${money(r.cost)}</div>
             <div class="activity-list-actions">
                 ${(r.image_preview_url || r.image_view_url) ? `<a href="${esc(r.image_preview_url || r.image_view_url)}" target="_blank" class="btn btn-outline-success icon-action" title="View Image"><i class="feather-image"></i></a>` : ''}
-                <button type="button" class="btn btn-outline-primary icon-action edit-travel" data-index="${i}" title="Edit"><i class="feather-edit-2"></i></button>
+                ${(!r.id || CAN_MULTIPLE_TADA_EDIT || Number(r.edit_count||0) < 1) ? `<button type="button" class="btn btn-outline-primary icon-action edit-travel" data-index="${i}" title="Edit"><i class="feather-edit-2"></i></button>` : `<span class="badge bg-light text-dark align-self-center">Edited</span>`}
+                ${CAN_MULTIPLE_TADA_EDIT && r.id ? `<span class="badge bg-info-subtle text-info align-self-center" title="${esc(r.last_edited_by_name||'')}${r.last_edited_at ? ' · '+esc(r.last_edited_at) : ''}">${Number(r.edit_count||0)>0 ? 'Edited '+Number(r.edit_count||0)+'x' : 'Not Edited'}</span>` : ''}
                 <button type="button" class="btn btn-outline-danger icon-action delete-travel" data-index="${i}" title="Delete"><i class="feather-trash-2"></i></button>
             </div>
         </div>`;
@@ -265,7 +276,8 @@ function renderExpenses(){
             <div class="activity-list-amount">৳${money(r.amount)}</div>
             <div class="activity-list-actions">
                 ${(r.image_preview_url || r.image_view_url) ? `<a href="${esc(r.image_preview_url || r.image_view_url)}" target="_blank" class="btn btn-outline-success icon-action" title="View Image"><i class="feather-image"></i></a>` : ''}
-                <button type="button" class="btn btn-outline-primary icon-action edit-expense" data-index="${i}" title="Edit"><i class="feather-edit-2"></i></button>
+                ${(!r.id || CAN_MULTIPLE_TADA_EDIT || Number(r.edit_count||0) < 1) ? `<button type="button" class="btn btn-outline-primary icon-action edit-expense" data-index="${i}" title="Edit"><i class="feather-edit-2"></i></button>` : `<span class="badge bg-light text-dark align-self-center">Edited</span>`}
+                ${CAN_MULTIPLE_TADA_EDIT && r.id ? `<span class="badge bg-info-subtle text-info align-self-center" title="${esc(r.last_edited_by_name||'')}${r.last_edited_at ? ' · '+esc(r.last_edited_at) : ''}">${Number(r.edit_count||0)>0 ? 'Edited '+Number(r.edit_count||0)+'x' : 'Not Edited'}</span>` : ''}
                 <button type="button" class="btn btn-outline-danger icon-action delete-expense" data-index="${i}" title="Delete"><i class="feather-trash-2"></i></button>
             </div>
         </div>`;
@@ -377,7 +389,7 @@ $('#saveTravelRow').on('click',function(){
     const idx=$('#travelEditIndex').val();
     const oldRow = idx==='' ? {} : (travels[parseInt(idx,10)] || {});
     const imageFile = document.getElementById('travel_image').files[0] || oldRow.image_file || null;
-    const row={entry_at:travelDate+'T'+travelTime,from_location:from,to_location:to,vehicle:$('#travel_vehicle').val()||'',distance:parseFloat($('#travel_distance').val())||0,cost:cost,image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
+    const row={id:oldRow.id||null,edit_count:Number(oldRow.edit_count||0),last_edited_by_name:oldRow.last_edited_by_name||'',last_edited_at:oldRow.last_edited_at||'',entry_at:travelDate+'T'+travelTime,from_location:from,to_location:to,vehicle:$('#travel_vehicle').val()||'',distance:parseFloat($('#travel_distance').val())||0,cost:cost,image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
     if(idx==='') travels.push(row); else travels[parseInt(idx,10)]=row;
     renderTravels(); travelModal.hide();
 });
@@ -398,7 +410,7 @@ $('#saveExpenseRow').on('click',function(){
     const oldRow = idx==='' ? {} : (expenses[parseInt(idx,10)] || {});
     const imageFile = document.getElementById('expense_image').files[0] || oldRow.image_file || null;
     if(!travels.length){Swal.fire('TA Required','Please add the corresponding TA/travel entry before adding DA.','warning');return;}
-    const row={entry_at:expenseDate+'T'+expenseTime,expense_type_id:String(typeId),expense_type:$('#expense_type option:selected').data('name')||$('#expense_type option:selected').text(),amount:amount,note:$.trim($('#expense_note').val()),image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
+    const row={id:oldRow.id||null,edit_count:Number(oldRow.edit_count||0),last_edited_by_name:oldRow.last_edited_by_name||'',last_edited_at:oldRow.last_edited_at||'',entry_at:expenseDate+'T'+expenseTime,expense_type_id:String(typeId),expense_type:$('#expense_type option:selected').data('name')||$('#expense_type option:selected').text(),amount:amount,note:$.trim($('#expense_note').val()),image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
     if(idx==='') expenses.push(row); else expenses[parseInt(idx,10)]=row;
     renderExpenses(); expenseModal.hide();
 });
@@ -424,6 +436,7 @@ $('#btnSave').on('click',function(){
     fd.append('remarks',$('#remarks').val());
 
     travels.forEach((r,i)=>{
+        if(r.id) fd.append(`travels[${i}][id]`,r.id);
         fd.append(`travels[${i}][entry_at]`,r.entry_at||'');
         fd.append(`travels[${i}][from_location]`,r.from_location||'');
         fd.append(`travels[${i}][to_location]`,r.to_location||'');
@@ -434,6 +447,7 @@ $('#btnSave').on('click',function(){
         if(r.image_file) fd.append(`travels[${i}][image]`,r.image_file);
     });
     expenses.forEach((r,i)=>{
+        if(r.id) fd.append(`expenses[${i}][id]`,r.id);
         fd.append(`expenses[${i}][entry_at]`,r.entry_at||'');
         fd.append(`expenses[${i}][expense_type_id]`,r.expense_type_id||'');
         fd.append(`expenses[${i}][amount]`,r.amount||0);

@@ -8,21 +8,56 @@
 <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Contact Person</th><th>Lead / Organization</th><th>Phone</th><th>Created By</th><th>Action</th><th>Follow-up Time</th><th>Message / Note</th></tr></thead><tbody>
 @forelse($followups as $lead) @php $overdue=$lead->next_followup_at&&$lead->next_followup_at->isPast()&&!$lead->next_followup_at->isToday(); @endphp
 <tr><td><strong>{{ $lead->person_name ?: '-' }}</strong></td><td>@can('lead.details.view')<a href="{{ route('leads.history',$lead->id) }}" class="fw-bold text-primary text-decoration-none">{{ $lead->lead_no }}</a>@else<strong>{{ $lead->lead_no }}</strong>@endcan<br><small>{{ $lead->organization->name ?? '-' }}</small><br><small class="text-muted">{{ Str::limit($lead->subject,55) }}</small></td><td><a href="tel:{{ $lead->person_phone }}">{{ $lead->person_phone ?: '-' }}</a></td><td>{{ $lead->assignedUser->name ?? '-' }}</td><td><span class="badge bg-light text-dark">{{ ucfirst($lead->next_action_type ?: 'follow-up') }}</span></td><td class="{{ $overdue?'text-danger fw-bold':'' }}">{{ optional($lead->next_followup_at)->format('d M Y, h:i A') }}</td><td><div class="d-flex flex-wrap gap-1"><button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#done{{ $lead->id }}">Done</button><button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#feedback{{ $lead->id }}">Feedback</button><button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#reschedule{{ $lead->id }}">Reschedule</button>@can('followup.details.view')<a class="btn btn-outline-info btn-sm" href="{{ route('followups.history',$lead->id) }}">History</a>@endcan</div></td></tr>
-<div class="modal fade" id="done{{ $lead->id }}"><div class="modal-dialog"><form class="modal-content" method="POST" action="{{ route('followups.complete',$lead->id) }}">@csrf<div class="modal-header"><h5>Complete Follow-up</h5><button class="btn-close" type="button" data-bs-dismiss="modal"></button></div><div class="modal-body"><label>Outcome</label><select name="outcome_status" class="form-control mb-3" required><option>Interested</option><option>Call Again</option><option>Meeting Fixed</option><option>No Answer</option><option>Not Interested</option><option>Other</option></select><label>Message / Note</label><textarea name="activity_text" class="form-control" rows="4"></textarea></div><div class="modal-footer"><button class="btn btn-success">Save</button></div></form></div></div>
-<div class="modal fade" id="feedback{{ $lead->id }}"><div class="modal-dialog"><form class="modal-content" method="POST" action="{{ route('followups.feedback',$lead->id) }}">@csrf<div class="modal-header"><h5>Add Feedback</h5><button class="btn-close" type="button" data-bs-dismiss="modal"></button></div><div class="modal-body"><label>Feedback / Remarks *</label><textarea name="feedback" class="form-control" rows="5" required></textarea></div><div class="modal-footer"><button class="btn btn-primary">Save Feedback</button></div></form></div></div>
-<div class="modal fade" id="reschedule{{ $lead->id }}"><div class="modal-dialog"><form class="modal-content" method="POST" action="{{ route('followups.reschedule',$lead->id) }}">@csrf<div class="modal-header"><h5>Reschedule Follow-up</h5><button class="btn-close" type="button" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="row g-2"><div class="col-6"><label>New Follow-up Date *</label><input type="date" name="followup_date" class="form-control" required></div><div class="col-6"><label>New Follow-up Time *</label><input type="time" name="followup_time" class="form-control" required></div><div class="col-12"><label>Action</label><select name="next_action_type" class="form-control"><option value="call">Call</option><option value="visit">Visit</option><option value="message">Message</option><option value="meeting">Meeting</option></select></div><div class="col-12"><label>Message / Note</label><textarea name="message" class="form-control" rows="3"></textarea></div><div class="col-12"><label>Remarks</label><textarea name="remarks" class="form-control" rows="2"></textarea></div></div></div><div class="modal-footer"><button class="btn btn-warning">Complete & Reschedule</button></div></form></div></div>
+<div class="modal fade followup-list-modal" id="done{{ $lead->id }}"><div class="modal-dialog"><form class="modal-content" method="POST" action="{{ route('followups.complete',$lead->id) }}">@csrf<div class="modal-header"><h5>Complete Follow-up</h5><button class="btn-close" type="button" data-bs-dismiss="modal"></button></div><div class="modal-body"><label>Outcome</label><select name="outcome_status" class="form-control mb-3" required><option>Interested</option><option>Call Again</option><option>Meeting Fixed</option><option>No Answer</option><option>Not Interested</option><option>Other</option></select><label>Message / Note</label><textarea name="activity_text" class="form-control" rows="4"></textarea></div><div class="modal-footer"><button class="btn btn-success">Save</button></div></form></div></div>
+<div class="modal fade followup-list-modal" id="feedback{{ $lead->id }}"><div class="modal-dialog"><form class="modal-content" method="POST" action="{{ route('followups.feedback',$lead->id) }}">@csrf<div class="modal-header"><h5>Add Feedback</h5><button class="btn-close" type="button" data-bs-dismiss="modal"></button></div><div class="modal-body"><label>Feedback / Remarks *</label><textarea name="feedback" class="form-control" rows="5" required></textarea></div><div class="modal-footer"><button class="btn btn-primary">Save Feedback</button></div></form></div></div>
+<div class="modal fade followup-list-modal" id="reschedule{{ $lead->id }}"><div class="modal-dialog"><form class="modal-content" method="POST" action="{{ route('followups.reschedule',$lead->id) }}">@csrf<div class="modal-header"><h5>Reschedule Follow-up</h5><button class="btn-close" type="button" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="row g-2"><div class="col-6"><label>New Follow-up Date *</label><input type="date" name="followup_date" class="form-control" required></div><div class="col-6"><label>New Follow-up Time *</label><input type="time" name="followup_time" class="form-control" required></div><div class="col-12"><label>Action</label><select name="next_action_type" class="form-control"><option value="call">Call</option><option value="visit">Visit</option><option value="message">Message</option><option value="meeting">Meeting</option></select></div><div class="col-12"><label>Message / Note</label><textarea name="message" class="form-control" rows="3"></textarea></div><div class="col-12"><label>Remarks</label><textarea name="remarks" class="form-control" rows="2"></textarea></div></div></div><div class="modal-footer"><button class="btn btn-warning">Complete & Reschedule</button></div></form></div></div>
 @empty<tr><td colspan="7" class="text-center py-5 text-muted">No follow-ups found.</td></tr>@endforelse</tbody></table></div>{{ $followups->links() }}</div></div></div>
 @endsection
 
 @push('styles')
 <style>
-/* Modal layer fix: backdrop must stay BEHIND the modal. */
-.modal-backdrop{z-index:1050!important;background:#0f172a!important;filter:none!important;-webkit-filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
-.modal-backdrop.show{opacity:.42!important}
-.modal{z-index:1060!important;filter:none!important;-webkit-filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
-.modal.show{opacity:1!important}
-.modal-dialog{position:relative;z-index:1061!important;margin:1.5rem auto;filter:none!important;-webkit-filter:none!important;opacity:1!important}
-.modal-content{position:relative;z-index:1062!important;background:#fff!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
-.modal-dialog{margin:1.5rem auto}.modal-content{border:0!important;border-radius:14px!important;box-shadow:0 20px 55px rgba(15,23,42,.18);overflow:hidden}.modal-header{padding:20px 24px;border-bottom:1px solid #e9edf3;background:#fff}.modal-header h5{font-weight:700;margin:0;color:#26364a}.modal-body{padding:24px;background:#fff}.modal-footer{padding:16px 24px;border-top:1px solid #e9edf3;background:#fafbfc;gap:8px}.modal-body label{display:block;font-weight:600;margin-bottom:7px;color:#344054}.modal-body .form-control,.modal-body .form-select{min-height:46px;border:1px solid #d7dee8;border-radius:8px;padding:10px 12px;background:#fff}.modal-body textarea.form-control{min-height:92px}.modal-body .form-control:focus,.modal-body .form-select:focus{border-color:#86b7fe;box-shadow:0 0 0 .2rem rgba(13,110,253,.12)}.modal-footer .btn{min-height:42px;border-radius:7px;font-weight:600;padding:9px 18px}@media(max-width:575.98px){.modal-dialog{margin:.75rem}.modal-body,.modal-header,.modal-footer{padding:16px}.modal-body .col-6{width:100%}.modal-footer .btn{width:100%}}
+/* Follow-up list modal isolation. The theme/backdrop must never cover these dialogs. */
+body > .followup-list-modal{z-index:2147483000!important;filter:none!important;-webkit-filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+body > .followup-list-modal.show{display:block!important;opacity:1!important}
+body > .followup-list-modal .modal-dialog{position:relative!important;z-index:2147483001!important;margin:1.5rem auto;opacity:1!important;filter:none!important;-webkit-filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+body > .followup-list-modal .modal-content{position:relative!important;z-index:2147483002!important;background:#fff!important;background-color:#fff!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;border:0!important;border-radius:14px!important;box-shadow:0 20px 55px rgba(15,23,42,.22)!important;overflow:hidden}
+body > .followup-list-modal .modal-header{padding:20px 24px;border-bottom:1px solid #e9edf3;background:#fff!important}
+body > .followup-list-modal .modal-header h5{font-weight:700;margin:0;color:#26364a}
+body > .followup-list-modal .modal-body{padding:24px;background:#fff!important;color:#344054!important}
+body > .followup-list-modal .modal-footer{padding:16px 24px;border-top:1px solid #e9edf3;background:#fafbfc!important;gap:8px}
+body > .followup-list-modal .modal-body label{display:block;font-weight:600;margin-bottom:7px;color:#344054}
+body > .followup-list-modal .form-control,body > .followup-list-modal .form-select{min-height:46px;border:1px solid #d7dee8;border-radius:8px;padding:10px 12px;background:#fff!important;opacity:1!important}
+body > .followup-list-modal textarea.form-control{min-height:92px}
+body > .followup-list-modal .form-control:focus,body > .followup-list-modal .form-select:focus{border-color:#86b7fe;box-shadow:0 0 0 .2rem rgba(13,110,253,.12)}
+body > .followup-list-modal .modal-footer .btn{min-height:42px;border-radius:7px;font-weight:600;padding:9px 18px}
+/* Backdrop deliberately far below the isolated follow-up modal. */
+.modal-backdrop.followup-list-backdrop,.modal-backdrop:last-of-type{z-index:2147482000!important;background:#0f172a!important;opacity:.42!important;filter:none!important;-webkit-filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+@media(max-width:575.98px){body > .followup-list-modal .modal-dialog{margin:.75rem}body > .followup-list-modal .modal-body,body > .followup-list-modal .modal-header,body > .followup-list-modal .modal-footer{padding:16px}body > .followup-list-modal .modal-body .col-6{width:100%}body > .followup-list-modal .modal-footer .btn{width:100%}}
 </style>
+@endpush
+
+@push('scripts')
+<script>
+document.addEventListener('show.bs.modal', function (e) {
+    const modal = e.target;
+    if (!modal || !modal.classList.contains('followup-list-modal')) return;
+    // Move out of table/card/theme stacking contexts before Bootstrap displays it.
+    if (modal.parentElement !== document.body) document.body.appendChild(modal);
+    modal.style.setProperty('z-index','2147483000','important');
+});
+document.addEventListener('shown.bs.modal', function (e) {
+    const modal = e.target;
+    if (!modal || !modal.classList.contains('followup-list-modal')) return;
+    modal.style.setProperty('z-index','2147483000','important');
+    const backs = document.querySelectorAll('.modal-backdrop');
+    const back = backs[backs.length - 1];
+    if (back) {
+        back.classList.add('followup-list-backdrop');
+        back.style.setProperty('z-index','2147482000','important');
+        back.style.setProperty('opacity','.42','important');
+        back.style.setProperty('backdrop-filter','none','important');
+        back.style.setProperty('-webkit-backdrop-filter','none','important');
+    }
+});
+</script>
 @endpush

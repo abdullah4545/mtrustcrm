@@ -70,6 +70,7 @@ class RbacSeeder extends Seeder
             'activity.create',
             'activity.create_for_others',
             'activity.edit',
+            'activity.multiple_edit',
             'activity.delete',
             'activity.approve',
             'activity.details.view',
@@ -179,7 +180,7 @@ class RbacSeeder extends Seeder
                 'lead.view_all_branches','lead.create','lead.edit','lead.delete','lead.activity.view','lead.activity.add',
             'lead.details.view',
             'followup.details.view',
-                'activity.view_all','activity.create','activity.create_for_others','activity.edit','activity.delete','activity.approve',
+                'activity.view_all','activity.create','activity.create_for_others','activity.edit','activity.multiple_edit','activity.delete','activity.approve',
             'activity.details.view',
                 'report.sales.view','report.leads.view','report.collections.view','report.activity.view','report.view_all',
 

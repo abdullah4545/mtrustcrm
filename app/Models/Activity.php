@@ -12,14 +12,15 @@ class Activity extends Model
     protected $fillable = [
         'date','activity_at','organization_id','organization_name','department_id','department','contact_id','contact_person',
         'details','from_location','to_location','distance','vehicle','work_details','ta','da','total','remarks',
-        'created_by','entered_by','branch_id','status','reviewed_by','reviewed_at','review_note',
+        'created_by','entered_by','branch_id','status','reviewed_by','reviewed_at','review_note','edit_count','last_edited_by','last_edited_at',
     ];
 
     protected $casts = [
-        'date'=>'date','activity_at'=>'datetime','reviewed_at'=>'datetime','distance'=>'decimal:2','ta'=>'decimal:2','da'=>'decimal:2','total'=>'decimal:2',
+        'date'=>'date','activity_at'=>'datetime','reviewed_at'=>'datetime','last_edited_at'=>'datetime','edit_count'=>'integer','distance'=>'decimal:2','ta'=>'decimal:2','da'=>'decimal:2','total'=>'decimal:2',
     ];
 
     public function reviewer(){ return $this->belongsTo(User::class, 'reviewed_by'); }
+    public function lastEditor(){ return $this->belongsTo(User::class, 'last_edited_by'); }
 
     public function creator(){ return $this->belongsTo(User::class,'created_by'); }
     public function enteredBy(){ return $this->belongsTo(User::class,'entered_by'); }

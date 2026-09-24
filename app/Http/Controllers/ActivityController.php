@@ -41,6 +41,12 @@ class ActivityController extends Controller
         return (bool) Auth::user()?->hasRole('superadmin');
     }
 
+    /** Users with this permission are not limited to one successful edit. */
+    private function canMultipleEdit(): bool
+    {
+        return (bool) Auth::user()?->can('activity.multiple_edit');
+    }
+
     private function isLocked(Activity $activity): bool
     {
         return in_array(strtolower((string) $activity->status), ['approved', 'rejected'], true);
@@ -78,7 +84,7 @@ class ActivityController extends Controller
     private function visibleQuery()
     {
         $u = Auth::user();
-        $q = Activity::query()->with(['creator:id,name']);
+        $q = Activity::query()->with(['creator:id,name','lastEditor:id,name']);
         if ($u->can('activity.view_all')) return $q;
         return $q->where('created_by',$u->id);
     }
@@ -94,7 +100,8 @@ class ActivityController extends Controller
             ? User::where('status',1)->orderBy('name')->get(['id','name'])
             : User::whereKey($u->id)->get(['id','name']);
         $showStaffColumn = $u->can('activity.view_all');
-        return view('backend.content.activity.index', compact('staffs', 'showStaffColumn'));
+        $showEditAudit = $u->can('activity.multiple_edit');
+        return view('backend.content.activity.index', compact('staffs', 'showStaffColumn', 'showEditAudit'));
     }
 
     public function datatable(Request $request)
@@ -111,6 +118,14 @@ class ActivityController extends Controller
             })
             ->editColumn('date', fn($row) => optional($row->activity_at)->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?? optional($row->date)->format('d M Y'))
             ->addColumn('status', fn($row) => '<span class="badge bg-'.($row->status==='approved'?'success':($row->status==='rejected'?'danger':'secondary')).'">'.e($row->status).'</span>')
+            ->addColumn('edit_history', function($row) {
+                if (!Auth::user()->can('activity.multiple_edit')) return '';
+                $count = (int) ($row->edit_count ?? 0);
+                if ($count < 1) return '<span class="badge bg-light text-dark">Not Edited</span>';
+                $when = $row->last_edited_at ? $row->last_edited_at->timezone('Asia/Dhaka')->format('d M Y, h:i A') : '-';
+                $by = e($row->lastEditor?->name ?? '-');
+                return '<span class="badge bg-info-subtle text-info">Edited '.$count.'x</span><div class="small text-muted mt-1">'.$by.'<br>'.$when.'</div>';
+            })
             ->addColumn('action', function($row){
                 $user = Auth::user();
                 $locked = $this->isLocked($row);
@@ -119,8 +134,21 @@ class ActivityController extends Controller
 
                 $html='<div class="d-flex gap-1 flex-wrap">';
 
-                if ($user->can('activity.edit') && $canModifyLocked) {
+                $canMultipleEdit = $user->can('activity.multiple_edit');
+                $editCount = (int) ($row->edit_count ?? 0);
+                $withinEditLimit = $canMultipleEdit || $editCount < 1;
+
+                if ($user->can('activity.edit') && $canModifyLocked && $withinEditLimit) {
                     $html.='<a href="'.route('activities.show',$row->id).'" class="btn btn-sm btn-primary">Edit</a>';
+                }
+
+                if ($canMultipleEdit) {
+                    if ($editCount > 0) {
+                        $lastEdited = $row->last_edited_at ? $row->last_edited_at->timezone('Asia/Dhaka')->format('d M Y, h:i A') : '-';
+                        $html.='<span class="badge bg-info-subtle text-info align-self-center" title="Last edited: '.e($lastEdited).'">Edited '.$editCount.'x</span>';
+                    } else {
+                        $html.='<span class="badge bg-light text-dark align-self-center">Not Edited</span>';
+                    }
                 }
 
                 // Pending activities can be reviewed by normal approvers. Once reviewed,
@@ -143,7 +171,7 @@ class ActivityController extends Controller
                 }
 
                 return $html.'</div>';
-            })->rawColumns(['organization_contact','status','action'])->make(true);
+            })->rawColumns(['organization_contact','status','edit_history','action'])->make(true);
     }
 
     public function quickCreate()
@@ -214,6 +242,15 @@ class ActivityController extends Controller
         // only the protected superadmin role may override an approved/rejected activity.
         $this->ensureUnlockedOrSuperAdmin($activity, 'edit');
 
+        // One successful edit maximum unless the user's role has the explicit
+        // activity.multiple_edit permission. This is enforced server-side too,
+        // so hiding the button cannot be bypassed with a direct URL/request.
+        if (!$this->canMultipleEdit() && (int) ($activity->edit_count ?? 0) >= 1) {
+            throw ValidationException::withMessages([
+                'activity' => 'This activity has already been edited once. You do not have permission to edit it again.',
+            ]);
+        }
+
         if ($this->isAdmin()) return;
 
         $activityDate = ($activity->activity_at ?? $activity->created_at ?? $activity->date)?->timezone('Asia/Dhaka')->toDateString();
@@ -255,8 +292,9 @@ class ActivityController extends Controller
 
         $oldTravelImages = $activity->exists ? $activity->travels->pluck('image_url')->filter()->values()->all() : [];
         $oldExpenseImages = $activity->exists ? $activity->expenses->pluck('image_url')->filter()->values()->all() : [];
+        $wasExisting = $activity->exists;
 
-        return DB::transaction(function () use ($activity,$data,$org,$owner,$u,$travels,$expenses,$ta,$da,$now,$activityAt,$oldTravelImages,$oldExpenseImages) {
+        return DB::transaction(function () use ($activity,$data,$org,$owner,$u,$travels,$expenses,$ta,$da,$now,$activityAt,$oldTravelImages,$oldExpenseImages,$wasExisting) {
             $activity->fill([
                 'organization_id'=>$org?->id,'organization_name'=>$org?->name,'department_id'=>$data['department_id']??null,'department'=>$data['department'],
                 'contact_id'=>null,'contact_person'=>$data['contact_person']??null,'work_details'=>$data['work_details']??null,
@@ -282,6 +320,13 @@ class ActivityController extends Controller
                 $activity->created_by = $owner->id;
                 $activity->branch_id = $owner->branch_id ?? $u->branch_id;
             }
+
+            if ($wasExisting) {
+                $activity->edit_count = ((int) ($activity->edit_count ?? 0)) + 1;
+                $activity->last_edited_by = $u->id;
+                $activity->last_edited_at = $now;
+            }
+
             $activity->save();
 
             $activity->travels()->delete();

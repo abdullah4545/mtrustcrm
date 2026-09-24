@@ -59,6 +59,7 @@
                         <th>DA</th>
                         <th>Total</th>
                         <th>Status</th>
+                        @if($showEditAudit)<th>Edit History</th>@endif
                         <th width="150">Action</th>
                     </tr>
                     </thead>
@@ -224,6 +225,9 @@
                 {data:'da'},
                 {data:'total'},
                 {data:'status'},
+                @if($showEditAudit)
+                {data:'edit_history', orderable:false, searchable:false},
+                @endif
                 {data:'action', orderable:false, searchable:false},
             ]
         });

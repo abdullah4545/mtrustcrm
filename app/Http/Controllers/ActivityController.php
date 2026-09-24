@@ -365,8 +365,14 @@ class ActivityController extends Controller
                 }
                 if ($imagePath) $keptTravelImages[] = $imagePath;
             }
-            // Existing rows omitted from the form are deletions, not edits.
-            $activity->travels()->whereNotIn('id', $submittedTravelIds ?: [0])->delete();
+            // Delete ONLY previously persisted TA rows omitted from the form.
+            // Never use whereNotIn against the whole relation here: newly-created TA rows
+            // do not exist in $submittedTravelIds yet and would be deleted immediately,
+            // which caused multiple TA rows to collapse back into the legacy aggregate row.
+            $travelIdsToDelete = $existingTravels->keys()->map(fn($id)=>(int)$id)->diff($submittedTravelIds)->values()->all();
+            if (!empty($travelIdsToDelete)) {
+                $activity->travels()->whereIn('id', $travelIdsToDelete)->delete();
+            }
 
             $existingExpenses = $activity->expenses()->get()->keyBy('id');
             $submittedExpenseIds = collect($expenses)->pluck('id')->filter()->map(fn($id)=>(int)$id)->all();
@@ -407,7 +413,12 @@ class ActivityController extends Controller
                 }
                 if ($imagePath) $keptExpenseImages[] = $imagePath;
             }
-            $activity->expenses()->whereNotIn('id', $submittedExpenseIds ?: [0])->delete();
+            // Same rule for DA: delete only old persisted rows that the user removed.
+            // Newly-created DA rows must survive this save so every DA keeps its own ID/edit history.
+            $expenseIdsToDelete = $existingExpenses->keys()->map(fn($id)=>(int)$id)->diff($submittedExpenseIds)->values()->all();
+            if (!empty($expenseIdsToDelete)) {
+                $activity->expenses()->whereIn('id', $expenseIdsToDelete)->delete();
+            }
 
             foreach (array_diff($oldTravelImages, $keptTravelImages) as $oldImage) $this->deleteActivityImage($oldImage);
             foreach (array_diff($oldExpenseImages, $keptExpenseImages) as $oldImage) $this->deleteActivityImage($oldImage);

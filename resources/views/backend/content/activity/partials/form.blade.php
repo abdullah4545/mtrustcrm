@@ -486,7 +486,15 @@ $('#btnSave').on('click',function(){
         url:ACTIVITY_URL,type:'POST',data:fd,processData:false,contentType:false,
         success:r=>{
             btn.prop('disabled',false).text(oldText);
-            Swal.fire('Success',r.message,'success').then(()=>{ if(!@json($editing)) window.location.href=@json(route('activities.index')); });
+            Swal.fire('Success',r.message,'success').then(()=>{
+                // Reload after an edit so newly-added TA/DA rows receive their persisted DB IDs
+                // and each row's one-time edit lock is immediately based on server state.
+                if(@json($editing)) {
+                    window.location.reload();
+                } else {
+                    window.location.href=@json(route('activities.index'));
+                }
+            });
         },
         error:x=>{
             btn.prop('disabled',false).text(oldText);

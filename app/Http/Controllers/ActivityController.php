@@ -180,10 +180,10 @@ class ActivityController extends Controller
             'staff_id'=>'nullable|exists:users,id','activity_at'=>'nullable|date','organization_id'=>'nullable|exists:organizations,id','department'=>'nullable|string|max:255',
             'department_id'=>'nullable|exists:departments,id','contact_id'=>'nullable','contact_person'=>'nullable|string|max:255',
             'work_details'=>'required|string','remarks'=>'nullable|string','status'=>'nullable|in:pending,approved,rejected',
-            'travels'=>'nullable|array','travels.*.from_location'=>'nullable|string|max:255','travels.*.to_location'=>'nullable|string|max:255',
+            'travels'=>'nullable|array','travels.*.entry_at'=>'required_with:travels|date','travels.*.from_location'=>'nullable|string|max:255','travels.*.to_location'=>'nullable|string|max:255',
             'travels.*.vehicle'=>'nullable|string|max:255','travels.*.distance'=>'required_with:travels|numeric|min:0.01','travels.*.cost'=>'nullable|numeric|min:0',
             'travels.*.existing_image_url'=>'nullable|string|max:500','travels.*.image'=>'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
-            'expenses'=>'nullable|array','expenses.*.expense_type_id'=>'nullable|exists:expense_types,id','expenses.*.amount'=>'nullable|numeric|min:0','expenses.*.note'=>'nullable|string|max:500',
+            'expenses'=>'nullable|array','expenses.*.entry_at'=>'required_with:expenses|date','expenses.*.expense_type_id'=>'nullable|exists:expense_types,id','expenses.*.amount'=>'nullable|numeric|min:0','expenses.*.note'=>'nullable|string|max:500',
             'expenses.*.existing_image_url'=>'nullable|string|max:500','expenses.*.image'=>'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
     }
@@ -296,7 +296,7 @@ class ActivityController extends Controller
                 if ($imagePath) $keptTravelImages[] = $imagePath;
                 $activity->travels()->create([
                     'from_location'=>$r['from_location']??null,'to_location'=>$r['to_location']??null,'vehicle'=>$r['vehicle']??null,
-                    'distance'=>(float)($r['distance']??0),'cost'=>(float)($r['cost']??0),'image_url'=>$imagePath,
+                    'distance'=>(float)($r['distance']??0),'cost'=>(float)($r['cost']??0),'entry_at'=>\Carbon\Carbon::parse($r['entry_at'],'Asia/Dhaka'),'image_url'=>$imagePath,
                 ]);
             }
 

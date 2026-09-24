@@ -21,6 +21,7 @@
         'vehicle' => $row?->vehicle ?? '',
         'distance' => (float)($row?->distance ?? 0),
         'cost' => (float)($row?->cost ?? 0),
+        'entry_at' => optional($row?->entry_at ?? $activityTime)->timezone('Asia/Dhaka')->format('Y-m-d\TH:i'),
         'image_url' => $row?->image_url ?? '',
         'image_view_url' => $row?->image_url ? asset($row->image_url) : '',
     ])->values();
@@ -30,6 +31,7 @@
         'expense_type' => $row?->expense_type ?? '',
         'amount' => (float)($row?->amount ?? 0),
         'note' => $row?->note ?? '',
+        'entry_at' => optional($row?->entry_at ?? $activityTime)->timezone('Asia/Dhaka')->format('Y-m-d\TH:i'),
         'image_url' => $row?->image_url ?? '',
         'image_view_url' => $row?->image_url ? asset($row->image_url) : '',
     ])->values();
@@ -152,6 +154,8 @@
             <div class="modal-body">
                 <input type="hidden" id="travelEditIndex" value="">
                 <div class="row g-3">
+                    <div class="col-6"><label>TA Date *</label><input type="date" id="travel_date" class="form-control" required></div>
+                    <div class="col-6"><label>TA Time *</label><input type="time" id="travel_time" class="form-control" required></div>
                     <div class="col-12"><label>From *</label><input id="travel_from" class="form-control" placeholder="From location"></div>
                     <div class="col-12"><label>To *</label><input id="travel_to" class="form-control" placeholder="To location"></div>
                     <div class="col-12 col-sm-6"><label>Vehicle</label><select id="travel_vehicle" class="form-control"><option value="">Select Vehicle</option></select></div>
@@ -172,6 +176,8 @@
             <div class="modal-body">
                 <input type="hidden" id="expenseEditIndex" value="">
                 <div class="row g-3">
+                    <div class="col-6"><label>DA Date *</label><input type="date" id="expense_date" class="form-control" required></div>
+                    <div class="col-6"><label>DA Time *</label><input type="time" id="expense_time" class="form-control" required></div>
                     <div class="col-12"><label>Expense Type *</label><select id="expense_type" class="form-control"><option value="">Select Type</option>@foreach($expenseTypes as $type)<option value="{{ $type->id }}" data-name="{{ $type->name }}">{{ $type->name }}</option>@endforeach</select></div>
                     <div class="col-12"><label>Amount *</label><input type="number" min="0" step="0.01" id="expense_amount" class="form-control" value="0"></div>
                     <div class="col-12"><label>Note</label><input id="expense_note" class="form-control" placeholder="Optional note"></div>
@@ -203,6 +209,9 @@ let travelModal, expenseModal;
 
 function esc(v){ return $('<div>').text(v ?? '').html(); }
 function money(v){ return (parseFloat(v)||0).toFixed(2); }
+function nowParts(){ const d=new Date(); const pad=n=>String(n).padStart(2,'0'); return {date:d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()),time:pad(d.getHours())+':'+pad(d.getMinutes())}; }
+function entryParts(v){ if(!v) return nowParts(); const a=String(v).replace(' ','T').split('T'); return {date:a[0]||nowParts().date,time:(a[1]||nowParts().time).slice(0,5)}; }
+function displayEntry(v){ if(!v) return ''; const p=entryParts(v); const d=new Date(p.date+'T'+p.time); return isNaN(d)?'':d.toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
 
 function recalc(){
     const ta = travels.reduce((s,r)=>s+(parseFloat(r.cost)||0),0);
@@ -226,6 +235,7 @@ function renderTravels(){
                 <div class="activity-list-meta">
                     <span><i class="feather-truck me-1"></i>${esc(r.vehicle || 'No vehicle')}</span>
                     <span><i class="feather-map-pin me-1"></i>${money(r.distance)} KM</span>
+                    <span><i class="feather-calendar me-1"></i>${esc(displayEntry(r.entry_at))}</span>
                 </div>
             </div>
             <div class="activity-list-amount">৳${money(r.cost)}</div>
@@ -250,7 +260,7 @@ function renderExpenses(){
         html += `<div class="activity-list-item">
             <div class="activity-list-main">
                 <div class="activity-list-title">${esc(r.expense_type || 'Other Cost')}</div>
-                <div class="activity-list-meta">${r.note ? `<span><i class="feather-file-text me-1"></i>${esc(r.note)}</span>` : '<span>No note</span>'}</div>
+                <div class="activity-list-meta"><span><i class="feather-calendar me-1"></i>${esc(displayEntry(r.entry_at))}</span>${r.note ? `<span><i class="feather-file-text me-1"></i>${esc(r.note)}</span>` : '<span>No note</span>'}</div>
             </div>
             <div class="activity-list-amount">৳${money(r.amount)}</div>
             <div class="activity-list-actions">
@@ -271,23 +281,24 @@ function fillVehicleOptions(selected=''){
 
 function resetTravelModal(){
     $('#travelEditIndex').val(''); $('#travelModalTitle').text('Add Travel');
-    $('#travel_from,#travel_to').val(''); $('#travel_distance,#travel_cost').val(0); $('#travel_image').val(''); $('#travel_image_hint').text('JPG, PNG or WEBP - max 5 MB.'); fillVehicleOptions('');
+    $('#travel_from,#travel_to').val(''); const np=nowParts(); $('#travel_date').val(np.date); $('#travel_time').val(np.time); $('#travel_distance,#travel_cost').val(0); $('#travel_image').val(''); $('#travel_image_hint').text('JPG, PNG or WEBP - max 5 MB.'); fillVehicleOptions('');
 }
 function openTravelEdit(index){
     const r=travels[index]; if(!r) return;
     $('#travelEditIndex').val(index); $('#travelModalTitle').text('Edit Travel');
-    $('#travel_from').val(r.from_location); $('#travel_to').val(r.to_location); fillVehicleOptions(r.vehicle); $('#travel_distance').val(r.distance); $('#travel_cost').val(r.cost); $('#travel_image').val('');
+    const ep=entryParts(r.entry_at); $('#travel_date').val(ep.date); $('#travel_time').val(ep.time); $('#travel_from').val(r.from_location); $('#travel_to').val(r.to_location); fillVehicleOptions(r.vehicle); $('#travel_distance').val(r.distance); $('#travel_cost').val(r.cost); $('#travel_image').val('');
     $('#travel_image_hint').text((r.image_file?.name || (r.image_url ? 'Current image attached. Choose a file only to replace it.' : 'JPG, PNG or WEBP - max 5 MB.')));
     travelModal.show();
 }
 
 function resetExpenseModal(){
     $('#expenseEditIndex').val(''); $('#expenseModalTitle').text('Add Cost');
-    $('#expense_type').val(''); $('#expense_amount').val(0); $('#expense_note').val(''); $('#expense_image').val(''); $('#expense_image_hint').text('JPG, PNG or WEBP - max 5 MB.');
+    const np=nowParts(); $('#expense_date').val(np.date); $('#expense_time').val(np.time); $('#expense_type').val(''); $('#expense_amount').val(0); $('#expense_note').val(''); $('#expense_image').val(''); $('#expense_image_hint').text('JPG, PNG or WEBP - max 5 MB.');
 }
 function openExpenseEdit(index){
     const r=expenses[index]; if(!r) return;
     $('#expenseEditIndex').val(index); $('#expenseModalTitle').text('Edit Cost');
+    const ep=entryParts(r.entry_at); $('#expense_date').val(ep.date); $('#expense_time').val(ep.time);
     const expenseTypeId=String(r.expense_type_id||'');
     $('#expense_type').val(expenseTypeId).trigger('change.select2');
     // Fallback for old DA rows where only the expense type name was saved.
@@ -359,12 +370,14 @@ $('#department').on('change',function(){
 $('#addTravel').on('click',function(){ resetTravelModal(); travelModal.show(); });
 $('#saveTravelRow').on('click',function(){
     const from=$.trim($('#travel_from').val()), to=$.trim($('#travel_to').val()), cost=parseFloat($('#travel_cost').val())||0;
+    const travelDate=$('#travel_date').val(), travelTime=$('#travel_time').val();
+    if(!travelDate || !travelTime){ Swal.fire('Required','TA date and time are required.','warning'); return; }
     if(!from || !to){ Swal.fire('Required','From and To location are required.','warning'); return; }
     if(cost < 0){ Swal.fire('Invalid','Travel cost cannot be negative.','warning'); return; }
     const idx=$('#travelEditIndex').val();
     const oldRow = idx==='' ? {} : (travels[parseInt(idx,10)] || {});
     const imageFile = document.getElementById('travel_image').files[0] || oldRow.image_file || null;
-    const row={from_location:from,to_location:to,vehicle:$('#travel_vehicle').val()||'',distance:parseFloat($('#travel_distance').val())||0,cost:cost,image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
+    const row={entry_at:travelDate+'T'+travelTime,from_location:from,to_location:to,vehicle:$('#travel_vehicle').val()||'',distance:parseFloat($('#travel_distance').val())||0,cost:cost,image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
     if(idx==='') travels.push(row); else travels[parseInt(idx,10)]=row;
     renderTravels(); travelModal.hide();
 });
@@ -377,13 +390,15 @@ $(document).on('click','.delete-travel',function(){
 $('#addExpense').on('click',function(){ resetExpenseModal(); expenseModal.show(); });
 $('#saveExpenseRow').on('click',function(){
     const typeId=$('#expense_type').val(), amount=parseFloat($('#expense_amount').val())||0;
+    const expenseDate=$('#expense_date').val(), expenseTime=$('#expense_time').val();
+    if(!expenseDate || !expenseTime){ Swal.fire('Required','DA date and time are required.','warning'); return; }
     if(!typeId){ Swal.fire('Required','Please select an expense type.','warning'); return; }
     if(amount < 0){ Swal.fire('Invalid','Amount cannot be negative.','warning'); return; }
     const idx=$('#expenseEditIndex').val();
     const oldRow = idx==='' ? {} : (expenses[parseInt(idx,10)] || {});
     const imageFile = document.getElementById('expense_image').files[0] || oldRow.image_file || null;
     if(!travels.length){Swal.fire('TA Required','Please add the corresponding TA/travel entry before adding DA.','warning');return;}
-    const row={expense_type_id:String(typeId),expense_type:$('#expense_type option:selected').data('name')||$('#expense_type option:selected').text(),amount:amount,note:$.trim($('#expense_note').val()),image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
+    const row={entry_at:expenseDate+'T'+expenseTime,expense_type_id:String(typeId),expense_type:$('#expense_type option:selected').data('name')||$('#expense_type option:selected').text(),amount:amount,note:$.trim($('#expense_note').val()),image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
     if(idx==='') expenses.push(row); else expenses[parseInt(idx,10)]=row;
     renderExpenses(); expenseModal.hide();
 });
@@ -409,6 +424,7 @@ $('#btnSave').on('click',function(){
     fd.append('remarks',$('#remarks').val());
 
     travels.forEach((r,i)=>{
+        fd.append(`travels[${i}][entry_at]`,r.entry_at||'');
         fd.append(`travels[${i}][from_location]`,r.from_location||'');
         fd.append(`travels[${i}][to_location]`,r.to_location||'');
         fd.append(`travels[${i}][vehicle]`,r.vehicle||'');
@@ -418,6 +434,7 @@ $('#btnSave').on('click',function(){
         if(r.image_file) fd.append(`travels[${i}][image]`,r.image_file);
     });
     expenses.forEach((r,i)=>{
+        fd.append(`expenses[${i}][entry_at]`,r.entry_at||'');
         fd.append(`expenses[${i}][expense_type_id]`,r.expense_type_id||'');
         fd.append(`expenses[${i}][amount]`,r.amount||0);
         fd.append(`expenses[${i}][note]`,r.note||'');

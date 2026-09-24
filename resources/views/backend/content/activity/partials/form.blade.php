@@ -18,9 +18,9 @@
 
     $initialTravels = $travelRows->map(fn($row) => [
         'id' => $row?->id ?? null,
-        'edit_count' => (int)($row?->edit_count ?? 0),
-        'last_edited_by_name' => $row?->lastEditor?->name ?? '',
-        'last_edited_at' => $row?->last_edited_at ? $row->last_edited_at->timezone('Asia/Dhaka')->format('d M Y, h:i A') : '',
+        'edit_count' => (int) data_get($row, 'edit_count', 0),
+        'last_edited_by_name' => (string) data_get($row, 'lastEditor.name', ''),
+        'last_edited_at' => data_get($row, 'last_edited_at') ? \Illuminate\Support\Carbon::parse(data_get($row, 'last_edited_at'))->timezone('Asia/Dhaka')->format('d M Y, h:i A') : '',
         'from_location' => $row?->from_location ?? '',
         'to_location' => $row?->to_location ?? '',
         'vehicle' => $row?->vehicle ?? '',
@@ -33,9 +33,9 @@
 
     $initialExpenses = $expenseRows->map(fn($row) => [
         'id' => $row?->id ?? null,
-        'edit_count' => (int)($row?->edit_count ?? 0),
-        'last_edited_by_name' => $row?->lastEditor?->name ?? '',
-        'last_edited_at' => $row?->last_edited_at ? $row->last_edited_at->timezone('Asia/Dhaka')->format('d M Y, h:i A') : '',
+        'edit_count' => (int) data_get($row, 'edit_count', 0),
+        'last_edited_by_name' => (string) data_get($row, 'lastEditor.name', ''),
+        'last_edited_at' => data_get($row, 'last_edited_at') ? \Illuminate\Support\Carbon::parse(data_get($row, 'last_edited_at'))->timezone('Asia/Dhaka')->format('d M Y, h:i A') : '',
         'expense_type_id' => (string)($row?->expense_type_id ?? ''),
         'expense_type' => $row?->expense_type ?? '',
         'amount' => (float)($row?->amount ?? 0),

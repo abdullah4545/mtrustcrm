@@ -14,7 +14,7 @@
             : collect());
     $expenseRows = $editing && $activity->expenses->count() ? $activity->expenses : collect();
     $canManageActivityEntry = $canManageActivityEntry ?? false;
-    $canMultipleTaDaEdit = auth()->user()?->can('activity.multiple_edit') ?? false;
+    $canMultipleTaDaEdit = auth()->user()?->hasPermissionTo('activity.multiple_edit') ?? false;
 
     $initialTravels = $travelRows->map(function ($row) use ($activityTime) {
         $entryAt = data_get($row, 'entry_at') ?: $activityTime;

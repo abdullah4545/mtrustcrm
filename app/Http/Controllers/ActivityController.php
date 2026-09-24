@@ -49,7 +49,7 @@ class ActivityController extends Controller
     /** Users with this permission are not limited to one successful edit. */
     private function canMultipleEdit(): bool
     {
-        return (bool) Auth::user()?->can('activity.multiple_edit');
+        return (bool) Auth::user()?->hasPermissionTo('activity.multiple_edit');
     }
 
     private function isLocked(Activity $activity): bool
@@ -126,7 +126,7 @@ class ActivityController extends Controller
             ->editColumn('date', fn($row) => optional($row->activity_at)->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?? optional($row->date)->format('d M Y'))
             ->addColumn('status', fn($row) => '<span class="badge bg-'.($row->status==='approved'?'success':($row->status==='rejected'?'danger':'secondary')).'">'.e($row->status).'</span>')
             ->addColumn('edit_history', function($row) {
-                if (!Auth::user()->can('activity.multiple_edit')) return '';
+                if (!Auth::user()->hasPermissionTo('activity.multiple_edit')) return '';
                 $count = (int) ($row->edit_count ?? 0);
                 if ($count < 1) return '<span class="badge bg-light text-dark">Not Edited</span>';
                 $when = $row->last_edited_at ? $row->last_edited_at->timezone('Asia/Dhaka')->format('d M Y, h:i A') : '-';
@@ -141,7 +141,7 @@ class ActivityController extends Controller
 
                 $html='<div class="d-flex gap-1 flex-wrap">';
 
-                $canMultipleEdit = $user->can('activity.multiple_edit');
+                $canMultipleEdit = $user->hasPermissionTo('activity.multiple_edit');
                 $editCount = (int) ($row->edit_count ?? 0);
 
                 if ($user->can('activity.edit') && $canModifyLocked) {

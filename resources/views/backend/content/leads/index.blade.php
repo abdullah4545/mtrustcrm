@@ -709,7 +709,8 @@ function loadActivities(leadId){
         let html = '';
         rows.forEach(r=>{
             const type = (r.activity_type || 'note').toUpperCase();
-            const next = r.next_followup_at ? ` | Next: <b>${r.next_followup_at}</b> ${r.next_action_type ? `<span class="badge bg-secondary ms-1">${(r.next_action_type||'').toUpperCase()}</span>`:''}` : '';
+            const nextDisplay = r.next_followup_at ? new Date(String(r.next_followup_at).replace(' ','T')).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true}) : '';
+            const next = r.next_followup_at ? ` | Next: <b>${nextDisplay}</b> ${r.next_action_type ? `<span class="badge bg-secondary ms-1">${(r.next_action_type||'').toUpperCase()}</span>`:''}` : '';
             html += `
                 <div class="mb-3 pb-2 border-bottom">
                     <div class="d-flex justify-content-between">

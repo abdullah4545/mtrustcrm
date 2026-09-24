@@ -211,7 +211,7 @@ function esc(v){ return $('<div>').text(v ?? '').html(); }
 function money(v){ return (parseFloat(v)||0).toFixed(2); }
 function nowParts(){ const d=new Date(); const pad=n=>String(n).padStart(2,'0'); return {date:d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()),time:pad(d.getHours())+':'+pad(d.getMinutes())}; }
 function entryParts(v){ if(!v) return nowParts(); const a=String(v).replace(' ','T').split('T'); return {date:a[0]||nowParts().date,time:(a[1]||nowParts().time).slice(0,5)}; }
-function displayEntry(v){ if(!v) return ''; const p=entryParts(v); const d=new Date(p.date+'T'+p.time); return isNaN(d)?'':d.toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+function displayEntry(v){ if(!v) return ''; const p=entryParts(v); const d=new Date(p.date+'T'+p.time); return isNaN(d)?'':d.toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true}); }
 
 function recalc(){
     const ta = travels.reduce((s,r)=>s+(parseFloat(r.cost)||0),0);

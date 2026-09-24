@@ -216,12 +216,12 @@
                 <td class="label">Company Name</td>
                 <td>{{ $org->name ?? '-' }}</td>
                 <td class="label">Category</td>
-                <td>{{ $org->category->name ?? '-' }}</td>
+                <td>{{ $org->category?->name ?? '-' }}</td>
             </tr>
 
             <tr>
                 <td class="label">Type</td>
-                <td>{{ $org->type->name ?? '-' }}</td>
+                <td>{{ $org->type?->name ?? '-' }}</td>
                 <td class="label">Status</td>
                 <td>{{ ucfirst($org->status) }}</td>
             </tr>
@@ -253,16 +253,16 @@
         <table class="info-table">
             <tr>
                 <td class="label">Division</td>
-                <td>{{ $org->division->name ?? '-' }}</td>
+                <td>{{ $org->division?->name ?? '-' }}</td>
                 <td class="label">District</td>
-                <td>{{ $org->district->name ?? '-' }}</td>
+                <td>{{ $org->district?->name ?? '-' }}</td>
             </tr>
 
             <tr>
                 <td class="label">Upazila</td>
-                <td>{{ $org->upazila->name ?? '-' }}</td>
+                <td>{{ $org->upazila?->name ?? '-' }}</td>
                 <td class="label">Union</td>
-                <td>{{ $org->union->name ?? '-' }}</td>
+                <td>{{ $org->union?->name ?? '-' }}</td>
             </tr>
 
             <tr>
@@ -320,8 +320,8 @@
                             @endif
                         </td>
 
-                        <td>{{ $contact->department->title ?? '-' }}</td>
-                        <td>{{ $contact->designation->title ?? '-' }}</td>
+                        <td>{{ $contact->department?->title ?? '-' }}</td>
+                        <td>{{ $contact->designation?->title ?? '-' }}</td>
 
                         <td>
                             @php($contactPhones = $contact->phone_numbers ?: array_values(array_filter([$contact->phone,$contact->phone_two])))

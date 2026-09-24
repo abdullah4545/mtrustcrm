@@ -77,8 +77,8 @@
                             <div class="col-md-6 text-end">
                                 @if($sale->statusStage)
                                     <span class="badge bg-light text-dark" style="border:1px solid #eee;">
-                                        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{{ $sale->statusStage->color }};margin-right:6px;"></span>
-                                        {{ $sale->statusStage->name }}
+                                        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{{ $sale->statusStage?->color }};margin-right:6px;"></span>
+                                        {{ $sale->statusStage?->name }}
                                     </span>
                                 @endif
                             </div>

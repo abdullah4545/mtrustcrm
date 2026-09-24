@@ -52,8 +52,8 @@
                             <div>
                                 @if($q->statusStage)
                                     <span class="badge bg-light text-dark" style="border:1px solid #eee;">
-                                        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{{ $q->statusStage->color }};margin-right:6px;"></span>
-                                        {{ $q->statusStage->name }}
+                                        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{{ $q->statusStage?->color }};margin-right:6px;"></span>
+                                        {{ $q->statusStage?->name }}
                                     </span>
                                 @endif
                             </div>

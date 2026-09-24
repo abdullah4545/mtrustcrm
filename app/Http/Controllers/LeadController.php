@@ -211,7 +211,7 @@ class LeadController extends Controller
             ->addIndexColumn()
             ->editColumn('lead_no', function($row){
                 if (!Auth::user()->can('lead.details.view')) return e($row->lead_no);
-                return '<a class=\"fw-semibold text-primary text-decoration-none\" href=\"'.route('leads.history',$row->id).'\">'.e($row->lead_no).'</a>';
+                return '<a class="fw-semibold text-primary text-decoration-none" href="'.route('leads.history',$row->id).'">'.e($row->lead_no).'</a>';
             })
             ->addColumn('staff_name', fn($row) => e($row->creator?->name ?? '-'))
             ->addColumn('org_name', fn($row) => $row->organization ? e($row->organization->name) : '-')

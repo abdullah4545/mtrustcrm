@@ -39,6 +39,8 @@ class LeadController extends Controller
         $this->middleware('permission:lead.delete')
             ->only(['destroy']);
  
+        $this->middleware('permission:lead.details.view')->only(['show']);
+
         $this->middleware('permission:lead.activity.view')
             ->only(['activities']);
 

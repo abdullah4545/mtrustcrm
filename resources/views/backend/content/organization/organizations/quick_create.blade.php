@@ -42,8 +42,8 @@
     <div class="row g-2">
 
         <div class="col-md-4">
-            <label>Category</label>
-            <select name="organization_category_id" class="form-control">
+            <label>Category Type <span class="text-danger">*</span></label>
+            <select name="organization_category_id" class="form-control" required>
                 <option value="">Select Category</option>
                 @foreach($categories as $c)
                     <option value="{{ $c->id }}">{{ $c->name }}</option>
@@ -80,8 +80,8 @@
         </div>
 
         <div class="col-md-3">
-            <label>Division</label>
-            <select name="division_id" id="division_id" class="form-control">
+            <label>Division <span class="text-danger">*</span></label>
+            <select name="division_id" id="division_id" class="form-control" required>
                 <option value="">Select Division</option>
                 @foreach($divisions as $d)
                     <option value="{{ $d->id }}">{{ $d->name }}</option>
@@ -90,8 +90,8 @@
         </div>
 
         <div class="col-md-3">
-            <label>District</label>
-            <select name="district_id" id="district_id" class="form-control">
+            <label>District <span class="text-danger">*</span></label>
+            <select name="district_id" id="district_id" class="form-control" required>
                 <option value="">Select District</option>
             </select>
         </div>

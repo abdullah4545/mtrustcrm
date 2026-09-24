@@ -16,7 +16,8 @@ class FollowupController extends Controller
     {
         $this->middleware('auth');
         $this->middleware('permission:lead.view_all_branches|lead.view_branch|lead.view_self')->only(['index']);
-        $this->middleware('permission:lead.activity.add')->only(['complete']);
+        $this->middleware('permission:followup.details.view')->only(['history']);
+        $this->middleware('permission:lead.activity.add')->only(['complete','feedback','reschedule']);
     }
 
     private function scopeVisible($query)
@@ -116,4 +117,33 @@ class FollowupController extends Controller
 
         return back()->with('message', 'Follow-up completed successfully.');
     }
+
+    public function feedback(Request $request, $id)
+    {
+        $lead=Lead::findOrFail($id); $this->ensureVisible($lead);
+        $data=$request->validate(['feedback'=>'required|string|max:2000']);
+        LeadActivity::create(['lead_id'=>$lead->id,'activity_type'=>'feedback','activity_text'=>$data['feedback'],'activity_at'=>now(),'outcome_status'=>'Feedback','created_by'=>Auth::id()]);
+        $lead->update(['last_activity_at'=>now()]);
+        return back()->with('message','Feedback saved successfully.');
+    }
+
+    public function reschedule(Request $request, $id)
+    {
+        $lead=Lead::findOrFail($id); $this->ensureVisible($lead);
+        $data=$request->validate(['followup_date'=>'required|date','followup_time'=>'required|date_format:H:i','message'=>'nullable|string|max:2000','remarks'=>'nullable|string|max:1000','next_action_type'=>'nullable|in:call,visit,message,meeting']);
+        $newAt=Carbon::parse($data['followup_date'].' '.$data['followup_time']);
+        $oldAt=$lead->next_followup_at;
+        $completed=LeadActivity::create(['lead_id'=>$lead->id,'activity_type'=>'follow-up','activity_text'=>'Previous follow-up completed by reschedule'.($data['remarks']?' — '.$data['remarks']:''),'activity_at'=>now(),'outcome_status'=>'Completed / Rescheduled','next_followup_at'=>$newAt,'next_action_type'=>$data['next_action_type']??$lead->next_action_type,'created_by'=>Auth::id()]);
+        $new=LeadActivity::create(['lead_id'=>$lead->id,'activity_type'=>'rescheduled','activity_text'=>($data['message']??null) ?: 'Follow-up rescheduled','activity_at'=>$newAt,'outcome_status'=>'Scheduled','next_followup_at'=>$newAt,'next_action_type'=>$data['next_action_type']??$lead->next_action_type,'created_by'=>Auth::id(),'rescheduled_from_id'=>$completed->id]);
+        $lead->update(['next_followup_at'=>$newAt,'next_action_type'=>$data['next_action_type']??$lead->next_action_type,'last_activity_at'=>now()]);
+        return back()->with('message','Follow-up completed and rescheduled successfully.');
+    }
+
+    public function history($id)
+    {
+        $lead=Lead::with(['organization','assignedUser'])->findOrFail($id); $this->ensureVisible($lead);
+        $items=LeadActivity::with('creator')->where('lead_id',$lead->id)->latest('activity_at')->paginate(30);
+        return view('backend.content.followups.history',compact('lead','items'));
+    }
+
 }

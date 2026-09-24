@@ -18,6 +18,10 @@ use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Support\CrmAccess;
 use App\Models\User;
+use App\Models\Activity;
+use App\Models\Lead;
+use App\Models\LeadActivity;
+use App\Models\Sale;
 
 class OrganizationController extends Controller
 {
@@ -28,6 +32,7 @@ class OrganizationController extends Controller
         $this->middleware('permission:org.view')->only([
             'index','datatable','show','profile','companyProfilePdfView','companyProfileDownload'
         ]);
+        $this->middleware('permission:org.details.view')->only(['history']);
         $this->middleware('permission:org.create')->only(['store','quickCreate','quickStore']);
         $this->middleware('permission:org.edit')->only(['update']);
         $this->middleware('permission:org.delete')->only(['destroy']);
@@ -68,6 +73,9 @@ class OrganizationController extends Controller
     {
         $request->validate([
             'name'   => 'required|string|max:255',
+            'organization_category_id' => 'required|exists:organization_categories,id',
+            'division_id' => 'required|exists:divisions,id',
+            'district_id' => 'required|exists:districts,id',
             'no_of_beds' => 'nullable|integer|min:0',
             'status' => 'required|in:active,inactive',
             'existing_machine' => 'required|string',
@@ -242,6 +250,7 @@ class OrganizationController extends Controller
 
         return DataTables::of($q)
             ->addIndexColumn()
+            ->editColumn('name', function($row){ return auth()->user()->can('org.details.view') ? '<a class="fw-semibold" href="'.route('org.history',$row->id).'">'.e($row->name).'</a>' : e($row->name); })
             ->addColumn('staff_name', fn($row) => e($row->creator?->name ?? '-'))
             ->addColumn('category', fn($row) => $row->category?->name ?? '-')
             ->addColumn('type', fn($row) => $row->type?->name ?? '-')
@@ -268,20 +277,20 @@ class OrganizationController extends Controller
                 if (auth()->user()->can('org.delete')) $html .= '<button class="btn btn-sm btn-danger btn-delete" data-id="'.$row->id.'"><i class="feather-trash-2"></i></button>';
                 return $html.'</div>';
             })
-            ->rawColumns(['status','action'])
+            ->rawColumns(['name','status','action'])
             ->make(true);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'organization_category_id' => 'nullable|exists:organization_categories,id',
+            'organization_category_id' => 'required|exists:organization_categories,id',
             'organization_type_id'     => 'nullable|exists:organization_types,id',
             'name'                     => 'required|string|max:200',
             'no_of_beds'               => 'nullable|integer|min:0',
             'address'                  => 'nullable|string|max:255',
-            'division_id'              => 'nullable|exists:divisions,id',
-            'district_id'              => 'nullable|exists:districts,id',
+            'division_id'              => 'required|exists:divisions,id',
+            'district_id'              => 'required|exists:districts,id',
             'upazila_id'               => 'nullable|exists:upazilas,id',
             'union_id'                 => 'nullable|exists:unions,id',
             'phone_primary'            => 'nullable|string|max:30',
@@ -346,6 +355,9 @@ class OrganizationController extends Controller
     {
         $request->validate([
             'name'   => 'required|string|max:255',
+            'organization_category_id' => 'required|exists:organization_categories,id',
+            'division_id' => 'required|exists:divisions,id',
+            'district_id' => 'required|exists:districts,id',
             'no_of_beds' => 'nullable|integer|min:0',
             'status' => 'required|in:active,inactive',
             'existing_machine' => 'required|string',
@@ -612,6 +624,19 @@ class OrganizationController extends Controller
             ->get(['id','name']);
 
         return response()->json(['status' => true, 'data' => $rows]);
+    }
+
+
+    public function history(Request $request, Organization $organization)
+    {
+        $org = $this->visibleOrganization((int)$organization->id);
+        $from=$request->date('from_date'); $to=$request->date('to_date'); $q=trim((string)$request->q);
+        $range=function($query,$col='created_at')use($from,$to){if($from)$query->whereDate($col,'>=',$from);if($to)$query->whereDate($col,'<=',$to);return $query;};
+        $activities=$range(Activity::with('creator')->where('organization_id',$org->id),'date'); if($q)$activities->where(fn($x)=>$x->where('contact_person','like',"%$q%")->orWhere('work_details','like',"%$q%"));
+        $leads=$range(Lead::with('creator')->where('organization_id',$org->id)); if($q)$leads->where(fn($x)=>$x->where('lead_no','like',"%$q%")->orWhere('person_name','like',"%$q%"));
+        $followups=$range(LeadActivity::with(['lead','creator'])->whereHas('lead',fn($x)=>$x->where('organization_id',$org->id)),'activity_at'); if($q)$followups->where('activity_text','like',"%$q%");
+        $sales=$range(Sale::with('soldBy')->where('organization_id',$org->id),'sale_date'); if($q)$sales->where(fn($x)=>$x->where('sale_no','like',"%$q%")->orWhere('client_name','like',"%$q%"));
+        return view('backend.content.organization.organizations.history',['org'=>$org,'activities'=>$activities->latest('date')->paginate(15,['*'],'activities_page')->withQueryString(),'leads'=>$leads->latest()->paginate(15,['*'],'leads_page')->withQueryString(),'followups'=>$followups->latest('activity_at')->paginate(15,['*'],'followups_page')->withQueryString(),'sales'=>$sales->latest('sale_date')->paginate(15,['*'],'sales_page')->withQueryString()]);
     }
 
 }

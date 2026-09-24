@@ -23,6 +23,7 @@ class ActivityController extends Controller
         $this->middleware('auth');
         $this->middleware('permission:activity.view_all|activity.view_branch|activity.view_self')
             ->only(['index','datatable','show','organizations','departments','vehicles','expenseTypes','staffs','organizationDepartments','organizationContacts']);
+        $this->middleware('permission:activity.details.view')->only(['show']);
         $this->middleware('permission:activity.create')->only(['quickCreate','quickStore','store']);
         $this->middleware('permission:activity.edit')->only(['update']);
         $this->middleware('permission:activity.delete')->only(['destroy']);
@@ -180,7 +181,7 @@ class ActivityController extends Controller
             'department_id'=>'nullable|exists:departments,id','contact_id'=>'nullable','contact_person'=>'nullable|string|max:255',
             'work_details'=>'required|string','remarks'=>'nullable|string','status'=>'nullable|in:pending,approved,rejected',
             'travels'=>'nullable|array','travels.*.from_location'=>'nullable|string|max:255','travels.*.to_location'=>'nullable|string|max:255',
-            'travels.*.vehicle'=>'nullable|string|max:255','travels.*.distance'=>'nullable|numeric|min:0','travels.*.cost'=>'nullable|numeric|min:0',
+            'travels.*.vehicle'=>'nullable|string|max:255','travels.*.distance'=>'required_with:travels|numeric|min:0.01','travels.*.cost'=>'nullable|numeric|min:0',
             'travels.*.existing_image_url'=>'nullable|string|max:500','travels.*.image'=>'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'expenses'=>'nullable|array','expenses.*.expense_type_id'=>'nullable|exists:expense_types,id','expenses.*.amount'=>'nullable|numeric|min:0','expenses.*.note'=>'nullable|string|max:500',
             'expenses.*.existing_image_url'=>'nullable|string|max:500','expenses.*.image'=>'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
@@ -225,6 +226,9 @@ class ActivityController extends Controller
     {
         if ($activity->exists) $this->ensureEditable($activity);
         $data = $this->validated($request);
+        $expenseRows = collect($data['expenses'] ?? [])->filter(fn($r) => !empty($r['expense_type_id']) || (float)($r['amount'] ?? 0) > 0);
+        $travelRows = collect($data['travels'] ?? [])->filter(fn($r) => filled($r['from_location'] ?? null) || filled($r['to_location'] ?? null) || (float)($r['distance'] ?? 0) > 0 || (float)($r['cost'] ?? 0) > 0);
+        if ($expenseRows->isNotEmpty() && $travelRows->isEmpty()) throw ValidationException::withMessages(['expenses' => 'DA cannot be submitted until the corresponding TA/travel entry is created.']);
         $u = Auth::user();
         $owner = $u;
         if ($this->canManageActivityEntry() && !empty($data['staff_id'])) {

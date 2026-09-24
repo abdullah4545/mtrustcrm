@@ -93,14 +93,12 @@
 <div class="card activity-entry-card"><div class="card-body">
 <form id="activityForm">
 <div class="row g-3">
-    <div class="col-12 col-md-4">
-        <label>Activity Date & Time</label>
-        @if($canManageActivityEntry)
-            <input type="datetime-local" id="activity_at" class="form-control" value="{{ $activityTime?->timezone('Asia/Dhaka')->format('Y-m-d\TH:i') }}">
-        @else
-            <input class="form-control" value="{{ $activityTime?->timezone('Asia/Dhaka')->format('d M Y, h:i A') }}" readonly>
-        @endif
-    </div>
+    @if($canManageActivityEntry)
+    <div class="col-6 col-md-2"><label>Activity Date</label><input type="date" id="activity_date" class="form-control" value="{{ $activityTime?->timezone('Asia/Dhaka')->format('Y-m-d') }}" required></div>
+    <div class="col-6 col-md-2"><label>Activity Time</label><input type="time" id="activity_time" class="form-control" value="{{ $activityTime?->timezone('Asia/Dhaka')->format('H:i') }}" required></div>
+    @else
+    <div class="col-12 col-md-4"><label>Activity Date & Time</label><input class="form-control" value="{{ $activityTime?->timezone('Asia/Dhaka')->format('d M Y, h:i A') }}" readonly></div>
+    @endif
 
     @if($canManageActivityEntry)
     <div class="col-12 col-md-4">
@@ -157,7 +155,7 @@
                     <div class="col-12"><label>From *</label><input id="travel_from" class="form-control" placeholder="From location"></div>
                     <div class="col-12"><label>To *</label><input id="travel_to" class="form-control" placeholder="To location"></div>
                     <div class="col-12 col-sm-6"><label>Vehicle</label><select id="travel_vehicle" class="form-control"><option value="">Select Vehicle</option></select></div>
-                    <div class="col-6 col-sm-3"><label>Distance (KM)</label><input type="number" min="0" step="0.01" id="travel_distance" class="form-control" value="0"></div>
+                    <div class="col-6 col-sm-3"><label>Distance (KM) <span class="text-danger">*</span></label><input type="number" min="0" step="0.01" id="travel_distance" class="form-control" value="0" required></div>
                     <div class="col-6 col-sm-3"><label>Cost *</label><input type="number" min="0" step="0.01" id="travel_cost" class="form-control" value="0"></div>
                     <div class="col-12"><label>TA Image</label><input type="file" accept="image/*" id="travel_image" class="form-control"><small class="text-muted" id="travel_image_hint">JPG, PNG or WEBP - max 5 MB.</small></div>
                 </div>
@@ -377,6 +375,7 @@ $('#saveExpenseRow').on('click',function(){
     const idx=$('#expenseEditIndex').val();
     const oldRow = idx==='' ? {} : (expenses[parseInt(idx,10)] || {});
     const imageFile = document.getElementById('expense_image').files[0] || oldRow.image_file || null;
+    if(!travels.length){Swal.fire('TA Required','Please add the corresponding TA/travel entry before adding DA.','warning');return;}
     const row={expense_type_id:String(typeId),expense_type:$('#expense_type option:selected').data('name')||$('#expense_type option:selected').text(),amount:amount,note:$.trim($('#expense_note').val()),image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
     if(idx==='') expenses.push(row); else expenses[parseInt(idx,10)]=row;
     renderExpenses(); expenseModal.hide();
@@ -392,7 +391,7 @@ $('#btnSave').on('click',function(){
     const fd=new FormData();
     if(CAN_MANAGE_ENTRY){
         fd.append('staff_id',$('#staff_id').val()||'');
-        fd.append('activity_at',$('#activity_at').val()||'');
+        fd.append('activity_at',($('#activity_date').val()&&$('#activity_time').val()) ? $('#activity_date').val()+'T'+$('#activity_time').val() : '');
     }
     fd.append('organization_id',$('#organization_id').val());
     fd.append('department_id',$('#department').val());

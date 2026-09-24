@@ -32,6 +32,11 @@ class RbacSeeder extends Seeder
 
             // org
             'org.view',
+            'org.details.view',
+            'org.history.activity.view',
+            'org.history.lead.view',
+            'org.history.followup.view',
+            'org.history.sale.view',
             'org.create',
             'org.import',
             'org.edit',
@@ -55,6 +60,8 @@ class RbacSeeder extends Seeder
             'lead.delete',
             'lead.activity.view',
             'lead.activity.add',
+            'lead.details.view',
+            'followup.details.view',
 
             // Field Activity / Visit
             'activity.view_all',
@@ -65,6 +72,7 @@ class RbacSeeder extends Seeder
             'activity.edit',
             'activity.delete',
             'activity.approve',
+            'activity.details.view',
 
             // Reports (access + data visibility scope)
             'report.sales.view',
@@ -115,6 +123,12 @@ class RbacSeeder extends Seeder
             'user.delete',
             'user.role.assign',
             'user.profile.update',
+            'user.history.view',
+            'user.history.activity.view',
+            'user.history.lead.view',
+            'user.history.followup.view',
+            'user.history.sale.view',
+            'user.history.organization.view',
 
             'role.manage',
             'permission.manage',
@@ -163,7 +177,10 @@ class RbacSeeder extends Seeder
                 'status_stage.manage',
 
                 'lead.view_all_branches','lead.create','lead.edit','lead.delete','lead.activity.view','lead.activity.add',
+            'lead.details.view',
+            'followup.details.view',
                 'activity.view_all','activity.create','activity.create_for_others','activity.edit','activity.delete','activity.approve',
+            'activity.details.view',
                 'report.sales.view','report.leads.view','report.collections.view','report.activity.view','report.view_all',
 
                 'product.view','product.create','product.edit','product.delete',
@@ -174,6 +191,12 @@ class RbacSeeder extends Seeder
                 'sale.view_all_branches','sale.create','sale.edit','sale.delete','sale.pdf','sale.mail','sale.payment.view','sale.payment.add',
 
                 'user.view_all_branches','user.create','user.edit','user.delete','user.role.assign','user.profile.update',
+            'user.history.view',
+            'user.history.activity.view',
+            'user.history.lead.view',
+            'user.history.followup.view',
+            'user.history.sale.view',
+            'user.history.organization.view',
 
                 'role.manage','permission.manage','staff.filter',
             ],
@@ -196,6 +219,12 @@ class RbacSeeder extends Seeder
 
                 'user.view_branch',
                 'user.profile.update',
+            'user.history.view',
+            'user.history.activity.view',
+            'user.history.lead.view',
+            'user.history.followup.view',
+            'user.history.sale.view',
+            'user.history.organization.view',
             ],
 
             // ✅ Manager = lead + quotation + sales monitoring (branch wide)
@@ -204,11 +233,20 @@ class RbacSeeder extends Seeder
                 'geo.view','org.view','org.create','org.import','org.edit','org_contact.manage',
                 'platform.manage','status_stage.manage',
                 'lead.view_all_branches','lead.create','lead.edit','lead.activity.view','lead.activity.add',
+            'lead.details.view',
+            'followup.details.view',
                 'activity.view_all','activity.create','activity.create_for_others','activity.edit','activity.approve',
+            'activity.details.view',
                 'report.sales.view','report.leads.view','report.collections.view','report.activity.view','report.view_all',
                 'quotation.view_all_branches','quotation.create','quotation.edit','quotation.pdf','quotation.mail','quotation.convert_to_sale',
                 'sale.view_all_branches','sale.create','sale.edit','sale.pdf','sale.mail','sale.payment.view','sale.payment.add',
                 'product.view','user.view_all_branches','user.profile.update',
+            'user.history.view',
+            'user.history.activity.view',
+            'user.history.lead.view',
+            'user.history.followup.view',
+            'user.history.sale.view',
+            'user.history.organization.view',
             ],
 
             // ✅ Branch Manager = own branch full control (except global RBAC)
@@ -225,7 +263,10 @@ class RbacSeeder extends Seeder
                 'status_stage.manage',
 
                 'lead.view_branch','lead.create','lead.edit','lead.delete','lead.activity.view','lead.activity.add',
+            'lead.details.view',
+            'followup.details.view',
                 'activity.view_branch','activity.create','activity.create_for_others','activity.edit','activity.delete','activity.approve',
+            'activity.details.view',
                 'report.sales.view','report.leads.view','report.collections.view','report.activity.view','report.view_branch',
 
                 'quotation.view_branch','quotation.create','quotation.edit','quotation.delete','quotation.pdf','quotation.mail','quotation.convert_to_sale',
@@ -237,6 +278,12 @@ class RbacSeeder extends Seeder
 
                 // ✅ user manage within branch
                 'user.view_branch','user.create','user.edit','user.delete','user.role.assign','user.profile.update',
+            'user.history.view',
+            'user.history.activity.view',
+            'user.history.lead.view',
+            'user.history.followup.view',
+            'user.history.sale.view',
+            'user.history.organization.view',
             ],
 
             // ✅ Staff = only self leads/activities (and view own quotation/sales if you allow)
@@ -248,6 +295,8 @@ class RbacSeeder extends Seeder
                 'org.view','org.create','org.edit','org_contact.manage',
 
                 'lead.view_self','lead.create','lead.edit','lead.activity.view','lead.activity.add',
+            'lead.details.view',
+            'followup.details.view',
                 'activity.view_self','activity.create','activity.edit',
                 'report.sales.view','report.leads.view','report.collections.view','report.activity.view','report.view_self',
 
@@ -256,6 +305,12 @@ class RbacSeeder extends Seeder
                 'sale.view_self','sale.create','sale.edit','sale.pdf',
 
                 'user.profile.update',
+            'user.history.view',
+            'user.history.activity.view',
+            'user.history.lead.view',
+            'user.history.followup.view',
+            'user.history.sale.view',
+            'user.history.organization.view',
             ],
         ];
 

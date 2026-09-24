@@ -7,6 +7,11 @@ use App\Models\District;
 use App\Models\Upazila;
 use App\Models\User;
 use App\Models\UserAreaAssignment;
+use App\Models\Activity;
+use App\Models\Lead;
+use App\Models\LeadActivity;
+use App\Models\Sale;
+use App\Models\Organization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -21,6 +26,7 @@ class UserManagementController extends Controller
     {
         $this->middleware('auth');
         $this->middleware('permission:user.view_all_branches|user.view_branch')->only(['index','datatable','show']);
+        $this->middleware('permission:user.history.view')->only(['history']);
         $this->middleware('permission:user.create')->only(['store']);
         $this->middleware('permission:user.edit')->only(['update']);
         $this->middleware('permission:user.delete')->only(['destroy']);
@@ -71,6 +77,7 @@ class UserManagementController extends Controller
             ->editColumn('status', fn($r) => $r->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-danger">Inactive</span>')
             ->addColumn('action', function($r){
                 $html = '<div class="d-flex gap-1 flex-wrap">';
+                if (auth()->user()->can('user.history.view')) $html .= '<a class="btn btn-sm btn-outline-info" href="'.route('users.history',$r->id).'" title="Details / History"><i class="feather-clock"></i></a>';
                 if (auth()->user()->can('user.edit')) $html .= '<button class="btn btn-sm btn-primary btn-edit" data-id="'.$r->id.'"><i class="feather-edit"></i></button>';
                 if (auth()->user()->can('user.delete') && (int)$r->id !== (int)auth()->id()) $html .= '<button class="btn btn-sm btn-outline-danger btn-delete" data-id="'.$r->id.'"><i class="feather-trash-2"></i></button>';
                 return $html.'</div>';
@@ -218,4 +225,20 @@ class UserManagementController extends Controller
         $user->delete();
         return response()->json(['status'=>true,'message'=>'User deleted successfully']);
     }
+
+    public function history(Request $request, $id)
+    {
+        $user = User::with('branch')->findOrFail($id);
+        $this->ensureManageable($user);
+        $from = $request->date('from_date'); $to = $request->date('to_date'); $q = trim((string)$request->q);
+        $range = function($query,$column='created_at') use($from,$to){ if($from)$query->whereDate($column,'>=',$from); if($to)$query->whereDate($column,'<=',$to); return $query; };
+        $activities=$range(Activity::with('organization')->where('created_by',$user->id),'date');
+        if($q)$activities->where(fn($x)=>$x->where('organization_name','like',"%$q%")->orWhere('work_details','like',"%$q%"));
+        $leads=$range(Lead::with('organization')->where('created_by',$user->id)); if($q)$leads->where(fn($x)=>$x->where('lead_no','like',"%$q%")->orWhere('person_name','like',"%$q%")->orWhere('subject','like',"%$q%"));
+        $followups=$range(LeadActivity::with('lead.organization')->where('created_by',$user->id),'activity_at'); if($q)$followups->where('activity_text','like',"%$q%");
+        $sales=$range(Sale::with('organization')->where('sold_by',$user->id),'sale_date'); if($q)$sales->where(fn($x)=>$x->where('sale_no','like',"%$q%")->orWhere('client_name','like',"%$q%"));
+        $organizations=$range(Organization::query()->where('created_by',$user->id)); if($q)$organizations->where('name','like',"%$q%");
+        return view('backend.content.users.history',['user'=>$user,'activities'=>$activities->latest('date')->paginate(15,['*'],'activities_page')->withQueryString(),'leads'=>$leads->latest()->paginate(15,['*'],'leads_page')->withQueryString(),'followups'=>$followups->latest('activity_at')->paginate(15,['*'],'followups_page')->withQueryString(),'sales'=>$sales->latest('sale_date')->paginate(15,['*'],'sales_page')->withQueryString(),'organizations'=>$organizations->latest()->paginate(15,['*'],'organizations_page')->withQueryString()]);
+    }
+
 }

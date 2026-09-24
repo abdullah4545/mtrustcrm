@@ -34,8 +34,8 @@
 <div class="col-md-6"><label class="form-label">Permanent Address</label><input id="parmanent_address" class="form-control"></div>
 
 <div class="col-12" id="workAreaSection"><div class="area-card">
-<div class="d-flex justify-content-between align-items-center gap-2 mb-2"><div><h6 class="mb-0">District Data Access</h6></div><button type="button" class="btn btn-sm btn-outline-primary touch-btn" id="addArea"><i class="feather-plus"></i> Add District</button></div>
-<div id="areaRows" class="d-grid gap-2"></div>
+<div class="mb-2"><h6 class="mb-1">District Data Access</h6><small class="text-muted">Select one or more districts. All locations inside the selected districts will be accessible.</small></div>
+<select id="district_ids" class="form-select" multiple>@foreach($districts as $d)<option value="{{ $d->id }}">{{ $d->name }}</option>@endforeach</select>
 
 </div></div>
 
@@ -54,35 +54,24 @@
 <script>
 $.ajaxSetup({headers:{'X-CSRF-TOKEN':$('meta[name="csrf-token"]').attr('content')}});
 const URL_BASE="{{ url('system/users') }}", URL_STORE="{{ route('users.store') }}", URL_DT="{{ route('users.datatable') }}";
-const districtOptions=`<option value="">Select District</option>@foreach($districts as $d)<option value="{{ $d->id }}">{{ addslashes($d->name) }}</option>@endforeach`;
-let table,modal,areaSeq=0;
+let table,modal;
 $(function(){
  modal=new bootstrap.Modal('#userModal');
  table=$('#userTable').DataTable({processing:true,serverSide:true,pageLength:20,ajax:{url:URL_DT,data:d=>{d.branch_id=$('#filter_branch_id').val();d.role=$('#filter_role').val();d.status=$('#filter_status').val()}},columns:[
  {data:'DT_RowIndex',orderable:false,searchable:false},{data:'profile',orderable:false,searchable:false},{data:'name'},{data:'phone'},{data:'branch',orderable:false},{data:'role',orderable:false},{data:'areas',orderable:false,searchable:false},{data:'status',orderable:false},{data:'action',orderable:false,searchable:false}
  ]});
  $('#filter_branch_id,#filter_role,#filter_status').change(()=>table.ajax.reload());
- $('#role').change(()=>{});
- $('#addArea').click(()=>addAreaRow());
  $('#btnOpenCreate').click(()=>{clearForm();$('#modalTitle').text('Add User');$('#passHint').text('(required)');modal.show()});
  $('#btnSave').click(saveUser);
- $(document).on('click','.remove-area',function(){$(this).closest('.area-row').remove()});
  $(document).on('click','.btn-edit',function(){editUser($(this).data('id'))});
  $(document).on('click','.btn-delete',function(){deleteUser($(this).data('id'))});
+ if($.fn.select2){ $('#district_ids').select2({dropdownParent:$('#userModal'),width:'100%',placeholder:'Select districts',closeOnSelect:false}); }
 });
-function toggleAreas(){ $('#workAreaSection').show(); }
-function addAreaRow(area=null){
- const id=++areaSeq;
- $('#areaRows').append(`<div class="area-row" data-key="${id}"><div class="row g-2 align-items-end"><div class="col-md-11"><label class="form-label">District</label><select class="form-select area-district">${districtOptions}</select></div><div class="col-md-1"><button type="button" class="btn btn-outline-danger w-100 remove-area" title="Remove"><i class="feather-trash-2"></i></button></div></div></div>`);
- const row=$(`#areaRows .area-row[data-key="${id}"]`);
- if(area?.district_id) row.find('.area-district').val(String(area.district_id)).trigger('change');
- if(window.globalSelect2Init) globalSelect2Init(row[0]);
-}
-function collectAreas(){let out=[];$('#areaRows .area-row').each(function(){const district=$(this).find('.area-district').val();if(district)out.push({district_id:Number(district),all_upazilas:true,upazila_ids:[]})});return out}
+function collectAreas(){return ($('#district_ids').val()||[]).map(id=>({district_id:Number(id),all_upazilas:true,upazila_ids:[]}))}
 function makeFd(){let fd=new FormData();['name','email','phone','branch_id','role','status','join_date','present_address','parmanent_address','password','password_confirmation'].forEach(k=>fd.append(k,$('#'+k).val()||''));fd.append('areas',JSON.stringify(collectAreas()));if($('#profile')[0].files[0])fd.append('profile',$('#profile')[0].files[0]);return fd}
 function saveUser(){const id=$('#user_id').val();$('#btnSave').prop('disabled',true);$.ajax({url:id?URL_BASE+'/'+id:URL_STORE,type:'POST',data:makeFd(),processData:false,contentType:false}).done(r=>{Swal.fire('Saved',r.message||'Saved','success');modal.hide();table.ajax.reload(null,false)}).fail(showError).always(()=>$('#btnSave').prop('disabled',false))}
-function editUser(id){$.get(URL_BASE+'/'+id,r=>{clearForm();const d=r.data;$('#user_id').val(d.id);$('#modalTitle').text('Edit User');$('#passHint').text('(leave blank to keep)');['name','email','phone','branch_id','join_date','present_address','parmanent_address'].forEach(k=>$('#'+k).val(d[k]??''));$('#status').val(String(d.status ?? 1)).trigger('change');$('#branch_id').trigger('change');$('#role').val(r.role||'').trigger('change');$('#areaRows').html('');(r.areas||[]).forEach(a=>addAreaRow(a));if(!(r.areas||[]).length)addAreaRow();if(d.profile)$('#imgPreview').html(`<img src="{{ asset('') }}${d.profile}" style="height:64px;border-radius:10px">`);modal.show()})}
-function clearForm(){document.getElementById('userForm').reset();$('#user_id').val('');$('#areaRows,#imgPreview').html('');$('#status').val('1').trigger('change');$('#workAreaSection').show();addAreaRow()}
+function editUser(id){$.get(URL_BASE+'/'+id,r=>{clearForm();const d=r.data;$('#user_id').val(d.id);$('#modalTitle').text('Edit User');$('#passHint').text('(leave blank to keep)');['name','email','phone','branch_id','join_date','present_address','parmanent_address'].forEach(k=>$('#'+k).val(d[k]??''));$('#status').val(String(d.status ?? 1)).trigger('change');$('#branch_id').trigger('change');$('#role').val(r.role||'').trigger('change');$('#district_ids').val((r.areas||[]).map(a=>String(a.district_id))).trigger('change');if(d.profile)$('#imgPreview').html(`<img src="{{ asset('') }}${d.profile}" style="height:64px;border-radius:10px">`);modal.show()})}
+function clearForm(){document.getElementById('userForm').reset();$('#user_id').val('');$('#imgPreview').html('');$('#status').val('1').trigger('change');$('#district_ids').val(null).trigger('change')}
 function deleteUser(id){Swal.fire({title:'Delete user?',icon:'warning',showCancelButton:true,confirmButtonText:'Delete'}).then(x=>{if(x.isConfirmed)$.post(URL_BASE+'/'+id+'/delete').done(r=>{Swal.fire('Deleted',r.message,'success');table.ajax.reload(null,false)}).fail(showError)})}
 function showError(xhr){let m=xhr.responseJSON?.message||'Something went wrong';if(xhr.responseJSON?.errors){m=Object.values(xhr.responseJSON.errors)[0][0]}Swal.fire('Error',m,'error')}
 </script>

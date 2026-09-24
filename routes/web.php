@@ -50,6 +50,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/follow-ups', [FollowupController::class, 'index'])->name('followups.index');
     Route::post('/follow-ups/{id}/complete', [FollowupController::class, 'complete'])->name('followups.complete');
+    Route::post('/follow-ups/{id}/feedback', [FollowupController::class, 'feedback'])->name('followups.feedback');
+    Route::post('/follow-ups/{id}/reschedule', [FollowupController::class, 'reschedule'])->name('followups.reschedule');
+    Route::get('/follow-ups/{id}/history', [FollowupController::class, 'history'])->name('followups.history');
 
     Route::get('/reports/sales', [CrmReportController::class, 'sales'])->name('reports.sales');
     Route::get('/reports/leads', [CrmReportController::class, 'leads'])->name('reports.leads');
@@ -72,6 +75,7 @@ Route::middleware('auth')->group(function () {
         Route::get('users/datatable', [UserManagementController::class, 'datatable'])->name('users.datatable');
 
         Route::post('users', [UserManagementController::class, 'store'])->name('users.store');
+        Route::get('users/{id}/history', [UserManagementController::class, 'history'])->name('users.history');
         Route::get('users/{id}', [UserManagementController::class, 'show'])->name('users.show');
 
         Route::post('users/{id}', [UserManagementController::class, 'update'])->name('users.update');
@@ -327,6 +331,7 @@ Route::middleware('auth')->group(function () {
         Route::get('geo/unions', [OrganizationController::class, 'unions'])->name('org.geo.unions');
 
         // contact
+        Route::get('{organization}/history', [OrganizationController::class, 'history'])->name('org.history');
         Route::get('{organization}/view', [OrganizationController::class, 'profile'])
         ->name('org.contacts.index');
         Route::get('company-profile/{id}/pdf-view', [OrganizationController::class, 'companyProfilePdfView'])

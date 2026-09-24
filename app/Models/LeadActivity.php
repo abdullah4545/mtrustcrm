@@ -8,7 +8,7 @@ class LeadActivity extends Model
 {
     protected $fillable = [
         'lead_id','activity_type','activity_text','activity_at',
-        'outcome_status','next_followup_at','next_action_type','created_by'
+        'outcome_status','next_followup_at','next_action_type','created_by','rescheduled_from_id'
     ];
 
     protected $casts = [
@@ -17,4 +17,5 @@ class LeadActivity extends Model
     ];
 
     public function lead() { return $this->belongsTo(Lead::class); }
+    public function creator() { return $this->belongsTo(User::class, 'created_by'); }
 }

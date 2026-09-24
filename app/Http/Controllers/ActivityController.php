@@ -24,10 +24,13 @@ class ActivityController extends Controller
     {
         $this->middleware('auth');
         $this->middleware('permission:activity.view_all|activity.view_branch|activity.view_self')
-            ->only(['index','datatable','show','organizations','departments','vehicles','expenseTypes','staffs','organizationDepartments','organizationContacts']);
-        $this->middleware('permission:activity.details.view')->only(['show']);
+            ->only(['index','datatable','organizations','departments','vehicles','expenseTypes','staffs','organizationDepartments','organizationContacts']);
+        // The /activities/{id} route is the Activity EDIT screen in this CRM.
+        // Do not require activity.details.view here; staff with activity.edit must be able
+        // to open their own/visible activity for editing. findVisible() still enforces
+        // self/branch/all data scope, and update is protected by the same permission.
+        $this->middleware('permission:activity.edit')->only(['show','update']);
         $this->middleware('permission:activity.create')->only(['quickCreate','quickStore','store']);
-        $this->middleware('permission:activity.edit')->only(['update']);
         $this->middleware('permission:activity.delete')->only(['destroy']);
         $this->middleware('permission:activity.approve')->only(['review']);
     }

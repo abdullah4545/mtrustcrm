@@ -10,21 +10,23 @@
                 <form method="POST" action="{{ route('expense-types.store') }}">@csrf
                     <div class="mb-3"><label class="form-label">Name *</label><input name="name" class="form-control" placeholder="Breakfast / Lunch / Hotel" required></div>
                     <div class="mb-3"><label class="form-label">Sort Order</label><input type="number" min="0" name="sort_order" class="form-control" value="0"></div>
+                    <div class="form-check mb-2"><input type="hidden" name="bill_required" value="0"><input class="form-check-input" type="checkbox" name="bill_required" value="1" id="new_bill_required"><label class="form-check-label" for="new_bill_required">Bill Required</label></div>
                     <div class="form-check mb-3"><input type="hidden" name="status" value="0"><input class="form-check-input" type="checkbox" name="status" value="1" checked id="new_status"><label class="form-check-label" for="new_status">Active</label></div>
                     <button class="btn btn-primary w-100">Save</button>
                 </form>
             </div></div></div>
             <div class="col-lg-8"><div class="card"><div class="card-header"><h5>Expense Types</h5></div><div class="card-body table-responsive">
-                <table class="table align-middle"><thead><tr><th>Name</th><th>Order</th><th>Status</th><th width="210">Action</th></tr></thead><tbody>
+                <table class="table align-middle"><thead><tr><th>Name</th><th>Order</th><th>Bill Required</th><th>Status</th><th width="210">Action</th></tr></thead><tbody>
                 @forelse($types as $type)
                     <tr><form method="POST" action="{{ route('expense-types.update',$type) }}">@csrf
                         <td><input name="name" class="form-control" value="{{ $type->name }}" required></td>
                         <td><input type="number" min="0" name="sort_order" class="form-control" value="{{ $type->sort_order }}"></td>
+                        <td><input type="hidden" name="bill_required" value="0"><input type="checkbox" name="bill_required" value="1" {{ $type->bill_required?'checked':'' }}></td>
                         <td><input type="hidden" name="status" value="0"><input type="checkbox" name="status" value="1" {{ $type->status?'checked':'' }}></td>
                         <td><button class="btn btn-sm btn-primary">Update</button></form>
                             <form method="POST" action="{{ route('expense-types.destroy',$type) }}" class="d-inline" onsubmit="return confirm('Delete this expense type?')">@csrf<button class="btn btn-sm btn-danger">Delete</button></form>
                         </td></tr>
-                @empty<tr><td colspan="4" class="text-center text-muted">No expense type found.</td></tr>@endforelse
+                @empty<tr><td colspan="5" class="text-center text-muted">No expense type found.</td></tr>@endforelse
                 </tbody></table>
             </div></div></div>
         </div>

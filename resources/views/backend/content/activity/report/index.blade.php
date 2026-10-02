@@ -199,6 +199,7 @@
 
                         @endcan
 
+                        @if($canViewStatus)
                         <div class="col-md-3">
                             <label class="form-label">
                                 Status
@@ -226,6 +227,7 @@
                                 </option>
                             </select>
                         </div>
+                        @endif
 
                         <div class="col-md-4">
                             <label class="form-label">
@@ -498,6 +500,7 @@
                         @foreach(
                             $availableColumns as $key => $label
                         )
+                            @if($key !== 'status' || $canViewStatus)
                             <div class="col-md-4 col-sm-6">
                                 <div class="form-check">
                                     <input
@@ -517,6 +520,7 @@
                                     </label>
                                 </div>
                             </div>
+                            @endif
                         @endforeach
 
                     </div>
@@ -573,19 +577,21 @@
     });
 
     function initSelect2() {
-        $('#created_by,#status,#branch_id,#organization_id').each(function(){ if($(this).hasClass('select2-hidden-accessible')) $(this).select2('destroy'); });
+        $('#created_by,#branch_id,#organization_id{{ $canViewStatus ? ',#status' : '' }}').each(function(){ if($(this).hasClass('select2-hidden-accessible')) $(this).select2('destroy'); });
         $('#created_by').select2({
             placeholder: 'All Users',
             allowClear: false,
             width: '100%'
         });
 
+        @if($canViewStatus)
         $('#status').select2({
             placeholder: 'All Status',
             allowClear: false,
             minimumResultsForSearch: Infinity,
             width: '100%'
         });
+        @endif
 
         $('#branch_id').select2({placeholder:'All Permitted Branches',allowClear:false,width:'100%'});
 
@@ -619,7 +625,7 @@
         const fromDate = $('#from_date').val();
         const toDate = $('#to_date').val();
         const createdBy = $('#created_by').val();
-        const status = $('#status').val();
+        const status = @json($canViewStatus) ? ($('#status').val() || '') : '';
         const organizationId = $('#organization_id').val();
         const branchId = $('#branch_id').val();
 
@@ -709,15 +715,15 @@
             .val('')
             .trigger('change');
 
-        $('#status')
-            .val('')
-            .trigger('change');
+        @if($canViewStatus)
+        $('#status').val(null).trigger('change.select2');
+        @endif
 
         $('#organization_id')
             .val('')
             .trigger('change');
 
-        $('#branch_id').val('');
+        $('#branch_id').val(null).trigger('change.select2');
 
         $('.report-column').prop('checked', false);
 

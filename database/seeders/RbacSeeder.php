@@ -73,6 +73,7 @@ class RbacSeeder extends Seeder
             'activity.multiple_edit',
             'activity.delete',
             'activity.approve',
+            'activity.status.view',
             'activity.details.view',
 
             // Reports (access + data visibility scope)
@@ -180,7 +181,8 @@ class RbacSeeder extends Seeder
                 'lead.view_all_branches','lead.create','lead.edit','lead.delete','lead.activity.view','lead.activity.add',
             'lead.details.view',
             'followup.details.view',
-                'activity.view_all','activity.create','activity.create_for_others','activity.edit','activity.multiple_edit','activity.delete','activity.approve',
+                'activity.view_all','activity.create','activity.create_for_others','activity.edit','activity.multiple_edit','activity.delete','activity.approve','activity.status.view',
+            'activity.status.view',
             'activity.details.view',
                 'report.sales.view','report.leads.view','report.collections.view','report.activity.view','report.view_all',
 
@@ -236,7 +238,8 @@ class RbacSeeder extends Seeder
                 'lead.view_all_branches','lead.create','lead.edit','lead.activity.view','lead.activity.add',
             'lead.details.view',
             'followup.details.view',
-                'activity.view_all','activity.create','activity.create_for_others','activity.edit','activity.approve',
+                'activity.view_all','activity.create','activity.create_for_others','activity.edit','activity.approve','activity.status.view',
+            'activity.status.view',
             'activity.details.view',
                 'report.sales.view','report.leads.view','report.collections.view','report.activity.view','report.view_all',
                 'quotation.view_all_branches','quotation.create','quotation.edit','quotation.pdf','quotation.mail','quotation.convert_to_sale',
@@ -266,7 +269,8 @@ class RbacSeeder extends Seeder
                 'lead.view_branch','lead.create','lead.edit','lead.delete','lead.activity.view','lead.activity.add',
             'lead.details.view',
             'followup.details.view',
-                'activity.view_branch','activity.create','activity.create_for_others','activity.edit','activity.delete','activity.approve',
+                'activity.view_branch','activity.create','activity.create_for_others','activity.edit','activity.delete','activity.approve','activity.status.view',
+            'activity.status.view',
             'activity.details.view',
                 'report.sales.view','report.leads.view','report.collections.view','report.activity.view','report.view_branch',
 

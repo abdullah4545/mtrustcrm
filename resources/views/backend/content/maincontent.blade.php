@@ -55,7 +55,7 @@
         @if(isset($territories) && $territories->isNotEmpty())
         <div class="card territory-card mb-3"><div class="card-body p-3">
             <div class="d-flex align-items-start gap-3"><div class="territory-icon"><i class="feather-map-pin"></i></div><div class="min-w-0"><small class="text-muted">Work Territory</small><div class="d-flex gap-2 flex-wrap mt-1">
-                @forelse($territories as $rows)<span class="badge bg-light text-dark border p-2">{{ $rows->first()->district?->name }}: {{ $rows->contains(fn($x)=>is_null($x->upazila_id)) ? 'All Upazilas' : $rows->pluck('upazila.name')->filter()->join(', ') }}</span>@empty<span class="badge bg-danger p-2">No work area assigned</span>@endforelse
+                @if($allDistrictsAllowed ?? false)<span class="badge bg-success p-2">All District Allowed</span>@else @forelse($territories as $rows)<span class="badge bg-light text-dark border p-2">{{ $rows->first()->district?->name }}: {{ $rows->contains(fn($x)=>is_null($x->upazila_id)) ? 'All Upazilas' : $rows->pluck('upazila.name')->filter()->join(', ') }}</span>@empty<span class="badge bg-danger p-2">No work area assigned</span>@endforelse @endif
             </div></div></div>
         </div></div>
         @endif

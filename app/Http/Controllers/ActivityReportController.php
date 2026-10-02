@@ -81,6 +81,7 @@ class ActivityReportController extends Controller
             'branches'         => $branches,
             'availableColumns' => self::AVAILABLE_COLUMNS,
             'defaultColumns'   => self::DEFAULT_COLUMNS,
+            'canViewStatus'    => Auth::user()->can('activity.status.view'),
         ]);
     }
 
@@ -355,6 +356,10 @@ class ActivityReportController extends Controller
         ]);
 
         $u = Auth::user();
+        if (!$u->can('activity.status.view')) {
+            unset($validated['status']);
+            if (!empty($validated['columns'])) $validated['columns'] = array_values(array_diff($validated['columns'], ['status']));
+        }
         if (!$u->can('staff.filter')) {
             unset($validated['created_by']);
         }
@@ -369,6 +374,7 @@ class ActivityReportController extends Controller
 
     private function resolveColumns(array $columns): array
     {
+        if (!Auth::user()->can('activity.status.view')) $columns = array_values(array_diff($columns, ['status']));
         $validColumns = array_values(
             array_intersect(
                 $columns,

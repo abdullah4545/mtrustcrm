@@ -120,6 +120,7 @@ class UserManagementController extends Controller
             'status'=>'required|in:0,1',
             'profile'=>'nullable|image|max:2048',
             'areas'=>'nullable|string',
+            'all_districts'=>'nullable|boolean',
         ];
         if ($user) {
             $rules['password']='nullable|string|min:8|max:72|confirmed';
@@ -132,6 +133,9 @@ class UserManagementController extends Controller
     private function normalizeAreas(Request $request, string $role): array
     {
         $areas = json_decode($request->input('areas','[]'), true);
+        if ($request->boolean('all_districts')) {
+            return District::where('is_active',1)->pluck('id')->map(fn($id)=>['district_id'=>(int)$id,'upazila_id'=>null])->all();
+        }
         if (!is_array($areas) || count($areas) === 0) return [];
 
         $normalized = [];
@@ -195,7 +199,9 @@ class UserManagementController extends Controller
                 'upazila_ids'=>$rows->whereNotNull('upazila_id')->pluck('upazila_id')->map(fn($x)=>(int)$x)->values(),
             ];
         })->values();
-        return response()->json(['status'=>true,'data'=>$user,'role'=>$user->getRoleNames()->first(),'areas'=>$areas]);
+        $activeDistrictCount = District::where('is_active',1)->count();
+        $allDistricts = $activeDistrictCount > 0 && $areas->count() === $activeDistrictCount && $areas->every(fn($a)=>$a['all_upazilas']);
+        return response()->json(['status'=>true,'data'=>$user,'role'=>$user->getRoleNames()->first(),'areas'=>$areas,'all_districts'=>$allDistricts]);
     }
 
     public function update(Request $request,$id)

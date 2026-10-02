@@ -207,7 +207,7 @@
                 <div class="row g-3">
                     <div class="col-6"><label>DA Date *</label><input type="date" id="expense_date" class="form-control" required></div>
                     <div class="col-6"><label>DA Time *</label><input type="time" id="expense_time" class="form-control" required></div>
-                    <div class="col-12"><label>Expense Type *</label><select id="expense_type" class="form-control"><option value="">Select Type</option>@foreach($expenseTypes as $type)<option value="{{ $type->id }}" data-name="{{ $type->name }}">{{ $type->name }}</option>@endforeach</select></div>
+                    <div class="col-12"><label>Expense Type *</label><select id="expense_type" class="form-control"><option value="">Select Type</option>@foreach($expenseTypes as $type)<option value="{{ $type->id }}" data-name="{{ $type->name }}" data-bill-required="{{ $type->bill_required ? 1 : 0 }}">{{ $type->name }}</option>@endforeach</select></div>
                     <div class="col-12"><label>Amount *</label><input type="number" min="0" step="0.01" id="expense_amount" class="form-control" value="0"></div>
                     <div class="col-12"><label>Note</label><input id="expense_note" class="form-control" placeholder="Optional note"></div>
                     <div class="col-12"><label>DA / Cost Image</label><input type="file" accept="image/*" id="expense_image" class="form-control"><small class="text-muted" id="expense_image_hint">JPG, PNG or WEBP - max 5 MB.</small></div>
@@ -431,6 +431,9 @@ $('#saveExpenseRow').on('click',function(){
     const idx=$('#expenseEditIndex').val();
     const oldRow = idx==='' ? {} : (expenses[parseInt(idx,10)] || {});
     const imageFile = document.getElementById('expense_image').files[0] || oldRow.image_file || null;
+    const billRequired = String($('#expense_type option:selected').data('bill-required')) === '1';
+    const hasExistingBill = !!(oldRow.image_url || oldRow.image_view_url || oldRow.image_preview_url);
+    if(billRequired && !imageFile && !hasExistingBill){ Swal.fire('Bill Required','This expense type requires a bill/image. Please attach one.','warning'); return; }
     if(!travels.length){Swal.fire('TA Required','Please add the corresponding TA/travel entry before adding DA.','warning');return;}
     const row={id:oldRow.id||null,edit_count:(oldRow.id && idx!=='' ? Number(oldRow.edit_count||0)+1 : Number(oldRow.edit_count||0)),_edited:(oldRow.id && idx!=='' ? true : !!oldRow._edited),last_edited_by_name:oldRow.last_edited_by_name||'',last_edited_at:oldRow.last_edited_at||'',entry_at:expenseDate+'T'+expenseTime,expense_type_id:String(typeId),expense_type:$('#expense_type option:selected').data('name')||$('#expense_type option:selected').text(),amount:amount,note:$.trim($('#expense_note').val()),image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
     if(idx==='') expenses.push(row); else expenses[parseInt(idx,10)]=row;

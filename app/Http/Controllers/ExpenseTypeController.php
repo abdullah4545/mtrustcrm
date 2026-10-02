@@ -25,8 +25,10 @@ class ExpenseTypeController extends Controller
             'name' => 'required|string|max:100|unique:expense_types,name',
             'status' => 'nullable|boolean',
             'sort_order' => 'nullable|integer|min:0',
+            'bill_required' => 'nullable|boolean',
         ]);
         $data['status'] = $request->boolean('status', true);
+        $data['bill_required'] = $request->boolean('bill_required');
         ExpenseType::create($data);
         return back()->with('message','DA / Expense type created successfully');
     }
@@ -37,8 +39,10 @@ class ExpenseTypeController extends Controller
             'name' => 'required|string|max:100|unique:expense_types,name,'.$expenseType->id,
             'status' => 'nullable|boolean',
             'sort_order' => 'nullable|integer|min:0',
+            'bill_required' => 'nullable|boolean',
         ]);
         $data['status'] = $request->boolean('status');
+        $data['bill_required'] = $request->boolean('bill_required');
         $expenseType->update($data);
         return back()->with('message','DA / Expense type updated successfully');
     }

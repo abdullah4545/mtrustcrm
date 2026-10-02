@@ -105,9 +105,10 @@ class ActivityController extends Controller
             ? User::where('status',1)->orderBy('name')->get(['id','name'])
             : User::whereKey($u->id)->get(['id','name']);
         $showStaffColumn = $u->can('activity.view_all');
+        $showStatus = $u->can('activity.status.view');
         $showEditAudit = false;// TA/DA edit audit is shown per row inside the activity form.
         // TA/DA edit status is intentionally not shown on the Activity List.
-        return view('backend.content.activity.index', compact('staffs', 'showStaffColumn', 'showEditAudit'));
+        return view('backend.content.activity.index', compact('staffs', 'showStaffColumn', 'showEditAudit', 'showStatus'));
     }
 
     public function datatable(Request $request)
@@ -115,6 +116,11 @@ class ActivityController extends Controller
         $query = $this->visibleQuery()
             ->latest('activity_at')->latest('id');
         if (Auth::user()->can('activity.view_all') && Auth::user()->can('staff.filter') && $request->filled('created_by')) $query->where('created_by', $request->integer('created_by'));
+        if ($request->filled('date')) $query->whereDate('date', $request->date('date'));
+        else {
+            if ($request->filled('from_date')) $query->whereDate('date','>=',$request->date('from_date'));
+            if ($request->filled('to_date')) $query->whereDate('date','<=',$request->date('to_date'));
+        }
         return DataTables::of($query)
             ->addIndexColumn()
             ->addColumn('staff_name', fn($row) => e($row->creator?->name ?? '-'))
@@ -384,6 +390,9 @@ class ActivityController extends Controller
                 $existing = $r['existing_image_url'] ?? null;
                 $imagePath = ($existing && in_array($existing, $oldExpenseImages, true)) ? $existing : ($expense?->image_url);
                 $newImageUploaded = !empty($r['image']);
+                if ($type?->bill_required && !$newImageUploaded && !$imagePath) {
+                    throw ValidationException::withMessages(['expenses'=>'Bill/image is required for '.$type->name.'.']);
+                }
                 if ($newImageUploaded) {
                     $newPath = $this->storeActivityImage($r['image'], 'da');
                     if ($newPath) $imagePath = $newPath;

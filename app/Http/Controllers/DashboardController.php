@@ -28,10 +28,13 @@ class DashboardController extends Controller
             $branches = Branch::orderBy('branch_name')->get(['id','branch_name']);
         }
         $territories = collect();
+        $allDistrictsAllowed = false;
         if (CrmAccess::hasAreaRestriction(Auth::user())) {
             $territories = Auth::user()->areaAssignments()->with(['district:id,name','upazila:id,name'])->get()->groupBy('district_id');
+            $activeDistrictCount = \App\Models\District::where('is_active',1)->count();
+            $allDistrictsAllowed = $activeDistrictCount > 0 && $territories->count() === $activeDistrictCount && $territories->every(fn($rows)=>$rows->contains(fn($x)=>is_null($x->upazila_id)));
         }
-        return view('backend.content.maincontent', compact('branches','territories'));
+        return view('backend.content.maincontent', compact('branches','territories','allDistrictsAllowed'));
     }
 
     private function canSeeAllBranches(): bool

@@ -210,7 +210,7 @@
                                 id="status"
                                 class="form-control"
                             >
-                                <option value="">
+                                <option value="" selected>
                                     All Status
                                 </option>
 

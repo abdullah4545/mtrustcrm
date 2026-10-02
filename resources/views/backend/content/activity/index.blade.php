@@ -30,17 +30,11 @@
     </div>
 
     <div class="main-content">
-        <div class="card mb-3"><div class="card-body"><div class="row g-2">
-<div class="col-md-3"><label class="form-label">Single Date</label><input type="date" id="f_date" class="form-control"></div>
-<div class="col-md-3"><label class="form-label">From Date</label><input type="date" id="f_from_date" class="form-control"></div>
-<div class="col-md-3"><label class="form-label">To Date</label><input type="date" id="f_to_date" class="form-control"></div>
-<div class="col-md-3 d-flex align-items-end"><button type="button" id="f_date_reset" class="btn btn-light w-100">Reset Date</button></div>
-</div></div></div>
-<div class="card">
+        <div class="card">
             <div class="card-body">
                 <div class="row g-2 mb-3">
                     @if($showStaffColumn && auth()->user()->can('staff.filter'))
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label">Staff / Created By</label>
                         <select id="f_created_by" class="form-control">
                             <option value="">All Staff</option>
@@ -50,6 +44,17 @@
                         </select>
                     </div>
                     @endif
+                    <div class="col-md-3">
+                        <label class="form-label">From Date</label>
+                        <input type="date" id="f_from_date" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">To Date</label>
+                        <input type="date" id="f_to_date" class="form-control">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="button" id="f_date_reset" class="btn btn-light w-100">Reset Date</button>
+                    </div>
                 </div>
 
                 <table class="table table-bordered" id="activityTable">
@@ -217,7 +222,7 @@
         table = $('#activityTable').DataTable({
             processing:true,
             serverSide:true,
-            ajax:{url:ROUTE_DATATABLE,data:function(d){d.created_by=$('#f_created_by').val();d.date=$('#f_date').val();d.from_date=$('#f_from_date').val();d.to_date=$('#f_to_date').val();}},
+            ajax:{url:ROUTE_DATATABLE,data:function(d){d.created_by=$('#f_created_by').val();d.from_date=$('#f_from_date').val();d.to_date=$('#f_to_date').val();}},
             columns:[
                 {data:'DT_RowIndex', orderable:false, searchable:false},
                 {data:'date'},
@@ -242,8 +247,8 @@
 
         
 
-        $('#f_created_by,#f_date,#f_from_date,#f_to_date').on('change',function(){if(this.id==='f_date' && this.value){$('#f_from_date,#f_to_date').val('');}else if((this.id==='f_from_date'||this.id==='f_to_date') && this.value){$('#f_date').val('');}table.ajax.reload();});
-        $('#f_date_reset').on('click',function(){$('#f_date,#f_from_date,#f_to_date').val('');table.ajax.reload();});
+        $('#f_created_by,#f_from_date,#f_to_date').on('change',function(){table.ajax.reload();});
+        $('#f_date_reset').on('click',function(){$('#f_from_date,#f_to_date').val('');table.ajax.reload();});
 
         $('#ta,#da').on('keyup change', function(){
             let ta = parseFloat($('#ta').val()) || 0;

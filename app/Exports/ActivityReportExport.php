@@ -281,8 +281,10 @@ class ActivityReportExport implements
         return match ($column) {
             'serial' => $serial,
 
-            'date' => optional($activity->date)
-                ->format('D, M d, Y'),
+            'date' => ($activity->activity_at ?? $activity->created_at ?? $activity->date)
+                ? ($activity->activity_at ?? $activity->created_at ?? $activity->date)
+                    ->copy()->timezone('Asia/Dhaka')->format('d M Y, h:i A')
+                : '',
 
             'ta',
             'da',

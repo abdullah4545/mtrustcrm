@@ -271,8 +271,10 @@
                         $value = match($column) {
                             'serial' => $index + 1,
 
-                            'date' => optional($activity->date)
-                                ->format('D, M d, Y'),
+                            'date' => ($activity->activity_at ?? $activity->created_at ?? $activity->date)
+                                ? ($activity->activity_at ?? $activity->created_at ?? $activity->date)
+                                    ->copy()->timezone('Asia/Dhaka')->format('d M Y, h:i A')
+                                : '',
 
                             'distance' =>
                                 (float) $activity->distance ==

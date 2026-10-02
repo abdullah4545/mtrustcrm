@@ -27,7 +27,7 @@ class ActivityReportController extends Controller
     
     private const AVAILABLE_COLUMNS = [
         'serial'            => 'Sl',
-        'date'              => 'Date',
+        'date'              => 'Date & Time',
         'organization_name' => 'Name of Organ.',
         'department'        => 'Depart.',
         'contact_person'    => 'Cont. Person',
@@ -398,8 +398,10 @@ class ActivityReportController extends Controller
             $row[$column] = match ($column) {
                 'serial' => $serial,
 
-                'date' => optional($activity->date)
-                    ->format('D, M d, Y'),
+                'date' => ($activity->activity_at ?? $activity->created_at ?? $activity->date)
+                    ? ($activity->activity_at ?? $activity->created_at ?? $activity->date)
+                        ->copy()->timezone('Asia/Dhaka')->format('d M Y, h:i A')
+                    : '',
 
                 'distance' => $this->formatDistance(
                     $activity->distance

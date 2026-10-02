@@ -59,13 +59,19 @@ class UserManagementController extends Controller
         if ($request->filled('status')) $q->where('status', (int)$request->status);
         if ($request->filled('role')) $q->role($request->role);
 
+        $activeDistrictCount = District::where('is_active', 1)->count();
+
         return DataTables::of($q)
             ->addIndexColumn()
             ->addColumn('branch', fn($r) => $r->branch?->branch_name ?? '-')
             ->addColumn('role', fn($r) => '<span class="badge bg-dark">'.e($r->getRoleNames()->first() ?? 'No role').'</span>')
-            ->addColumn('areas', function($r){
+            ->addColumn('areas', function($r) use ($activeDistrictCount){
                 if ($r->areaAssignments->isEmpty()) return '<span class="text-muted">No area restriction</span>';
                 $groups = $r->areaAssignments->groupBy('district_id');
+                $allDistrictsAllowed = $activeDistrictCount > 0
+                    && $groups->count() === $activeDistrictCount
+                    && $groups->every(fn($rows) => $rows->contains(fn($area) => is_null($area->upazila_id)));
+                if ($allDistrictsAllowed) return '<span class="fw-semibold">All District Allow</span>';
                 $parts = [];
                 foreach ($groups as $rows) {
                     $district = $rows->first()->district?->name ?? 'District';

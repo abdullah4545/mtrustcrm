@@ -52,7 +52,18 @@
                         <label class="form-label">To Date</label>
                         <input type="date" id="f_to_date" class="form-control">
                     </div>
-                    <div class="col-md-3"><label class="form-label">Payment Status</label><select id="f_payment_status" class="form-control"><option value="">All</option><option value="unpaid">Unpaid</option><option value="waiting_for_payment">Waiting for Payment</option><option value="paid">Paid</option></select></div>
+                    @if($showStatus)
+                    <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        <select id="f_status" class="form-control">
+                            <option value="">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                    @endif
+                    <div class="col-md-3"><label class="form-label">Payment Status</label><select id="f_payment_status" class="form-control"><option value="">All Payment Status</option><option value="unpaid">Unpaid</option><option value="waiting_for_payment">Waiting for Payment</option><option value="paid">Paid</option></select></div>
                     <div class="col-md-3 d-flex align-items-end">
                         <button type="button" id="f_date_reset" class="btn btn-light w-100">Reset Date</button>
                     </div>
@@ -228,7 +239,7 @@
         table = $('#activityTable').DataTable({
             processing:true,
             serverSide:true,
-            ajax:{url:ROUTE_DATATABLE,data:function(d){d.created_by=$('#f_created_by').val();d.from_date=$('#f_from_date').val();d.to_date=$('#f_to_date').val();d.payment_status=$('#f_payment_status').val();}},
+            ajax:{url:ROUTE_DATATABLE,data:function(d){d.created_by=$('#f_created_by').val();d.from_date=$('#f_from_date').val();d.to_date=$('#f_to_date').val();d.status=@json($showStatus) ? $('#f_status').val() : '';d.payment_status=$('#f_payment_status').val();}},
             columns:[
                 {data:'select',orderable:false,searchable:false},
                 {data:'DT_RowIndex', orderable:false, searchable:false},
@@ -256,8 +267,8 @@
 
         
 
-        $('#f_created_by,#f_from_date,#f_to_date,#f_payment_status').on('change',function(){table.ajax.reload();});
-        $('#f_date_reset').on('click',function(){$('#f_from_date,#f_to_date,#f_payment_status').val('');table.ajax.reload();});
+        $('#f_created_by,#f_from_date,#f_to_date,@if($showStatus)#f_status,@endif #f_payment_status').on('change',function(){table.ajax.reload();});
+        $('#f_date_reset').on('click',function(){$('#f_from_date,#f_to_date,#f_payment_status@if($showStatus),#f_status@endif').val('');table.ajax.reload();});
 
         $('#ta,#da').on('keyup change', function(){
             let ta = parseFloat($('#ta').val()) || 0;

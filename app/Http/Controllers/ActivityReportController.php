@@ -84,6 +84,7 @@ class ActivityReportController extends Controller
             'availableColumns' => self::AVAILABLE_COLUMNS,
             'defaultColumns'   => self::DEFAULT_COLUMNS,
             'canViewStatus'    => Auth::user()->can('activity.status.view'),
+            'canManagePayment' => Auth::user()->can('activity.payment.manage'),
         ]);
     }
 
@@ -397,7 +398,12 @@ class ActivityReportController extends Controller
         array $columns,
         int $serial
     ): array {
-        $row = [];
+        $row = [
+            '_id' => $activity->id,
+            '_status' => strtolower((string) $activity->status),
+            '_payment_status' => (string) $activity->payment_status,
+            '_payment_eligible' => strtolower((string) $activity->status) !== 'rejected',
+        ];
 
         foreach ($columns as $column) {
             $row[$column] = match ($column) {

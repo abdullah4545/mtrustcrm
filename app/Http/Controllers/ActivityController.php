@@ -119,6 +119,9 @@ class ActivityController extends Controller
         $query = $this->visibleQuery()
             ->latest('activity_at')->latest('id');
         if (Auth::user()->can('activity.view_all') && Auth::user()->can('staff.filter') && $request->filled('created_by')) $query->where('created_by', $request->integer('created_by'));
+        if ($showStatus = Auth::user()->can('activity.status.view')) {
+            if ($request->filled('status')) $query->where('status', $request->string('status'));
+        }
         if ($request->filled('payment_status')) $query->where('payment_status',$request->string('payment_status'));
         if ($request->filled('date')) $query->whereDate('date', $request->date('date'));
         else {
@@ -446,26 +449,77 @@ class ActivityController extends Controller
 
     public function bulkAction(Request $request)
     {
-        $data=$request->validate(['ids'=>'required|array|min:1','ids.*'=>'integer','action'=>'required|in:approve,reject,unpaid,waiting_for_payment,paid']);
-        $activities=$this->visibleQuery()->whereIn('id',$data['ids'])->get();
-        if($activities->count()!==count(array_unique($data['ids']))) abort(403,'One or more activities are not accessible.');
-        $action=$data['action']; $user=Auth::user();
-        if(in_array($action,['approve','reject'],true) && !$user->can('activity.bulk_review')) abort(403);
-        if(in_array($action,['unpaid','waiting_for_payment','paid'],true) && !$user->can('activity.payment.manage')) abort(403);
-        DB::transaction(function() use($activities,$action,$user){ foreach($activities as $a){
-            if($action==='approve'){ if($this->isLocked($a)&&!$this->isSuperAdmin()) throw ValidationException::withMessages(['activity'=>'Reviewed activities are locked.']); $a->status='approved';$a->reviewed_by=$user->id;$a->reviewed_at=now('Asia/Dhaka'); }
-            elseif($action==='reject'){ if($a->payment_status==='paid') throw ValidationException::withMessages(['activity'=>'Paid activity cannot be rejected.']); if($this->isLocked($a)&&!$this->isSuperAdmin()) throw ValidationException::withMessages(['activity'=>'Reviewed activities are locked.']); $a->status='rejected';$a->reviewed_by=$user->id;$a->reviewed_at=now('Asia/Dhaka'); if($a->payment_status!=='paid')$a->payment_status='unpaid'; }
-            else {
-                if(strtolower((string)$a->status)==='rejected') throw ValidationException::withMessages(['payment_status'=>'Rejected activity cannot enter payment processing.']);
-                if($action==='waiting_for_payment' && $a->payment_status!=='unpaid') throw ValidationException::withMessages(['payment_status'=>'Only Unpaid activity can move to Waiting for Payment.']);
-                if($action==='paid' && $a->payment_status!=='waiting_for_payment') throw ValidationException::withMessages(['payment_status'=>'Only Waiting for Payment activity can be marked Paid.']);
-                if($action==='unpaid' && $a->payment_status==='paid') throw ValidationException::withMessages(['payment_status'=>'Paid activity cannot be moved back to Unpaid.']);
-                $a->payment_status=$action==='waiting_for_payment'?'waiting_for_payment':$action;
-                if($action==='paid'){$a->paid_at=now('Asia/Dhaka');$a->paid_by=$user->id;} else {$a->paid_at=null;$a->paid_by=null;}
+        $data = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer',
+            'action' => 'required|in:approve,reject,unpaid,waiting_for_payment,paid',
+        ]);
+
+        $activities = $this->visibleQuery()->whereIn('id', $data['ids'])->get();
+        if ($activities->count() !== count(array_unique($data['ids']))) {
+            abort(403, 'One or more activities are not accessible.');
+        }
+
+        $action = $data['action'];
+        $user = Auth::user();
+        if (in_array($action, ['approve','reject'], true) && !$user->can('activity.bulk_review')) abort(403);
+        if (in_array($action, ['unpaid','waiting_for_payment','paid'], true) && !$user->can('activity.payment.manage')) abort(403);
+
+        $updated = 0;
+        $skipped = 0;
+        $skipReasons = [];
+
+        DB::transaction(function () use ($activities, $action, $user, &$updated, &$skipped, &$skipReasons) {
+            foreach ($activities as $a) {
+                if ($action === 'approve') {
+                    if ($this->isLocked($a) && !$this->isSuperAdmin()) { $skipped++; $skipReasons[] = "Activity #{$a->id}: reviewed/locked"; continue; }
+                    $a->status = 'approved';
+                    $a->reviewed_by = $user->id;
+                    $a->reviewed_at = now('Asia/Dhaka');
+                } elseif ($action === 'reject') {
+                    if ($a->payment_status === 'paid') { $skipped++; $skipReasons[] = "Activity #{$a->id}: already paid"; continue; }
+                    if ($this->isLocked($a) && !$this->isSuperAdmin()) { $skipped++; $skipReasons[] = "Activity #{$a->id}: reviewed/locked"; continue; }
+                    $a->status = 'rejected';
+                    $a->reviewed_by = $user->id;
+                    $a->reviewed_at = now('Asia/Dhaka');
+                    $a->payment_status = 'unpaid';
+                    $a->paid_at = null;
+                    $a->paid_by = null;
+                } else {
+                    // Global safety rule: a rejected activity can NEVER enter payment processing.
+                    if (strtolower((string) $a->status) === 'rejected') {
+                        $skipped++;
+                        $skipReasons[] = "Activity #{$a->id}: rejected";
+                        continue;
+                    }
+                    if ($action === 'waiting_for_payment' && $a->payment_status !== 'unpaid') { $skipped++; continue; }
+                    if ($action === 'paid' && $a->payment_status !== 'waiting_for_payment') { $skipped++; continue; }
+                    if ($action === 'unpaid' && $a->payment_status === 'paid') { $skipped++; continue; }
+
+                    $a->payment_status = $action === 'waiting_for_payment' ? 'waiting_for_payment' : $action;
+                    if ($action === 'paid') {
+                        $a->paid_at = now('Asia/Dhaka');
+                        $a->paid_by = $user->id;
+                    } else {
+                        $a->paid_at = null;
+                        $a->paid_by = null;
+                    }
+                }
+                $a->save();
+                $updated++;
             }
-            $a->save();
-        }});
-        return response()->json(['status'=>true,'message'=>'Selected activities updated successfully.']);
+        });
+
+        $message = "{$updated} activity(s) updated successfully.";
+        if ($skipped > 0) $message .= " {$skipped} activity(s) skipped because they were rejected or not eligible for this transition.";
+
+        return response()->json([
+            'status' => true,
+            'message' => $message,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'skip_reasons' => array_values(array_unique($skipReasons)),
+        ]);
     }
 
     public function quickStore(Request $request){ $a=$this->saveActivity(new Activity(),$request); return response()->json(['status'=>true,'message'=>'Field activity created successfully','data'=>$a]); }

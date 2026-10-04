@@ -424,6 +424,17 @@
                 </div>
             </div>
 
+            @if($canManagePayment)
+            <div class="card-body border-bottom py-2">
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <strong>Payment Action:</strong>
+                    <button type="button" class="btn btn-sm btn-primary" id="reportMarkPaid">Mark Selected Paid</button>
+                    <span class="text-muted small" id="reportSelectedCount">0 selected</span>
+                    <span class="text-muted small">Rejected activities are never eligible for payment.</span>
+                </div>
+            </div>
+            @endif
+
             <div class="card-body p-0">
                 <div class="report-table-wrapper">
                     <table
@@ -573,6 +584,9 @@
     const DEFAULT_COLUMNS =
         @json($defaultColumns);
 
+    const ACTIVITY_BULK_URL = @json(route('activities.bulk-action'));
+    const CAN_MANAGE_PAYMENT = @json($canManagePayment);
+
     $(document).ready(function () {
         initSelect2();
         loadReport();
@@ -718,8 +732,9 @@
             .trigger('change');
 
         @if($canViewStatus)
-        $('#status').val(null).trigger('change.select2'); $('#payment_status').val('');
+        $('#status').val('').trigger('change.select2');
         @endif
+        $('#payment_status').val('');
 
         $('#organization_id')
             .val('')
@@ -754,6 +769,39 @@
             reportParameters().toString(),
             '_blank'
         );
+    });
+
+    function updateReportSelectedCount() {
+        $('#reportSelectedCount').text($('.report-activity-check:checked').length + ' selected');
+        const eligible = $('.report-activity-check:not(:disabled)').length;
+        const selected = $('.report-activity-check:not(:disabled):checked').length;
+        $('#reportSelectAll').prop('checked', eligible > 0 && eligible === selected);
+    }
+
+    $(document).on('change', '#reportSelectAll', function () {
+        $('.report-activity-check:not(:disabled)').prop('checked', this.checked);
+        updateReportSelectedCount();
+    });
+
+    $(document).on('change', '.report-activity-check', updateReportSelectedCount);
+
+    $('#reportMarkPaid').on('click', function () {
+        const ids = $('.report-activity-check:checked').map(function(){ return Number(this.value); }).get();
+        if (!ids.length) { Swal.fire('Select Activity', 'Please select at least one eligible activity.', 'warning'); return; }
+        Swal.fire({
+            title: 'Mark selected as Paid?',
+            text: ids.length + ' activity(s) selected. Rejected or otherwise ineligible activities will remain unchanged.',
+            icon: 'question', showCancelButton: true, confirmButtonText: 'Yes, Mark Paid'
+        }).then(function(result){
+            if (!result.isConfirmed) return;
+            $.post(ACTIVITY_BULK_URL, {ids: ids, action: 'paid'})
+                .done(function(response){ Swal.fire('Done', response.message, 'success'); loadReport(); })
+                .fail(function(xhr){
+                    let message = xhr.responseJSON?.message || 'Unable to update payment status.';
+                    if (xhr.status === 422 && xhr.responseJSON?.errors) message = Object.values(xhr.responseJSON.errors)[0][0];
+                    Swal.fire('Blocked', message, 'error');
+                });
+        });
     });
 
     function loadReport() {
@@ -834,6 +882,10 @@
 
         let headerHtml = '<tr>';
 
+        if (CAN_MANAGE_PAYMENT) {
+            headerHtml += '<th style="width:42px" class="text-center"><input type="checkbox" id="reportSelectAll" title="Select all eligible filtered activities"></th>';
+        }
+
         columns.forEach(function (column) {
             headerHtml += `
                 <th>${escapeHtml(column.label)}</th>
@@ -848,7 +900,7 @@
             $('#reportTableBody').html(`
                 <tr>
                     <td
-                        colspan="${Math.max(columns.length, 1)}"
+                        colspan="${Math.max(columns.length + (CAN_MANAGE_PAYMENT ? 1 : 0), 1)}"
                         class="empty-report"
                     >
                         No activities found for selected filters.
@@ -860,6 +912,12 @@
 
             rows.forEach(function (row) {
                 bodyHtml += '<tr>';
+                if (CAN_MANAGE_PAYMENT) {
+                    const rejected = String(row._status || '').toLowerCase() === 'rejected';
+                    const disabled = rejected ? 'disabled' : '';
+                    const title = rejected ? 'Rejected activity cannot be paid' : 'Select activity';
+                    bodyHtml += `<td class="text-center"><input type="checkbox" class="report-activity-check" value="${Number(row._id)}" ${disabled} title="${title}"></td>`;
+                }
 
                 columns.forEach(function (column) {
                     bodyHtml += `
@@ -890,6 +948,7 @@
         }
 
         let footerHtml = '<tr class="fw-bold">';
+        if (CAN_MANAGE_PAYMENT) footerHtml += '<td></td>';
 
         columns.forEach(function (column, index) {
             let value = '';

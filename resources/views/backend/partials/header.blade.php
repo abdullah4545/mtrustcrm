@@ -64,6 +64,7 @@
                             </div>
                         </div>
                         <div class="p-2">
+                            @can('profile.view')<a href="{{ route('profile.edit') }}" class="dropdown-item rounded"><i class="feather-user me-2"></i>My Profile</a>@endcan
                             @can('business.manage')
                             <a href="{{ route('settings.index') }}" class="dropdown-item rounded"><i class="feather-settings me-2"></i>Business Settings</a>
                             @endcan

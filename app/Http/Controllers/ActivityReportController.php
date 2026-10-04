@@ -41,6 +41,8 @@ class ActivityReportController extends Controller
         'total'             => 'Total',
         'remarks'           => 'Remarks',
         'status'            => 'Status',
+        'payment_status'    => 'Payment Status',
+        'tour_type'         => 'Tour Type',
         'created_by'        => 'Created By',
     ];
 
@@ -97,7 +99,7 @@ class ActivityReportController extends Controller
         );
 
         $activities = $this->reportQuery($validated)
-            ->with('creator')
+            ->with(['creator','travels'])
             ->orderBy('date')
             ->orderBy('id')
             ->get();
@@ -148,7 +150,7 @@ class ActivityReportController extends Controller
         $columns = $this->resolveColumns($validated['columns'] ?? []);
 
         $activities = $this->reportQuery($validated)
-            ->with('creator')
+            ->with(['creator','travels'])
             ->orderBy('date')
             ->orderBy('id')
             ->get();
@@ -195,7 +197,7 @@ class ActivityReportController extends Controller
         $columns = $this->resolveColumns($validated['columns'] ?? []);
 
         $activities = $this->reportQuery($validated)
-            ->with('creator')
+            ->with(['creator','travels'])
             ->orderBy('date')
             ->orderBy('id')
             ->get();
@@ -288,6 +290,7 @@ class ActivityReportController extends Controller
                         $filters['status']
                     )
             )
+            ->when(!empty($filters['payment_status']), fn (Builder $query) => $query->where('payment_status',$filters['payment_status']))
             ->when(
                 !empty($filters['organization_id']),
                 fn (Builder $query) =>
@@ -343,6 +346,8 @@ class ActivityReportController extends Controller
                     'rejected',
                 ]),
             ],
+
+            'payment_status' => ['nullable', Rule::in(['unpaid','waiting_for_payment','paid'])],
 
             'columns' => [
                 'nullable',
@@ -418,9 +423,9 @@ class ActivityReportController extends Controller
                     $activity->creator
                 )->name ?? 'N/A',
 
-                'status' => ucfirst(
-                    (string) $activity->status
-                ),
+                'status' => ucfirst((string) $activity->status),
+                'payment_status' => ucwords(str_replace('_',' ',(string)$activity->payment_status)),
+                'tour_type' => $activity->travels->pluck('tour_type')->map(fn($v)=>$v==='tour'?'Tour':'Local Tour')->unique()->implode(', '),
 
                 default => $activity->{$column} ?? '',
             };

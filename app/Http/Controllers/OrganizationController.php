@@ -259,7 +259,7 @@ class OrganizationController extends Controller
 
         return DataTables::of($q)
             ->addIndexColumn()
-            ->editColumn('name', function($row){ return auth()->user()->can('org.details.view') ? '<a class="fw-semibold" href="'.route('org.history',$row->id).'">'.e($row->name).'</a>' : e($row->name); })
+            ->editColumn('name', function($row){ return auth()->user()->can('org.details.view') ? '<a class="fw-semibold" href="'.route('org.contacts.index',$row->id).'">'.e($row->name).'</a>' : e($row->name); })
             ->addColumn('staff_name', fn($row) => e($row->creator?->name ?? '-'))
             ->addColumn('category', fn($row) => $row->category?->name ?? '-')
             ->addColumn('type', fn($row) => $row->type?->name ?? '-')

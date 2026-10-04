@@ -28,6 +28,7 @@
             'last_edited_at' => data_get($row, 'last_edited_at')
                 ? \Illuminate\Support\Carbon::parse(data_get($row, 'last_edited_at'))->timezone('Asia/Dhaka')->format('d M Y, h:i A')
                 : '',
+            'tour_type' => (string) data_get($row, 'tour_type', 'local_tour'),
             'from_location' => (string) data_get($row, 'from_location', ''),
             'to_location' => (string) data_get($row, 'to_location', ''),
             'vehicle' => (string) data_get($row, 'vehicle', ''),
@@ -185,6 +186,7 @@
                 <div class="row g-3">
                     <div class="col-6"><label>TA Date *</label><input type="date" id="travel_date" class="form-control" required></div>
                     <div class="col-6"><label>TA Time *</label><input type="time" id="travel_time" class="form-control" required></div>
+                    <div class="col-12"><label>Tour Type *</label><select id="travel_tour_type" class="form-control"><option value="local_tour">Local Tour</option><option value="tour">Tour</option></select></div>
                     <div class="col-12"><label>From *</label><input id="travel_from" class="form-control" placeholder="From location"></div>
                     <div class="col-12"><label>To *</label><input id="travel_to" class="form-control" placeholder="To location"></div>
                     <div class="col-12 col-sm-6"><label>Vehicle</label><select id="travel_vehicle" class="form-control"><option value="">Select Vehicle</option></select></div>
@@ -263,7 +265,7 @@ function renderTravels(){
             <div class="activity-list-main">
                 <div class="activity-list-title">${esc(r.from_location || '—')} <i class="feather-arrow-right mx-1"></i> ${esc(r.to_location || '—')}</div>
                 <div class="activity-list-meta">
-                    <span><i class="feather-truck me-1"></i>${esc(r.vehicle || 'No vehicle')}</span>
+                    <span><i class="feather-tag me-1"></i>${r.tour_type==='tour'?'Tour':'Local Tour'}</span><span><i class="feather-truck me-1"></i>${esc(r.vehicle || 'No vehicle')}</span>
                     <span><i class="feather-map-pin me-1"></i>${money(r.distance)} KM</span>
                     <span><i class="feather-calendar me-1"></i>${esc(displayEntry(r.entry_at))}</span>
                 </div>
@@ -313,13 +315,13 @@ function fillVehicleOptions(selected=''){
 
 function resetTravelModal(){
     $('#travelEditIndex').val(''); $('#travelModalTitle').text('Add Travel');
-    $('#travel_from,#travel_to').val(''); const np=nowParts(); $('#travel_date').val(np.date); $('#travel_time').val(np.time); $('#travel_distance,#travel_cost').val(0); $('#travel_image').val(''); $('#travel_image_hint').text('JPG, PNG or WEBP - max 5 MB.'); fillVehicleOptions('');
+    $('#travel_from,#travel_to').val(''); $('#travel_tour_type').val('local_tour'); const np=nowParts(); $('#travel_date').val(np.date); $('#travel_time').val(np.time); $('#travel_distance,#travel_cost').val(0); $('#travel_image').val(''); $('#travel_image_hint').text('JPG, PNG or WEBP - max 5 MB.'); fillVehicleOptions('');
 }
 function openTravelEdit(index){
     const r=travels[index]; if(!r) return;
     if(r.id && !CAN_MULTIPLE_TADA_EDIT && Number(r.edit_count||0) >= 1){ Swal.fire('Edit Locked','This TA has already been edited once.','info'); return; }
     $('#travelEditIndex').val(index); $('#travelModalTitle').text('Edit Travel');
-    const ep=entryParts(r.entry_at); $('#travel_date').val(ep.date); $('#travel_time').val(ep.time); $('#travel_from').val(r.from_location); $('#travel_to').val(r.to_location); fillVehicleOptions(r.vehicle); $('#travel_distance').val(r.distance); $('#travel_cost').val(r.cost); $('#travel_image').val('');
+    const ep=entryParts(r.entry_at); $('#travel_date').val(ep.date); $('#travel_time').val(ep.time); $('#travel_tour_type').val(r.tour_type||'local_tour'); $('#travel_from').val(r.from_location); $('#travel_to').val(r.to_location); fillVehicleOptions(r.vehicle); $('#travel_distance').val(r.distance); $('#travel_cost').val(r.cost); $('#travel_image').val('');
     $('#travel_image_hint').text((r.image_file?.name || (r.image_url ? 'Current image attached. Choose a file only to replace it.' : 'JPG, PNG or WEBP - max 5 MB.')));
     travelModal.show();
 }
@@ -411,7 +413,7 @@ $('#saveTravelRow').on('click',function(){
     const idx=$('#travelEditIndex').val();
     const oldRow = idx==='' ? {} : (travels[parseInt(idx,10)] || {});
     const imageFile = document.getElementById('travel_image').files[0] || oldRow.image_file || null;
-    const row={id:oldRow.id||null,edit_count:(oldRow.id && idx!=='' ? Number(oldRow.edit_count||0)+1 : Number(oldRow.edit_count||0)),_edited:(oldRow.id && idx!=='' ? true : !!oldRow._edited),last_edited_by_name:oldRow.last_edited_by_name||'',last_edited_at:oldRow.last_edited_at||'',entry_at:travelDate+'T'+travelTime,from_location:from,to_location:to,vehicle:$('#travel_vehicle').val()||'',distance:parseFloat($('#travel_distance').val())||0,cost:cost,image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
+    const row={id:oldRow.id||null,edit_count:(oldRow.id && idx!=='' ? Number(oldRow.edit_count||0)+1 : Number(oldRow.edit_count||0)),_edited:(oldRow.id && idx!=='' ? true : !!oldRow._edited),last_edited_by_name:oldRow.last_edited_by_name||'',last_edited_at:oldRow.last_edited_at||'',entry_at:travelDate+'T'+travelTime,tour_type:$('#travel_tour_type').val()||'local_tour',from_location:from,to_location:to,vehicle:$('#travel_vehicle').val()||'',distance:parseFloat($('#travel_distance').val())||0,cost:cost,image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
     if(idx==='') travels.push(row); else travels[parseInt(idx,10)]=row;
     renderTravels(); travelModal.hide();
 });
@@ -464,6 +466,7 @@ $('#btnSave').on('click',function(){
         if(r.id) fd.append(`travels[${i}][id]`,r.id);
         if(r.id && r._edited) fd.append(`travels[${i}][_edited]`,'1');
         fd.append(`travels[${i}][entry_at]`,r.entry_at||'');
+        fd.append(`travels[${i}][tour_type]`,r.tour_type||'local_tour');
         fd.append(`travels[${i}][from_location]`,r.from_location||'');
         fd.append(`travels[${i}][to_location]`,r.to_location||'');
         fd.append(`travels[${i}][vehicle]`,r.vehicle||'');

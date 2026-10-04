@@ -33,7 +33,7 @@ class ActivityReportExport implements
         private readonly array $columnLabels
     ) {
         $this->activities = $this->query()
-            ->with('creator')
+            ->with(['creator','travels'])
             ->orderBy('date')
             ->orderBy('id')
             ->get();
@@ -255,6 +255,7 @@ class ActivityReportExport implements
                         $this->filters['status']
                     )
             )
+            ->when(!empty($this->filters['payment_status']), fn (Builder $query) => $query->where('payment_status',$this->filters['payment_status']))
             ->when(
                 !empty($this->filters['organization_id']),
                 fn (Builder $query) =>
@@ -296,9 +297,9 @@ class ActivityReportExport implements
                 $activity->creator
             )->name ?? 'N/A',
 
-            'status' => ucfirst(
-                (string) $activity->status
-            ),
+            'status' => ucfirst((string) $activity->status),
+            'payment_status' => ucwords(str_replace('_',' ',(string)$activity->payment_status)),
+            'tour_type' => $activity->travels->pluck('tour_type')->map(fn($v)=>$v==='tour'?'Tour':'Local Tour')->unique()->implode(', '),
 
             default => $activity->{$column} ?? '',
         };

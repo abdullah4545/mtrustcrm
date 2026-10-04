@@ -48,6 +48,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/header/search', [HeaderToolsController::class, 'search'])->name('header.search');
     Route::get('/header/notifications', [HeaderToolsController::class, 'notifications'])->name('header.notifications');
 
+    Route::get('/my-profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::post('/my-profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/my-profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+
     Route::get('/follow-ups', [FollowupController::class, 'index'])->name('followups.index');
     Route::post('/follow-ups/{id}/complete', [FollowupController::class, 'complete'])->name('followups.complete');
     Route::post('/follow-ups/{id}/feedback', [FollowupController::class, 'feedback'])->name('followups.feedback');
@@ -199,6 +203,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/{id}', [ActivityController::class, 'update'])->whereNumber('id')->name('activities.update');
         Route::post('/{id}/delete', [ActivityController::class, 'destroy'])->whereNumber('id')->name('activities.destroy');
         Route::post('/{id}/review', [ActivityController::class, 'review'])->whereNumber('id')->name('activities.review');
+        Route::post('/bulk-action', [ActivityController::class, 'bulkAction'])->name('activities.bulk-action');
         Route::get('/ajax/organizations', [ActivityController::class, 'organizations']);
         Route::get('/ajax/departments', [ActivityController::class, 'departments']);
         Route::get('ajax/vehicles', [ActivityController::class,'vehicles'])->name('activities.vehicles');

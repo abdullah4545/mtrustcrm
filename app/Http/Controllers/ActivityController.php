@@ -33,6 +33,7 @@ class ActivityController extends Controller
         $this->middleware('permission:activity.create')->only(['quickCreate','quickStore','store']);
         $this->middleware('permission:activity.delete')->only(['destroy']);
         $this->middleware('permission:activity.approve')->only(['review']);
+        $this->middleware('permission:activity.bulk_review|activity.payment.manage')->only(['bulkAction']);
     }
 
     private function isAdmin(): bool
@@ -89,7 +90,7 @@ class ActivityController extends Controller
     private function visibleQuery()
     {
         $u = Auth::user();
-        $q = Activity::query()->with(['creator:id,name','lastEditor:id,name']);
+        $q = Activity::query()->with(['creator:id,name','lastEditor:id,name','travels:id,activity_id,tour_type']);
         if ($u->can('activity.view_all')) return $q;
         return $q->where('created_by',$u->id);
     }
@@ -106,9 +107,11 @@ class ActivityController extends Controller
             : User::whereKey($u->id)->get(['id','name']);
         $showStaffColumn = $u->can('activity.view_all');
         $showStatus = $u->can('activity.status.view');
-        $showEditAudit = false;// TA/DA edit audit is shown per row inside the activity form.
+        $showEditAudit = false;
+        $canBulkReview = $u->can('activity.bulk_review');
+        $canManagePayment = $u->can('activity.payment.manage');// TA/DA edit audit is shown per row inside the activity form.
         // TA/DA edit status is intentionally not shown on the Activity List.
-        return view('backend.content.activity.index', compact('staffs', 'showStaffColumn', 'showEditAudit', 'showStatus'));
+        return view('backend.content.activity.index', compact('staffs', 'showStaffColumn', 'showEditAudit', 'showStatus', 'canBulkReview', 'canManagePayment'));
     }
 
     public function datatable(Request $request)
@@ -116,6 +119,7 @@ class ActivityController extends Controller
         $query = $this->visibleQuery()
             ->latest('activity_at')->latest('id');
         if (Auth::user()->can('activity.view_all') && Auth::user()->can('staff.filter') && $request->filled('created_by')) $query->where('created_by', $request->integer('created_by'));
+        if ($request->filled('payment_status')) $query->where('payment_status',$request->string('payment_status'));
         if ($request->filled('date')) $query->whereDate('date', $request->date('date'));
         else {
             if ($request->filled('from_date')) $query->whereDate('date','>=',$request->date('from_date'));
@@ -123,6 +127,7 @@ class ActivityController extends Controller
         }
         return DataTables::of($query)
             ->addIndexColumn()
+            ->addColumn('select', fn($row) => '<input type="checkbox" class="activity-check form-check-input" value="'.$row->id.'">')
             ->addColumn('staff_name', fn($row) => e($row->creator?->name ?? '-'))
             ->addColumn('organization_contact', function($row) {
                 $org = e($row->organization_name ?: '-');
@@ -130,6 +135,8 @@ class ActivityController extends Controller
                 return $contact !== '' ? $org.'<br><strong>'.e($contact).'</strong>' : $org;
             })
             ->editColumn('date', fn($row) => optional($row->activity_at)->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?? optional($row->date)->format('d M Y'))
+            ->addColumn('tour_type', fn($row) => e($row->travels->pluck('tour_type')->map(fn($v)=>$v==='tour'?'Tour':'Local Tour')->unique()->implode(', ') ?: 'Local Tour'))
+            ->addColumn('payment_status', function($row){ $map=['unpaid'=>'secondary','waiting_for_payment'=>'warning','paid'=>'success']; $label=['unpaid'=>'Unpaid','waiting_for_payment'=>'Waiting for Payment','paid'=>'Paid']; return '<span class="badge bg-'.($map[$row->payment_status]??'secondary').'">'.e($label[$row->payment_status]??ucfirst($row->payment_status)).'</span>'.($row->paid_at?'<div class="small text-muted mt-1">'.$row->paid_at->timezone('Asia/Dhaka')->format('d M Y, h:i A').'</div>':''); })
             ->addColumn('status', fn($row) => '<span class="badge bg-'.($row->status==='approved'?'success':($row->status==='rejected'?'danger':'secondary')).'">'.e($row->status).'</span>')
             ->addColumn('edit_history', function($row) {
                 if (!Auth::user()->hasPermissionTo('activity.multiple_edit')) return '';
@@ -183,7 +190,7 @@ class ActivityController extends Controller
                 }
 
                 return $html.'</div>';
-            })->rawColumns(['organization_contact','status','edit_history','action'])->make(true);
+            })->rawColumns(['select','organization_contact','payment_status','status','edit_history','action'])->make(true);
     }
 
     public function quickCreate()
@@ -220,6 +227,7 @@ class ActivityController extends Controller
             'staff_id'=>'nullable|exists:users,id','activity_at'=>'nullable|date','organization_id'=>'nullable|exists:organizations,id','department'=>'nullable|string|max:255',
             'department_id'=>'nullable|exists:departments,id','contact_id'=>'nullable','contact_person'=>'nullable|string|max:255',
             'work_details'=>'required|string','remarks'=>'nullable|string','status'=>'nullable|in:pending,approved,rejected',
+            'travels.*.tour_type'=>'nullable|in:local_tour,tour',
             'travels'=>'nullable|array','travels.*.id'=>'nullable|integer','travels.*.entry_at'=>'required_with:travels|date','travels.*.from_location'=>'nullable|string|max:255','travels.*.to_location'=>'nullable|string|max:255',
             'travels.*.vehicle'=>'nullable|string|max:255','travels.*.distance'=>'required_with:travels|numeric|min:0.01','travels.*.cost'=>'nullable|numeric|min:0',
             'travels.*.existing_image_url'=>'nullable|string|max:500','travels.*._edited'=>'nullable|boolean','travels.*.image'=>'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
@@ -343,7 +351,7 @@ class ActivityController extends Controller
                 }
 
                 $values = [
-                    'from_location'=>$r['from_location']??null,'to_location'=>$r['to_location']??null,'vehicle'=>$r['vehicle']??null,
+                    'tour_type'=>$r['tour_type']??'local_tour','from_location'=>$r['from_location']??null,'to_location'=>$r['to_location']??null,'vehicle'=>$r['vehicle']??null,
                     'distance'=>(float)($r['distance']??0),'cost'=>(float)($r['cost']??0),'entry_at'=>
                         \Carbon\Carbon::parse($r['entry_at'],'Asia/Dhaka'),'image_url'=>$imagePath,
                 ];
@@ -434,6 +442,30 @@ class ActivityController extends Controller
 
             return $activity->fresh(['travels','expenses','creator']);
         });
+    }
+
+    public function bulkAction(Request $request)
+    {
+        $data=$request->validate(['ids'=>'required|array|min:1','ids.*'=>'integer','action'=>'required|in:approve,reject,unpaid,waiting_for_payment,paid']);
+        $activities=$this->visibleQuery()->whereIn('id',$data['ids'])->get();
+        if($activities->count()!==count(array_unique($data['ids']))) abort(403,'One or more activities are not accessible.');
+        $action=$data['action']; $user=Auth::user();
+        if(in_array($action,['approve','reject'],true) && !$user->can('activity.bulk_review')) abort(403);
+        if(in_array($action,['unpaid','waiting_for_payment','paid'],true) && !$user->can('activity.payment.manage')) abort(403);
+        DB::transaction(function() use($activities,$action,$user){ foreach($activities as $a){
+            if($action==='approve'){ if($this->isLocked($a)&&!$this->isSuperAdmin()) throw ValidationException::withMessages(['activity'=>'Reviewed activities are locked.']); $a->status='approved';$a->reviewed_by=$user->id;$a->reviewed_at=now('Asia/Dhaka'); }
+            elseif($action==='reject'){ if($a->payment_status==='paid') throw ValidationException::withMessages(['activity'=>'Paid activity cannot be rejected.']); if($this->isLocked($a)&&!$this->isSuperAdmin()) throw ValidationException::withMessages(['activity'=>'Reviewed activities are locked.']); $a->status='rejected';$a->reviewed_by=$user->id;$a->reviewed_at=now('Asia/Dhaka'); if($a->payment_status!=='paid')$a->payment_status='unpaid'; }
+            else {
+                if(strtolower((string)$a->status)==='rejected') throw ValidationException::withMessages(['payment_status'=>'Rejected activity cannot enter payment processing.']);
+                if($action==='waiting_for_payment' && $a->payment_status!=='unpaid') throw ValidationException::withMessages(['payment_status'=>'Only Unpaid activity can move to Waiting for Payment.']);
+                if($action==='paid' && $a->payment_status!=='waiting_for_payment') throw ValidationException::withMessages(['payment_status'=>'Only Waiting for Payment activity can be marked Paid.']);
+                if($action==='unpaid' && $a->payment_status==='paid') throw ValidationException::withMessages(['payment_status'=>'Paid activity cannot be moved back to Unpaid.']);
+                $a->payment_status=$action==='waiting_for_payment'?'waiting_for_payment':$action;
+                if($action==='paid'){$a->paid_at=now('Asia/Dhaka');$a->paid_by=$user->id;} else {$a->paid_at=null;$a->paid_by=null;}
+            }
+            $a->save();
+        }});
+        return response()->json(['status'=>true,'message'=>'Selected activities updated successfully.']);
     }
 
     public function quickStore(Request $request){ $a=$this->saveActivity(new Activity(),$request); return response()->json(['status'=>true,'message'=>'Field activity created successfully','data'=>$a]); }

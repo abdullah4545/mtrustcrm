@@ -199,6 +199,8 @@
 
                         @endcan
 
+                        <div class="col-md-3"><label class="form-label">Payment Status</label><select name="payment_status" id="payment_status" class="form-control"><option value="">All</option><option value="unpaid">Unpaid</option><option value="waiting_for_payment">Waiting for Payment</option><option value="paid">Paid</option></select></div>
+
                         @if($canViewStatus)
                         <div class="col-md-3">
                             <label class="form-label">
@@ -626,6 +628,7 @@
         const toDate = $('#to_date').val();
         const createdBy = $('#created_by').val();
         const status = @json($canViewStatus) ? ($('#status').val() || '') : '';
+        const paymentStatus = $('#payment_status').val() || '';
         const organizationId = $('#organization_id').val();
         const branchId = $('#branch_id').val();
 
@@ -641,9 +644,8 @@
             params.append('created_by', createdBy);
         }
 
-        if (status) {
-            params.append('status', status);
-        }
+        if (status) { params.append('status', status); }
+        if (paymentStatus) { params.append('payment_status', paymentStatus); }
 
         if (organizationId) {
             params.append(
@@ -716,7 +718,7 @@
             .trigger('change');
 
         @if($canViewStatus)
-        $('#status').val(null).trigger('change.select2');
+        $('#status').val(null).trigger('change.select2'); $('#payment_status').val('');
         @endif
 
         $('#organization_id')

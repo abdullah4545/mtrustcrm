@@ -52,14 +52,18 @@
                         <label class="form-label">To Date</label>
                         <input type="date" id="f_to_date" class="form-control">
                     </div>
+                    <div class="col-md-3"><label class="form-label">Payment Status</label><select id="f_payment_status" class="form-control"><option value="">All</option><option value="unpaid">Unpaid</option><option value="waiting_for_payment">Waiting for Payment</option><option value="paid">Paid</option></select></div>
                     <div class="col-md-3 d-flex align-items-end">
                         <button type="button" id="f_date_reset" class="btn btn-light w-100">Reset Date</button>
                     </div>
                 </div>
 
+                @if($canBulkReview || $canManagePayment)<div class="d-flex flex-wrap gap-2 mb-3 align-items-center"><strong>Bulk Action:</strong>@if($canBulkReview)<button class="btn btn-sm btn-success bulk-action" data-action="approve">Approve</button><button class="btn btn-sm btn-danger bulk-action" data-action="reject">Reject</button>@endif @if($canManagePayment)<button class="btn btn-sm btn-secondary bulk-action" data-action="unpaid">Mark Unpaid</button><button class="btn btn-sm btn-warning bulk-action" data-action="waiting_for_payment">Waiting for Payment</button><button class="btn btn-sm btn-primary bulk-action" data-action="paid">Mark Paid</button>@endif <span id="selectedCount" class="text-muted small">0 selected</span></div>@endif
+
                 <table class="table table-bordered" id="activityTable">
                     <thead>
                     <tr>
+                        <th><input type="checkbox" id="selectAll" class="form-check-input"></th>
                         <th>#</th>
                         <th>Date</th>
                         @if($showStaffColumn)<th>Staff</th>@endif
@@ -69,6 +73,8 @@
                         <th>TA</th>
                         <th>DA</th>
                         <th>Total</th>
+                        <th>Tour Type</th>
+                        <th>Payment Status</th>
                         @if($showStatus)<th>Status</th>@endif
                         @if($showEditAudit)<th>Edit History</th>@endif
                         <th width="150">Action</th>
@@ -222,8 +228,9 @@
         table = $('#activityTable').DataTable({
             processing:true,
             serverSide:true,
-            ajax:{url:ROUTE_DATATABLE,data:function(d){d.created_by=$('#f_created_by').val();d.from_date=$('#f_from_date').val();d.to_date=$('#f_to_date').val();}},
+            ajax:{url:ROUTE_DATATABLE,data:function(d){d.created_by=$('#f_created_by').val();d.from_date=$('#f_from_date').val();d.to_date=$('#f_to_date').val();d.payment_status=$('#f_payment_status').val();}},
             columns:[
+                {data:'select',orderable:false,searchable:false},
                 {data:'DT_RowIndex', orderable:false, searchable:false},
                 {data:'date'},
                 @if($showStaffColumn)
@@ -235,6 +242,8 @@
                 {data:'ta'},
                 {data:'da'},
                 {data:'total'},
+                {data:'tour_type',orderable:false,searchable:false},
+                {data:'payment_status',orderable:false,searchable:false},
                 @if($showStatus)
                 {data:'status'},
                 @endif
@@ -247,8 +256,8 @@
 
         
 
-        $('#f_created_by,#f_from_date,#f_to_date').on('change',function(){table.ajax.reload();});
-        $('#f_date_reset').on('click',function(){$('#f_from_date,#f_to_date').val('');table.ajax.reload();});
+        $('#f_created_by,#f_from_date,#f_to_date,#f_payment_status').on('change',function(){table.ajax.reload();});
+        $('#f_date_reset').on('click',function(){$('#f_from_date,#f_to_date,#f_payment_status').val('');table.ajax.reload();});
 
         $('#ta,#da').on('keyup change', function(){
             let ta = parseFloat($('#ta').val()) || 0;
@@ -265,6 +274,17 @@
                     table.ajax.reload();
                 });
             }
+        });
+
+
+        function updateSelected(){ $('#selectedCount').text($('.activity-check:checked').length+' selected'); }
+        $('#selectAll').on('change',function(){ $('.activity-check').prop('checked',this.checked); updateSelected(); });
+        $(document).on('change','.activity-check',updateSelected);
+        table.on('draw',function(){ $('#selectAll').prop('checked',false); updateSelected(); });
+        $(document).on('click','.bulk-action',function(){
+            const ids=$('.activity-check:checked').map(function(){return Number(this.value)}).get(), action=$(this).data('action');
+            if(!ids.length){Swal.fire('Select Activity','Please select at least one activity.','warning');return;}
+            Swal.fire({title:'Apply bulk action?',text:`${ids.length} activity(s): ${String(action).replaceAll('_',' ')}`,icon:'question',showCancelButton:true,confirmButtonText:'Yes, continue'}).then(r=>{if(!r.isConfirmed)return; $.post(@json(route('activities.bulk-action')),{ids,action}).done(x=>{Swal.fire('Done',x.message,'success');table.ajax.reload(null,false)}).fail(x=>{let m=x.responseJSON?.message||'Unable to update';if(x.status===422&&x.responseJSON?.errors)m=Object.values(x.responseJSON.errors)[0][0];Swal.fire('Blocked',m,'error')});});
         });
 
         $(document).on('click','.btn-review',function(){

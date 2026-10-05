@@ -123,6 +123,58 @@
     {{-- js link includes --}}
     @include('backend.partials.links.js')
 
+    <script>
+    // CRM-wide persistent filters. Values stay selected across reload/navigation
+    // and are removed only when the page's Reset control is used.
+    (function () {
+        const pageKey = 'crm_filters:' + location.pathname;
+        const isFilterControl = (el) => {
+            if (!el || !el.matches || !el.matches('input,select,textarea')) return false;
+            const id = (el.id || '').toLowerCase();
+            const name = (el.name || '').toLowerCase();
+            if (id.startsWith('f_') || id.startsWith('filter_') || id.startsWith('filter')) return true;
+            if (['from','to','from_date','to_date','date','status','payment_status','created_by','user_id','staff_id','branch_id','organization_id','q','search'].includes(name)) return true;
+            return !!el.closest('#reportFilterForm, .report-filter-card, #filterSidebar, form[data-persist-filters]');
+        };
+        const controlKey = (el) => el.id ? 'id:'+el.id : (el.name ? 'name:'+el.name : '');
+        const read = () => { try { return JSON.parse(localStorage.getItem(pageKey) || '{}'); } catch(e) { return {}; } };
+        const write = (data) => localStorage.setItem(pageKey, JSON.stringify(data));
+        const save = (el) => {
+            if (!isFilterControl(el)) return;
+            const key = controlKey(el); if (!key) return;
+            const data = read();
+            data[key] = el.type === 'checkbox' ? !!el.checked : el.value;
+            write(data);
+        };
+        const restore = () => {
+            const data = read();
+            document.querySelectorAll('input,select,textarea').forEach(el => {
+                if (!isFilterControl(el)) return;
+                const key=controlKey(el); if (!key || !(key in data)) return;
+                if (el.type === 'checkbox') el.checked=!!data[key]; else el.value=data[key];
+                if (window.jQuery && jQuery(el).hasClass('select2-hidden-accessible')) jQuery(el).trigger('change.select2');
+            });
+        };
+        const clearCurrentPage = () => localStorage.removeItem(pageKey);
+        window.CrmPersistentFilters = { clearCurrentPage, restore };
+
+        // IMPORTANT: master.blade renders this after @yield(maincontent) but BEFORE
+        // page @stack('scripts'), so restore now. This guarantees DataTables/AJAX
+        // reads the saved values on its very first request after a reload.
+        restore();
+
+        document.addEventListener('change', e => save(e.target), true);
+        document.addEventListener('input', e => {
+            if (e.target && (e.target.type === 'search' || e.target.name === 'q')) save(e.target);
+        }, true);
+        document.addEventListener('click', function(e){
+            const b=e.target.closest('button,a'); if(!b) return;
+            const marker=((b.id||'')+' '+(b.className||'')+' '+(b.textContent||'')).toLowerCase();
+            if (marker.includes('reset') || marker.includes('clear filter')) clearCurrentPage();
+        }, true);
+    })();
+    </script>
+
     @stack('scripts')
 
     @stack('modals')
@@ -271,52 +323,7 @@
             }
         });
     </script>
-    <script>
-    // CRM-wide persistent filters. Values stay selected across reload/navigation
-    // and are removed only when the page's Reset control is used.
-    (function () {
-        const pageKey = 'crm_filters:' + location.pathname;
-        const isFilterControl = (el) => {
-            if (!el || !el.matches || !el.matches('input,select,textarea')) return false;
-            const id = (el.id || '').toLowerCase();
-            const name = (el.name || '').toLowerCase();
-            if (id.startsWith('f_') || id.startsWith('filter_') || id.startsWith('filter')) return true;
-            if (['from','to','from_date','to_date','date','status','payment_status','created_by','user_id','staff_id','branch_id','organization_id','q','search'].includes(name)) return true;
-            return !!el.closest('#reportFilterForm, .report-filter-card, #filterSidebar, form[data-persist-filters]');
-        };
-        const controlKey = (el) => el.id ? 'id:'+el.id : (el.name ? 'name:'+el.name : '');
-        const read = () => { try { return JSON.parse(localStorage.getItem(pageKey) || '{}'); } catch(e) { return {}; } };
-        const write = (data) => localStorage.setItem(pageKey, JSON.stringify(data));
-        const save = (el) => {
-            if (!isFilterControl(el)) return;
-            const key = controlKey(el); if (!key) return;
-            const data = read();
-            data[key] = el.type === 'checkbox' ? !!el.checked : el.value;
-            write(data);
-        };
-        const restore = () => {
-            const data = read();
-            document.querySelectorAll('input,select,textarea').forEach(el => {
-                if (!isFilterControl(el)) return;
-                const key=controlKey(el); if (!key || !(key in data)) return;
-                if (el.type === 'checkbox') el.checked=!!data[key]; else el.value=data[key];
-                if (window.jQuery && jQuery(el).hasClass('select2-hidden-accessible')) jQuery(el).trigger('change.select2');
-            });
-        };
-        const clearCurrentPage = () => localStorage.removeItem(pageKey);
-        window.CrmPersistentFilters = { clearCurrentPage, restore };
-        document.addEventListener('DOMContentLoaded', function(){
-            restore();
-            document.addEventListener('change', e => save(e.target), true);
-            document.addEventListener('input', e => { if (e.target && (e.target.type === 'search' || e.target.name === 'q')) save(e.target); }, true);
-            document.addEventListener('click', function(e){
-                const b=e.target.closest('button,a'); if(!b) return;
-                const marker=((b.id||'')+' '+(b.className||'')+' '+(b.textContent||'')).toLowerCase();
-                if (marker.includes('reset')) clearCurrentPage();
-            }, true);
-        });
-    })();
-    </script>
+
 
 </body>
 

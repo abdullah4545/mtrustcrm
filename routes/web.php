@@ -38,10 +38,24 @@ use App\Http\Controllers\ExpenseTypeController;
 use App\Http\Controllers\DatabaseBackupController;
 use App\Http\Controllers\HeaderToolsController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 
 
 Route::middleware('auth')->group(function () { 
+    // CRM-wide server-side persistent filter session.
+    Route::post('/crm/filter-session', function (Request $request) {
+        $path = trim((string) $request->input('path', ''), '/');
+        $key = 'crm_filter_sessions.'.md5($path);
+        if ($request->boolean('reset')) {
+            $request->session()->forget($key);
+            return response()->json(['ok' => true, 'filters' => []]);
+        }
+        $filters = $request->input('filters', []);
+        if (!is_array($filters)) $filters = [];
+        $request->session()->put($key, $filters);
+        return response()->json(['ok' => true]);
+    })->name('crm.filter-session');
  
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [DashboardController::class, 'data'])->name('dashboard.data');

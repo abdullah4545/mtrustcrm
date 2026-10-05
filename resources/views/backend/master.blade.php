@@ -124,52 +124,82 @@
     @include('backend.partials.links.js')
 
     <script>
-    // CRM-wide persistent filters. Values stay selected across reload/navigation
-    // and are removed only when the page's Reset control is used.
+    // CRM-wide SERVER-SIDE persistent filters.
+    // Saved per logged-in session + per page. They are cleared only by Reset/Clear Filter.
     (function () {
-        const pageKey = 'crm_filters:' + location.pathname;
+        const endpoint = @json(route('crm.filter-session'));
+        const pagePath = @json(trim(request()->path(), '/'));
+        const serverSaved = @json(session('crm_filter_sessions.'.md5(trim(request()->path(), '/')), []));
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        let saved = (serverSaved && typeof serverSaved === 'object') ? serverSaved : {};
+        let timer = null;
+        let restoring = false;
+
         const isFilterControl = (el) => {
             if (!el || !el.matches || !el.matches('input,select,textarea')) return false;
             const id = (el.id || '').toLowerCase();
             const name = (el.name || '').toLowerCase();
             if (id.startsWith('f_') || id.startsWith('filter_') || id.startsWith('filter')) return true;
-            if (['from','to','from_date','to_date','date','status','payment_status','created_by','user_id','staff_id','branch_id','organization_id','q','search'].includes(name)) return true;
+            if (['from','to','from_date','to_date','date_from','date_to','status','payment_status','created_by','prepared_by','sold_by','user_id','staff_id','branch_id','category_id','subcategory_id','brand_id','organization_id','q','search_text'].includes(name)) return true;
             return !!el.closest('#reportFilterForm, .report-filter-card, #filterSidebar, form[data-persist-filters]');
         };
-        const controlKey = (el) => el.id ? 'id:'+el.id : (el.name ? 'name:'+el.name : '');
-        const read = () => { try { return JSON.parse(localStorage.getItem(pageKey) || '{}'); } catch(e) { return {}; } };
-        const write = (data) => localStorage.setItem(pageKey, JSON.stringify(data));
-        const save = (el) => {
+        const keyOf = (el) => el.id ? 'id:'+el.id : (el.name ? 'name:'+el.name : '');
+        const valueOf = (el) => el.type === 'checkbox' ? !!el.checked : el.value;
+
+        function applyOne(el) {
             if (!isFilterControl(el)) return;
-            const key = controlKey(el); if (!key) return;
-            const data = read();
-            data[key] = el.type === 'checkbox' ? !!el.checked : el.value;
-            write(data);
-        };
-        const restore = () => {
-            const data = read();
+            const key = keyOf(el);
+            if (!key || !(key in saved)) return;
+            restoring = true;
+            if (el.type === 'checkbox') el.checked = !!saved[key]; else el.value = saved[key] ?? '';
+            if (window.jQuery && jQuery(el).hasClass('select2-hidden-accessible')) jQuery(el).trigger('change.select2');
+            restoring = false;
+        }
+        function restore(root=document) {
+            if (root.matches && root.matches('input,select,textarea')) applyOne(root);
+            if (root.querySelectorAll) root.querySelectorAll('input,select,textarea').forEach(applyOne);
+        }
+        function collect() {
+            const data = {...saved};
             document.querySelectorAll('input,select,textarea').forEach(el => {
                 if (!isFilterControl(el)) return;
-                const key=controlKey(el); if (!key || !(key in data)) return;
-                if (el.type === 'checkbox') el.checked=!!data[key]; else el.value=data[key];
-                if (window.jQuery && jQuery(el).hasClass('select2-hidden-accessible')) jQuery(el).trigger('change.select2');
+                const key = keyOf(el); if (key) data[key] = valueOf(el);
             });
-        };
-        const clearCurrentPage = () => localStorage.removeItem(pageKey);
-        window.CrmPersistentFilters = { clearCurrentPage, restore };
+            return data;
+        }
+        function post(payload) {
+            return fetch(endpoint, {
+                method:'POST', credentials:'same-origin',
+                headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':csrf},
+                body:JSON.stringify(payload)
+            }).catch(()=>{});
+        }
+        function saveNow() {
+            saved = collect();
+            post({path:pagePath, filters:saved});
+        }
+        function scheduleSave() {
+            if (restoring) return;
+            clearTimeout(timer); timer=setTimeout(saveNow, 120);
+        }
+        function clearCurrentPage() {
+            saved = {};
+            try { localStorage.removeItem('crm_filters:' + location.pathname); } catch(e) {}
+            return post({path:pagePath, reset:true});
+        }
+        window.CrmPersistentFilters = {clearCurrentPage, restore, saveNow};
 
-        // IMPORTANT: master.blade renders this after @yield(maincontent) but BEFORE
-        // page @stack('scripts'), so restore now. This guarantees DataTables/AJAX
-        // reads the saved values on its very first request after a reload.
+        // Apply before page DataTables/scripts run.
         restore();
+        // Also restore controls inserted later (Select2/report partials/etc.).
+        new MutationObserver(muts => muts.forEach(m => m.addedNodes.forEach(n => { if(n.nodeType===1) restore(n); })))
+            .observe(document.documentElement,{childList:true,subtree:true});
 
-        document.addEventListener('change', e => save(e.target), true);
-        document.addEventListener('input', e => {
-            if (e.target && (e.target.type === 'search' || e.target.name === 'q')) save(e.target);
-        }, true);
+        document.addEventListener('change', e => { if(isFilterControl(e.target) && !restoring) saveNow(); }, true);
+        document.addEventListener('input', e => { if(isFilterControl(e.target)) scheduleSave(); }, true);
         document.addEventListener('click', function(e){
             const b=e.target.closest('button,a'); if(!b) return;
-            const marker=((b.id||'')+' '+(b.className||'')+' '+(b.textContent||'')).toLowerCase();
+            const marker=((b.id||'')+' '+(typeof b.className==='string'?b.className:'')+' '+(b.textContent||'')).toLowerCase();
             if (marker.includes('reset') || marker.includes('clear filter')) clearCurrentPage();
         }, true);
     })();

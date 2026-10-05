@@ -6,6 +6,12 @@
 
 @section('maincontent')
 
+@php
+    $reportSavedFilters = session('crm_filter_sessions.'.md5(trim(request()->path(), '/')), []);
+    $rf = fn($id, $default = '') => $reportSavedFilters['id:'.$id] ?? $default;
+@endphp
+
+
 
 <style>
     .report-filter-card {
@@ -156,7 +162,7 @@
                                 name="from_date"
                                 id="from_date"
                                 class="form-control"
-                                value="{{ $reportFilters['from_date'] ?? now()->startOfMonth()->format('Y-m-d') }}"
+                                value="{{ $rf('from_date', now()->startOfMonth()->format('Y-m-d')) }}"
                             >
                         </div>
 
@@ -170,7 +176,7 @@
                                 name="to_date"
                                 id="to_date"
                                 class="form-control"
-                                value="{{ $reportFilters['to_date'] ?? now()->format('Y-m-d') }}"
+                                value="{{ $rf('to_date', now()->format('Y-m-d')) }}"
                             >
                         </div>
 
@@ -190,7 +196,7 @@
                                 </option>
 
                                 @foreach($users as $user)
-                                    <option value="{{ $user->id }}" @selected((string)($reportFilters['created_by'] ?? '') === (string)$user->id)>
+                                    <option value="{{ $user->id }}" @selected((string)$rf('created_by') === (string)$user->id)>
                                         {{ $user->name }}
                                     </option>
                                 @endforeach
@@ -199,7 +205,7 @@
 
                         @endcan
 
-                        <div class="col-md-3"><label class="form-label">Payment Status</label><select name="payment_status" id="payment_status" class="form-control"><option value="">All</option><option value="unpaid" @selected(($reportFilters['payment_status'] ?? '') === 'unpaid')>Unpaid</option><option value="waiting_for_payment" @selected(($reportFilters['payment_status'] ?? '') === 'waiting_for_payment')>Waiting for Payment</option><option value="paid" @selected(($reportFilters['payment_status'] ?? '') === 'paid')>Paid</option></select></div>
+                        <div class="col-md-3"><label class="form-label">Payment Status</label><select name="payment_status" id="payment_status" class="form-control"><option value="">All</option><option value="unpaid" @selected($rf('payment_status') === 'unpaid')>Unpaid</option><option value="waiting_for_payment" @selected($rf('payment_status') === 'waiting_for_payment')>Waiting for Payment</option><option value="paid" @selected($rf('payment_status') === 'paid')>Paid</option></select></div>
 
                         @if($canViewStatus)
                         <div class="col-md-3">
@@ -212,19 +218,19 @@
                                 id="status"
                                 class="form-control"
                             >
-                                <option value="">
+                                <option value="" @selected($rf('status') === '')>
                                     All Status
                                 </option>
 
-                                <option value="pending" @selected(($reportFilters['status'] ?? '') === 'pending')>
+                                <option value="pending" @selected($rf('status') === 'pending')>
                                     Pending
                                 </option>
 
-                                <option value="approved" @selected(($reportFilters['status'] ?? '') === 'approved')>
+                                <option value="approved" @selected($rf('status') === 'approved')>
                                     Approved
                                 </option>
 
-                                <option value="rejected" @selected(($reportFilters['status'] ?? '') === 'rejected')>
+                                <option value="rejected" @selected($rf('status') === 'rejected')>
                                     Rejected
                                 </option>
                             </select>
@@ -241,10 +247,9 @@
                                 id="organization_id"
                                 class="form-control"
                             >
-                                <option value="">All Organizations</option>
-                                @if($selectedOrganization)
-                                    <option value="{{ $selectedOrganization->id }}" selected>{{ $selectedOrganization->name }}</option>
-                                @endif
+                                <option value="">
+                                    All Organizations
+                                </option>
                             </select>
                         </div>
 
@@ -259,7 +264,6 @@
                                 id="branch_id"
                                 class="form-control"
                                 placeholder="Leave empty for all branches"
-                                value="{{ $reportFilters['branch_id'] ?? '' }}"
                             >
                         </div>
 
@@ -591,6 +595,15 @@
 
     $(document).ready(function () {
         initSelect2();
+        // Re-apply server session values after Select2 initialization so it cannot reset them.
+        const savedReportFilters = @json($reportSavedFilters);
+        const restoreValue = (id) => {
+            const key = 'id:' + id;
+            if (Object.prototype.hasOwnProperty.call(savedReportFilters, key)) {
+                $('#' + id).val(savedReportFilters[key]).trigger('change.select2');
+            }
+        };
+        ['from_date','to_date','created_by','status','payment_status','branch_id'].forEach(restoreValue);
         loadReport();
     });
 

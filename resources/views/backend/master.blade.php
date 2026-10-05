@@ -169,7 +169,7 @@
         }
         function post(payload) {
             return fetch(endpoint, {
-                method:'POST', credentials:'same-origin',
+                method:'POST', credentials:'same-origin', keepalive:true,
                 headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':csrf},
                 body:JSON.stringify(payload)
             }).catch(()=>{});

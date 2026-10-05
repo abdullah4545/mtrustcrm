@@ -66,12 +66,7 @@ class ActivityReportController extends Controller
 
     public function index(Request $request)
     {
-        $reportFilters = session('activity_report_filters', []);
-        $selectedOrganization = null;
-        if (!empty($reportFilters['organization_id'])) {
-            $selectedOrganization = DB::table('organizations')->where('id', $reportFilters['organization_id'])->select('id','name')->first();
-        }
-
+        
         $userQuery = DB::table('users')->select('id','name')->orderBy('name');
         if (!Auth::user()->can('staff.filter')) $userQuery->whereRaw('1 = 0');
         if (!Auth::user()->can('report.view_all')) {
@@ -90,8 +85,6 @@ class ActivityReportController extends Controller
             'defaultColumns'   => self::DEFAULT_COLUMNS,
             'canViewStatus'    => Auth::user()->can('activity.status.view'),
             'canManagePayment' => Auth::user()->can('activity.payment.manage'),
-            'reportFilters'     => $reportFilters,
-            'selectedOrganization' => $selectedOrganization,
         ]);
     }
 
@@ -101,17 +94,6 @@ class ActivityReportController extends Controller
     public function data(Request $request)
     {
         $validated = $this->validateFilters($request);
-
-        // Persist report filters server-side. Column choices are intentionally separate.
-        session(['activity_report_filters' => [
-            'from_date' => (string) ($validated['from_date'] ?? ''),
-            'to_date' => (string) ($validated['to_date'] ?? ''),
-            'created_by' => (string) ($validated['created_by'] ?? ''),
-            'payment_status' => (string) ($validated['payment_status'] ?? ''),
-            'status' => (string) ($validated['status'] ?? ''),
-            'organization_id' => (string) ($validated['organization_id'] ?? ''),
-            'branch_id' => (string) ($validated['branch_id'] ?? ''),
-        ]]);
 
         $columns = $this->resolveColumns(
             $validated['columns'] ?? []

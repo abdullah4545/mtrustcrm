@@ -65,7 +65,12 @@
                     @endif
                     <div class="col-md-3"><label class="form-label">Payment Status</label><select id="f_payment_status" class="form-control"><option value="">All Payment Status</option><option value="unpaid">Unpaid</option><option value="waiting_for_payment">Waiting for Payment</option><option value="paid">Paid</option></select></div>
                     <div class="col-md-3 d-flex align-items-end">
-                        <button type="button" id="f_date_reset" class="btn btn-light w-100">Reset Date</button>
+                        <button type="button" id="f_date_reset" class="btn btn-light w-100">Reset Filter</button>
+                    </div>
+                    <div class="col-12 d-flex flex-wrap gap-2 mt-2">
+                        <button type="button" id="activityPdf" class="btn btn-danger btn-sm"><i class="feather-file-text"></i> PDF</button>
+                        <button type="button" id="activityExcel" class="btn btn-success btn-sm"><i class="feather-file"></i> Excel</button>
+                        <button type="button" id="activityPrint" class="btn btn-secondary btn-sm"><i class="feather-printer"></i> Print</button>
                     </div>
                 </div>
 
@@ -268,7 +273,27 @@
         
 
         $('#f_created_by,#f_from_date,#f_to_date,@if($showStatus)#f_status,@endif #f_payment_status').on('change',function(){table.ajax.reload();});
-        $('#f_date_reset').on('click',function(){$('#f_from_date,#f_to_date,#f_payment_status@if($showStatus),#f_status@endif').val('');table.ajax.reload();});
+        $('#f_date_reset').on('click',function(){
+            $('#f_created_by,#f_from_date,#f_to_date,#f_payment_status@if($showStatus),#f_status@endif').val('').trigger('change.select2');
+            if (window.CrmPersistentFilters) window.CrmPersistentFilters.clearCurrentPage();
+            table.ajax.reload();
+        });
+
+        function activityExportParams(){
+            const p = new URLSearchParams();
+            const values = {
+                created_by: $('#f_created_by').val() || '',
+                from_date: $('#f_from_date').val() || '',
+                to_date: $('#f_to_date').val() || '',
+                status: @json($showStatus) ? ($('#f_status').val() || '') : '',
+                payment_status: $('#f_payment_status').val() || ''
+            };
+            Object.entries(values).forEach(([k,v]) => { if(v) p.append(k,v); });
+            return p.toString();
+        }
+        $('#activityPdf').on('click',()=>window.open(@json(route('activities.report.pdf'))+'?'+activityExportParams(),'_blank'));
+        $('#activityExcel').on('click',()=>window.location.href=@json(route('activities.report.excel'))+'?'+activityExportParams());
+        $('#activityPrint').on('click',()=>window.open(@json(route('activities.report.print'))+'?'+activityExportParams(),'_blank'));
 
         $('#ta,#da').on('keyup change', function(){
             let ta = parseFloat($('#ta').val()) || 0;

@@ -192,7 +192,7 @@
                     <div class="col-12 col-sm-6"><label>Vehicle</label><select id="travel_vehicle" class="form-control"><option value="">Select Vehicle</option></select></div>
                     <div class="col-6 col-sm-3"><label>Distance (KM) <span class="required-mark">*</span></label><input type="number" min="0" step="0.01" id="travel_distance" class="form-control" value="0" required></div>
                     <div class="col-6 col-sm-3"><label>Cost *</label><input type="number" min="0" step="0.01" id="travel_cost" class="form-control" value="0"></div>
-                    <div class="col-12"><label>TA Image</label><input type="file" accept="image/*" id="travel_image" class="form-control"><small class="text-muted" id="travel_image_hint">JPG, PNG or WEBP - max 5 MB.</small></div>
+                    <div class="col-12"><label>TA Image</label><input type="file" accept="image/*" id="travel_image" class="form-control"><small class="text-muted" id="travel_image_hint">JPG, PNG or WEBP - max 5 MB.</small><div id="travel_current_image" class="mt-2"></div></div>
                 </div>
             </div>
             <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" id="saveTravelRow">Save Travel</button></div>
@@ -212,7 +212,7 @@
                     <div class="col-12"><label>Expense Type *</label><select id="expense_type" class="form-control"><option value="">Select Type</option>@foreach($expenseTypes as $type)<option value="{{ $type->id }}" data-name="{{ $type->name }}" data-bill-required="{{ $type->bill_required ? 1 : 0 }}">{{ $type->name }}</option>@endforeach</select></div>
                     <div class="col-12"><label>Amount *</label><input type="number" min="0" step="0.01" id="expense_amount" class="form-control" value="0"></div>
                     <div class="col-12"><label>Note</label><input id="expense_note" class="form-control" placeholder="Optional note"></div>
-                    <div class="col-12"><label>DA / Cost Image</label><input type="file" accept="image/*" id="expense_image" class="form-control"><small class="text-muted" id="expense_image_hint">JPG, PNG or WEBP - max 5 MB.</small></div>
+                    <div class="col-12"><label>DA / Cost Image</label><input type="file" accept="image/*" id="expense_image" class="form-control"><small class="text-muted" id="expense_image_hint">JPG, PNG or WEBP - max 5 MB.</small><div id="expense_current_image" class="mt-2"></div></div>
                 </div>
             </div>
             <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" id="saveExpenseRow">Save Cost</button></div>
@@ -315,7 +315,7 @@ function fillVehicleOptions(selected=''){
 
 function resetTravelModal(){
     $('#travelEditIndex').val(''); $('#travelModalTitle').text('Add Travel');
-    $('#travel_from,#travel_to').val(''); $('#travel_tour_type').val('local_tour'); const np=nowParts(); $('#travel_date').val(np.date); $('#travel_time').val(np.time); $('#travel_distance,#travel_cost').val(0); $('#travel_image').val(''); $('#travel_image_hint').text('JPG, PNG or WEBP - max 5 MB.'); fillVehicleOptions('');
+    $('#travel_from,#travel_to').val(''); $('#travel_tour_type').val('local_tour'); const np=nowParts(); $('#travel_date').val(np.date); $('#travel_time').val(np.time); $('#travel_distance,#travel_cost').val(0); $('#travel_image').val(''); $('#travel_image_hint').text('JPG, PNG or WEBP - max 5 MB.'); $('#travel_current_image').empty(); fillVehicleOptions('');
 }
 function openTravelEdit(index){
     const r=travels[index]; if(!r) return;
@@ -323,12 +323,14 @@ function openTravelEdit(index){
     $('#travelEditIndex').val(index); $('#travelModalTitle').text('Edit Travel');
     const ep=entryParts(r.entry_at); $('#travel_date').val(ep.date); $('#travel_time').val(ep.time); $('#travel_tour_type').val(r.tour_type||'local_tour'); $('#travel_from').val(r.from_location); $('#travel_to').val(r.to_location); fillVehicleOptions(r.vehicle); $('#travel_distance').val(r.distance); $('#travel_cost').val(r.cost); $('#travel_image').val('');
     $('#travel_image_hint').text((r.image_file?.name || (r.image_url ? 'Current image attached. Choose a file only to replace it.' : 'JPG, PNG or WEBP - max 5 MB.')));
+    const travelImg = r.image_preview_url || r.image_view_url || '';
+    $('#travel_current_image').html(travelImg ? `<a href="${esc(travelImg)}" target="_blank" rel="noopener" class="d-inline-flex align-items-center gap-2"><img src="${esc(travelImg)}" alt="TA attachment" style="width:72px;height:72px;object-fit:cover;border:1px solid #ddd;border-radius:8px"><span>Open current image</span></a>` : '');
     travelModal.show();
 }
 
 function resetExpenseModal(){
     $('#expenseEditIndex').val(''); $('#expenseModalTitle').text('Add Cost');
-    const np=nowParts(); $('#expense_date').val(np.date); $('#expense_time').val(np.time); $('#expense_type').val(''); $('#expense_amount').val(0); $('#expense_note').val(''); $('#expense_image').val(''); $('#expense_image_hint').text('JPG, PNG or WEBP - max 5 MB.');
+    const np=nowParts(); $('#expense_date').val(np.date); $('#expense_time').val(np.time); $('#expense_type').val(''); $('#expense_amount').val(0); $('#expense_note').val(''); $('#expense_image').val(''); $('#expense_image_hint').text('JPG, PNG or WEBP - max 5 MB.'); $('#expense_current_image').empty();
 }
 function openExpenseEdit(index){
     const r=expenses[index]; if(!r) return;
@@ -344,6 +346,8 @@ function openExpenseEdit(index){
     }
     $('#expense_amount').val(r.amount); $('#expense_note').val(r.note||''); $('#expense_image').val('');
     $('#expense_image_hint').text((r.image_file?.name || (r.image_url ? 'Current image attached. Choose a file only to replace it.' : 'JPG, PNG or WEBP - max 5 MB.')));
+    const expenseImg = r.image_preview_url || r.image_view_url || '';
+    $('#expense_current_image').html(expenseImg ? `<a href="${esc(expenseImg)}" target="_blank" rel="noopener" class="d-inline-flex align-items-center gap-2"><img src="${esc(expenseImg)}" alt="DA attachment" style="width:72px;height:72px;object-fit:cover;border:1px solid #ddd;border-radius:8px"><span>Open current image</span></a>` : '');
     expenseModal.show();
 }
 

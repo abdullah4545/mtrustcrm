@@ -39,31 +39,31 @@
                         <select id="f_created_by" class="form-control">
                             <option value="">All Staff</option>
                             @foreach($staffs as $staff)
-                                <option value="{{ $staff->id }}">{{ $staff->name }}</option>
+                                <option value="{{ $staff->id }}" @selected((string)($activityFilters['created_by'] ?? '') === (string)$staff->id)>{{ $staff->name }}</option>
                             @endforeach
                         </select>
                     </div>
                     @endif
                     <div class="col-md-3">
                         <label class="form-label">From Date</label>
-                        <input type="date" id="f_from_date" class="form-control">
+                        <input type="date" id="f_from_date" class="form-control" value="{{ $activityFilters['from_date'] ?? '' }}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">To Date</label>
-                        <input type="date" id="f_to_date" class="form-control">
+                        <input type="date" id="f_to_date" class="form-control" value="{{ $activityFilters['to_date'] ?? '' }}">
                     </div>
                     @if($showStatus)
                     <div class="col-md-3">
                         <label class="form-label">Status</label>
                         <select id="f_status" class="form-control">
                             <option value="">All Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="approved">Approved</option>
-                            <option value="rejected">Rejected</option>
+                            <option value="pending" @selected(($activityFilters['status'] ?? '') === 'pending')>Pending</option>
+                            <option value="approved" @selected(($activityFilters['status'] ?? '') === 'approved')>Approved</option>
+                            <option value="rejected" @selected(($activityFilters['status'] ?? '') === 'rejected')>Rejected</option>
                         </select>
                     </div>
                     @endif
-                    <div class="col-md-3"><label class="form-label">Payment Status</label><select id="f_payment_status" class="form-control"><option value="">All Payment Status</option><option value="unpaid">Unpaid</option><option value="waiting_for_payment">Waiting for Payment</option><option value="paid">Paid</option></select></div>
+                    <div class="col-md-3"><label class="form-label">Payment Status</label><select id="f_payment_status" class="form-control"><option value="">All Payment Status</option><option value="unpaid" @selected(($activityFilters['payment_status'] ?? '') === 'unpaid')>Unpaid</option><option value="waiting_for_payment" @selected(($activityFilters['payment_status'] ?? '') === 'waiting_for_payment')>Waiting for Payment</option><option value="paid" @selected(($activityFilters['payment_status'] ?? '') === 'paid')>Paid</option></select></div>
                     <div class="col-md-3 d-flex align-items-end">
                         <button type="button" id="f_date_reset" class="btn btn-light w-100">Reset Filter</button>
                     </div>

@@ -156,7 +156,7 @@
                                 name="from_date"
                                 id="from_date"
                                 class="form-control"
-                                value="{{ now()->startOfMonth()->format('Y-m-d') }}"
+                                value="{{ $reportFilters['from_date'] ?? now()->startOfMonth()->format('Y-m-d') }}"
                             >
                         </div>
 
@@ -170,7 +170,7 @@
                                 name="to_date"
                                 id="to_date"
                                 class="form-control"
-                                value="{{ now()->format('Y-m-d') }}"
+                                value="{{ $reportFilters['to_date'] ?? now()->format('Y-m-d') }}"
                             >
                         </div>
 
@@ -190,7 +190,7 @@
                                 </option>
 
                                 @foreach($users as $user)
-                                    <option value="{{ $user->id }}">
+                                    <option value="{{ $user->id }}" @selected((string)($reportFilters['created_by'] ?? '') === (string)$user->id)>
                                         {{ $user->name }}
                                     </option>
                                 @endforeach
@@ -199,7 +199,7 @@
 
                         @endcan
 
-                        <div class="col-md-3"><label class="form-label">Payment Status</label><select name="payment_status" id="payment_status" class="form-control"><option value="">All</option><option value="unpaid">Unpaid</option><option value="waiting_for_payment">Waiting for Payment</option><option value="paid">Paid</option></select></div>
+                        <div class="col-md-3"><label class="form-label">Payment Status</label><select name="payment_status" id="payment_status" class="form-control"><option value="">All</option><option value="unpaid" @selected(($reportFilters['payment_status'] ?? '') === 'unpaid')>Unpaid</option><option value="waiting_for_payment" @selected(($reportFilters['payment_status'] ?? '') === 'waiting_for_payment')>Waiting for Payment</option><option value="paid" @selected(($reportFilters['payment_status'] ?? '') === 'paid')>Paid</option></select></div>
 
                         @if($canViewStatus)
                         <div class="col-md-3">
@@ -212,19 +212,19 @@
                                 id="status"
                                 class="form-control"
                             >
-                                <option value="" selected>
+                                <option value="">
                                     All Status
                                 </option>
 
-                                <option value="pending">
+                                <option value="pending" @selected(($reportFilters['status'] ?? '') === 'pending')>
                                     Pending
                                 </option>
 
-                                <option value="approved">
+                                <option value="approved" @selected(($reportFilters['status'] ?? '') === 'approved')>
                                     Approved
                                 </option>
 
-                                <option value="rejected">
+                                <option value="rejected" @selected(($reportFilters['status'] ?? '') === 'rejected')>
                                     Rejected
                                 </option>
                             </select>
@@ -241,9 +241,10 @@
                                 id="organization_id"
                                 class="form-control"
                             >
-                                <option value="">
-                                    All Organizations
-                                </option>
+                                <option value="">All Organizations</option>
+                                @if($selectedOrganization)
+                                    <option value="{{ $selectedOrganization->id }}" selected>{{ $selectedOrganization->name }}</option>
+                                @endif
                             </select>
                         </div>
 
@@ -258,6 +259,7 @@
                                 id="branch_id"
                                 class="form-control"
                                 placeholder="Leave empty for all branches"
+                                value="{{ $reportFilters['branch_id'] ?? '' }}"
                             >
                         </div>
 

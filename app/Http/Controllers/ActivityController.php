@@ -102,6 +102,7 @@ class ActivityController extends Controller
 
     public function index(){
         $u = Auth::user();
+        $activityFilters = session('activity_list_filters', []);
         $staffs = $u->can('activity.view_all') && $u->can('staff.filter')
             ? User::where('status',1)->orderBy('name')->get(['id','name'])
             : User::whereKey($u->id)->get(['id','name']);
@@ -111,11 +112,20 @@ class ActivityController extends Controller
         $canBulkReview = $u->can('activity.bulk_review');
         $canManagePayment = $u->can('activity.payment.manage');// TA/DA edit audit is shown per row inside the activity form.
         // TA/DA edit status is intentionally not shown on the Activity List.
-        return view('backend.content.activity.index', compact('staffs', 'showStaffColumn', 'showEditAudit', 'showStatus', 'canBulkReview', 'canManagePayment'));
+        return view('backend.content.activity.index', compact('staffs', 'showStaffColumn', 'showEditAudit', 'showStatus', 'canBulkReview', 'canManagePayment', 'activityFilters'));
     }
 
     public function datatable(Request $request)
     {
+        // Persist exactly the filters used by the Activity List.
+        session(['activity_list_filters' => [
+            'created_by' => (string) $request->input('created_by', ''),
+            'from_date' => (string) $request->input('from_date', ''),
+            'to_date' => (string) $request->input('to_date', ''),
+            'status' => (string) $request->input('status', ''),
+            'payment_status' => (string) $request->input('payment_status', ''),
+        ]]);
+
         $query = $this->visibleQuery()
             ->latest('activity_at')->latest('id');
         if (Auth::user()->can('activity.view_all') && Auth::user()->can('staff.filter') && $request->filled('created_by')) $query->where('created_by', $request->integer('created_by'));

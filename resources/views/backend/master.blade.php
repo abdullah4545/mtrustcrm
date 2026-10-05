@@ -158,8 +158,8 @@
         const clearCurrentPage = () => localStorage.removeItem(pageKey);
         window.CrmPersistentFilters = { clearCurrentPage, restore };
 
-        // IMPORTANT: master.blade renders this after @yield(maincontent) but BEFORE
-        // page @stack('scripts'), so restore now. This guarantees DataTables/AJAX
+        // Restore saved filters before page-specific scripts initialize.
+        // This guarantees DataTables/AJAX reads saved values on the first request.
         // reads the saved values on its very first request after a reload.
         restore();
 

@@ -694,8 +694,13 @@
         return params;
     }
 
+    $('#from_date,#to_date,#created_by,#payment_status,#organization_id,#branch_id{{ $canViewStatus ? ',#status' : '' }}').on('change', function(){
+        if (window.CrmPersistentFilters) window.CrmPersistentFilters.saveNow();
+    });
+
     $('#reportFilterForm').on('submit', function (event) {
         event.preventDefault();
+        if (window.CrmPersistentFilters) window.CrmPersistentFilters.saveNow();
         loadReport();
     });
 

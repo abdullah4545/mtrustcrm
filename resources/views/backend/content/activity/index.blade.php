@@ -280,7 +280,7 @@
 
         
 
-        $('#f_created_by,#f_from_date,#f_to_date,@if($showStatus)#f_status,@endif #f_payment_status').on('change',function(){table.ajax.reload();});
+        $('#f_created_by,#f_from_date,#f_to_date,@if($showStatus)#f_status,@endif #f_payment_status').on('change',function(){ if(window.CrmPersistentFilters) window.CrmPersistentFilters.saveNow(); table.ajax.reload(null, false); });
         $('#f_date_reset').on('click',function(){
             $('#f_created_by,#f_from_date,#f_to_date,#f_payment_status@if($showStatus),#f_status@endif').val('').trigger('change.select2');
             if (window.CrmPersistentFilters) window.CrmPersistentFilters.clearCurrentPage();

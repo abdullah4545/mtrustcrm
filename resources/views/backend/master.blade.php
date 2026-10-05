@@ -131,7 +131,14 @@
         const pagePath = @json(trim(request()->path(), '/'));
         const serverSaved = @json(session('crm_filter_sessions.'.md5(trim(request()->path(), '/')), []));
         const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
-        let saved = (serverSaved && typeof serverSaved === 'object') ? serverSaved : {};
+        let saved = (serverSaved && typeof serverSaved === 'object') ? {...serverSaved} : {};
+        const localKey = 'crm_filters:' + pagePath;
+        // Immediate browser copy prevents a fast F5/navigation from racing the session POST.
+        // Laravel session remains the durable server-side source; local copy is merged only for this exact page.
+        try {
+            const localSaved = JSON.parse(localStorage.getItem(localKey) || '{}');
+            if (localSaved && typeof localSaved === 'object') saved = {...saved, ...localSaved};
+        } catch(e) {}
         let timer = null;
         let restoring = false;
 
@@ -176,7 +183,8 @@
         }
         function saveNow() {
             saved = collect();
-            post({path:pagePath, filters:saved});
+            try { localStorage.setItem(localKey, JSON.stringify(saved)); } catch(e) {}
+            return post({path:pagePath, filters:saved});
         }
         function scheduleSave() {
             if (restoring) return;
@@ -184,7 +192,7 @@
         }
         function clearCurrentPage() {
             saved = {};
-            try { localStorage.removeItem('crm_filters:' + location.pathname); } catch(e) {}
+            try { localStorage.removeItem(localKey); } catch(e) {}
             return post({path:pagePath, reset:true});
         }
         window.CrmPersistentFilters = {clearCurrentPage, restore, saveNow};
@@ -197,6 +205,7 @@
 
         document.addEventListener('change', e => { if(isFilterControl(e.target) && !restoring) saveNow(); }, true);
         document.addEventListener('input', e => { if(isFilterControl(e.target)) scheduleSave(); }, true);
+        window.addEventListener('beforeunload', () => { if (!restoring) saveNow(); });
         document.addEventListener('click', function(e){
             const b=e.target.closest('button,a'); if(!b) return;
             const marker=((b.id||'')+' '+(typeof b.className==='string'?b.className:'')+' '+(b.textContent||'')).toLowerCase();

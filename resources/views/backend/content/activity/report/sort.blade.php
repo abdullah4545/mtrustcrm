@@ -268,8 +268,8 @@
                         </div>
 
                         {{-- Actions must stay after all visible filter fields --}}
-                        <div class="col-12 order-md-6">
-                            <div class="report-action-buttons d-flex gap-2 flex-wrap justify-content-end">
+                        <div class="col-md-auto order-md-6 d-flex align-items-end">
+                            <div class="report-action-buttons d-flex gap-2 flex-wrap">
                                 <button
                                     type="submit"
                                     class="btn btn-primary"

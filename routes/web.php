@@ -31,6 +31,7 @@ use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\ActivityReportController;
+use App\Http\Controllers\ActivitySortListController;
 use App\Http\Controllers\AdditionalActivityReportController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\FollowupController;
@@ -85,11 +86,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/excel', [AdditionalActivityReportController::class,'tourExcel'])->name('excel');
     });
     Route::prefix('activities/sort-list')->name('activities.sort-list.')->group(function () {
-        Route::get('/', [AdditionalActivityReportController::class,'sortIndex'])->name('index');
-        Route::get('/data', [AdditionalActivityReportController::class,'sortData'])->name('data');
-        Route::get('/pdf', [AdditionalActivityReportController::class,'sortPdf'])->name('pdf');
-        Route::get('/print', [AdditionalActivityReportController::class,'sortPrint'])->name('print');
-        Route::get('/excel', [AdditionalActivityReportController::class,'sortExcel'])->name('excel');
+        Route::get('/', [ActivitySortListController::class,'index'])->name('index');
+        Route::get('/data', [ActivitySortListController::class,'data'])->name('data');
+        Route::get('/pdf', [ActivitySortListController::class,'pdf'])->name('pdf');
+        Route::get('/print', [ActivitySortListController::class,'print'])->name('print');
+        Route::get('/excel', [ActivitySortListController::class,'excel'])->name('excel');
     });
 
     Route::prefix('activities/report')->name('activities.report.')->group(function () {

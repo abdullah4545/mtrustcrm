@@ -1,0 +1,1044 @@
+@extends('backend.master')
+
+@section('title')
+    {{ ($business?->business_name ?? 'Medi Trust Solution') }} - Activity Sort List
+@endsection
+
+@section('maincontent')
+
+@php
+    $reportSavedFilters = session('crm_filter_sessions.'.md5(trim(request()->path(), '/')), []);
+    $rf = fn($id, $default = '') => $reportSavedFilters['id:'.$id] ?? $default;
+@endphp
+
+
+
+<style>
+    .report-filter-card {
+        border: 0;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, .06);
+    }
+
+    .select2-container {
+        width: 100% !important;
+    }
+
+    .select2-container .select2-selection--single {
+        height: 40px !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 6px !important;
+    }
+
+    .select2-container--default
+    .select2-selection--single
+    .select2-selection__rendered {
+        line-height: 38px !important;
+    }
+
+    .select2-container--default
+    .select2-selection--single
+    .select2-selection__arrow {
+        height: 38px !important;
+    }
+
+    .summary-card {
+        border: 0;
+        border-radius: 10px;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, .05);
+    }
+
+    .summary-label {
+        color: #6b7280;
+        font-size: 13px;
+        margin-bottom: 5px;
+    }
+
+    .summary-value {
+        font-size: 22px;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .column-box {
+        max-height: 260px;
+        overflow-y: auto;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 12px;
+    }
+
+    .report-table-wrapper {
+        overflow-x: auto;
+    }
+
+    #reportTable {
+        min-width: 1500px;
+    }
+
+    #reportTable th {
+        white-space: nowrap;
+        font-size: 12px;
+        background: #f8fafc;
+    }
+
+    #reportTable td {
+        font-size: 12px;
+        vertical-align: middle;
+    }
+
+    .empty-report {
+        padding: 45px 15px !important;
+        text-align: center;
+        color: #6b7280;
+    }
+
+    .loading-report {
+        padding: 45px 15px !important;
+        text-align: center;
+    }
+
+    @media (max-width: 767px) {
+        .report-action-buttons {
+            width: 100%;
+        }
+
+        .report-action-buttons .btn {
+            width: 100%;
+            margin-bottom: 6px;
+        }
+    }
+</style>
+
+<div class="nxl-content">
+
+    <div class="page-header">
+        <div
+            class="page-header-left d-flex align-items-center"
+        >
+            <div class="page-header-title">
+                <h5 class="m-b-10">Activity Sort List</h5>
+            </div>
+
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{{ url('/') }}">Home</a>
+                </li>
+
+                <li class="breadcrumb-item">
+                    <a href="{{ route('activities.index') }}">
+                        Activities
+                    </a>
+                </li>
+
+                <li class="breadcrumb-item active">
+                    Report
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="main-content">
+
+        {{-- Filter --}}
+        <div class="card report-filter-card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    Report Filters
+                </h5>
+            </div>
+
+            <div class="card-body">
+
+                <form id="reportFilterForm">
+                    <div class="row g-3">
+
+                        <div class="col-md-3 order-md-2">
+                            <label class="form-label">
+                                From Date
+                            </label>
+
+                            <input
+                                type="date"
+                                name="from_date"
+                                id="from_date"
+                                class="form-control"
+                                value="{{ $rf('from_date', now()->startOfMonth()->format('Y-m-d')) }}"
+                            >
+                        </div>
+
+                        <div class="col-md-3 order-md-3">
+                            <label class="form-label">
+                                To Date
+                            </label>
+
+                            <input
+                                type="date"
+                                name="to_date"
+                                id="to_date"
+                                class="form-control"
+                                value="{{ $rf('to_date', now()->format('Y-m-d')) }}"
+                            >
+                        </div>
+
+                        @can('staff.filter')
+                        <div class="col-md-3 order-md-1">
+                            <label class="form-label">
+                                Created By / User
+                            </label>
+
+                            <select
+                                name="created_by"
+                                id="created_by"
+                                class="form-control"
+                            >
+                                <option value="">
+                                    All Users
+                                </option>
+
+                                @foreach($users as $user)
+                                    <option value="{{ $user->id }}" @selected((string)$rf('created_by') === (string)$user->id)>
+                                        {{ $user->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        @endcan
+
+                        <div class="col-md-3 order-md-5"><label class="form-label">Payment Status</label><select name="payment_status" id="payment_status" class="form-control"><option value="">All</option><option value="unpaid" @selected($rf('payment_status') === 'unpaid')>Unpaid</option><option value="waiting_for_payment" @selected($rf('payment_status') === 'waiting_for_payment')>Waiting for Payment</option><option value="paid" @selected($rf('payment_status') === 'paid')>Paid</option></select></div>
+
+                        @if($canViewStatus)
+                        <div class="col-md-3 order-md-4">
+                            <label class="form-label">
+                                Status
+                            </label>
+
+                            <select
+                                name="status"
+                                id="status"
+                                class="form-control"
+                            >
+                                <option value="" @selected($rf('status') === '')>
+                                    All Status
+                                </option>
+
+                                <option value="pending" @selected($rf('status') === 'pending')>
+                                    Pending
+                                </option>
+
+                                <option value="approved" @selected($rf('status') === 'approved')>
+                                    Approved
+                                </option>
+
+                                <option value="rejected" @selected($rf('status') === 'rejected')>
+                                    Rejected
+                                </option>
+                            </select>
+                        </div>
+                        @endif
+
+                        <div class="col-md-4 d-none">
+                            <label class="form-label">
+                                Organization
+                            </label>
+
+                            <select
+                                name="organization_id"
+                                id="organization_id"
+                                class="form-control"
+                            >
+                                <option value="">
+                                    All Organizations
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4 d-none">
+                            <label class="form-label">
+                                Branch ID
+                            </label>
+
+                            <input
+                                type="number"
+                                name="branch_id"
+                                id="branch_id"
+                                class="form-control"
+                                placeholder="Leave empty for all branches"
+                            >
+                        </div>
+
+                        <div
+                            class="col-md-4 d-flex align-items-end order-md-6"
+                        >
+                            <div
+                                class="report-action-buttons d-flex gap-2 flex-wrap"
+                            >
+                                <button
+                                    type="submit"
+                                    class="btn btn-primary"
+                                    id="btnFilter"
+                                >
+                                    <i class="feather-search"></i>
+                                    Generate Report
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-light"
+                                    id="btnReset"
+                                >
+                                    <i class="feather-rotate-ccw"></i>
+                                    Reset
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-secondary"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#columnModal"
+                                >
+                                    <i class="feather-columns"></i>
+                                    Fields
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+
+            </div>
+        </div>
+
+        {{-- Summary --}}
+        <div class="row g-3 mb-3">
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card summary-card">
+                    <div class="card-body">
+                        <div class="summary-label">
+                            Total Activities
+                        </div>
+
+                        <div
+                            class="summary-value"
+                            id="summaryActivityCount"
+                        >
+                            0
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card summary-card">
+                    <div class="card-body">
+                        <div class="summary-label">
+                            Total TA
+                        </div>
+
+                        <div
+                            class="summary-value"
+                            id="summaryTa"
+                        >
+                            0.00
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card summary-card">
+                    <div class="card-body">
+                        <div class="summary-label">
+                            Total DA
+                        </div>
+
+                        <div
+                            class="summary-value"
+                            id="summaryDa"
+                        >
+                            0.00
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card summary-card">
+                    <div class="card-body">
+                        <div class="summary-label">
+                            Grand Total
+                        </div>
+
+                        <div
+                            class="summary-value"
+                            id="summaryGrandTotal"
+                        >
+                            0.00
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        {{-- Report Table --}}
+        <div class="card">
+            <div
+                class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2"
+            >
+                <div>
+                    <h5 class="mb-0">
+                        Activity Sort List
+                    </h5>
+
+                    <small
+                        class="text-muted"
+                        id="reportSubTitle"
+                    ></small>
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap">
+
+                    <button
+                        type="button"
+                        class="btn btn-success"
+                        id="btnExcel"
+                    >
+                        <i class="feather-file-text"></i>
+                        Excel
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-danger"
+                        id="btnPdf"
+                    >
+                        <i class="feather-file"></i>
+                        PDF
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-dark"
+                        id="btnPrint"
+                    >
+                        <i class="feather-printer"></i>
+                        Print
+                    </button>
+
+                </div>
+            </div>
+
+            @if($canManagePayment)
+            <div class="card-body border-bottom py-2">
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <strong>Payment Action:</strong>
+                    <button type="button" class="btn btn-sm btn-primary" id="reportMarkPaid">Mark Selected Paid</button>
+                    <span class="text-muted small" id="reportSelectedCount">0 selected</span>
+                    <span class="text-muted small">Rejected activities are never eligible for payment.</span>
+                </div>
+            </div>
+            @endif
+
+            <div class="card-body p-0">
+                <div class="report-table-wrapper">
+                    <table
+                        class="table table-bordered mb-0"
+                        id="reportTable"
+                    >
+                        <thead id="reportTableHead"></thead>
+
+                        <tbody id="reportTableBody">
+                            <tr>
+                                <td class="empty-report">
+                                    Generate report to view data.
+                                </td>
+                            </tr>
+                        </tbody>
+
+                        <tfoot id="reportTableFoot"></tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@endsection
+
+@push('modals')
+
+<div
+    class="modal fade"
+    id="columnModal"
+    tabindex="-1"
+    aria-hidden="true"
+>
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Select Report Fields
+                </h5>
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                ></button>
+            </div>
+
+            <div class="modal-body">
+
+                <div
+                    class="d-flex justify-content-between mb-3"
+                >
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline-primary"
+                        id="btnSelectAllFields"
+                    >
+                        Select All
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline-secondary"
+                        id="btnDefaultFields"
+                    >
+                        PDF Default Fields
+                    </button>
+                </div>
+
+                <div class="column-box">
+                    <div class="row g-2">
+
+                        @foreach(
+                            $availableColumns as $key => $label
+                        )
+                            @if($key !== 'status' || $canViewStatus)
+                            <div class="col-md-4 col-sm-6">
+                                <div class="form-check">
+                                    <input
+                                        class="form-check-input report-column"
+                                        type="checkbox"
+                                        name="columns[]"
+                                        value="{{ $key }}"
+                                        id="column_{{ $key }}"
+                                        {{ in_array($key, $defaultColumns, true) ? 'checked' : '' }}
+                                    >
+
+                                    <label
+                                        class="form-check-label"
+                                        for="column_{{ $key }}"
+                                    >
+                                        {{ $label }}
+                                    </label>
+                                </div>
+                            </div>
+                            @endif
+                        @endforeach
+
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button
+                    type="button"
+                    class="btn btn-light"
+                    data-bs-dismiss="modal"
+                >
+                    Close
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-primary"
+                    id="btnApplyFields"
+                >
+                    Apply Fields
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@endpush
+
+@push('scripts')
+
+
+<script>
+    const REPORT_DATA_URL =
+        @json(route('activities.sort-list.data'));
+
+    const REPORT_PDF_URL =
+        @json(route('activities.sort-list.pdf'));
+
+    const REPORT_PRINT_URL =
+        @json(route('activities.sort-list.print'));
+
+    const REPORT_EXCEL_URL =
+        @json(route('activities.sort-list.excel'));
+
+    const DEFAULT_COLUMNS =
+        @json($defaultColumns);
+
+    const ACTIVITY_BULK_URL = @json(route('activities.bulk-action'));
+    const CAN_MANAGE_PAYMENT = @json($canManagePayment);
+
+    $(document).ready(function () {
+        initSelect2();
+        // Re-apply server session values after Select2 initialization so it cannot reset them.
+        const savedReportFilters = @json($reportSavedFilters);
+        const restoreValue = (id) => {
+            const key = 'id:' + id;
+            if (Object.prototype.hasOwnProperty.call(savedReportFilters, key)) {
+                $('#' + id).val(savedReportFilters[key]).trigger('change.select2');
+            }
+        };
+        ['from_date','to_date','created_by','status','payment_status','branch_id'].forEach(restoreValue);
+        loadReport();
+    });
+
+    function initSelect2() {
+        $('#created_by,#branch_id,#organization_id{{ $canViewStatus ? ',#status' : '' }}').each(function(){ if($(this).hasClass('select2-hidden-accessible')) $(this).select2('destroy'); });
+        $('#created_by').select2({
+            placeholder: 'All Users',
+            allowClear: false,
+            width: '100%'
+        });
+
+        @if($canViewStatus)
+        $('#status').select2({
+            placeholder: 'All Status',
+            allowClear: false,
+            minimumResultsForSearch: Infinity,
+            width: '100%'
+        });
+        @endif
+
+        $('#branch_id').select2({placeholder:'All Permitted Branches',allowClear:false,width:'100%'});
+
+        $('#organization_id').select2({
+            placeholder: 'Search organization...',
+            allowClear: false,
+            width: '100%',
+            minimumInputLength: 0,
+            ajax: {
+                url: @json(url('activities/ajax/organizations')),
+                dataType: 'json',
+                delay: 300,
+                data: p => ({q:p.term||'', page:p.page||1}),
+                processResults: r => r,
+                cache: true
+            }
+        });
+    }
+
+    function selectedColumns() {
+        return $('.report-column:checked')
+            .map(function () {
+                return $(this).val();
+            })
+            .get();
+    }
+
+    function reportParameters() {
+        const params = new URLSearchParams();
+
+        const fromDate = $('#from_date').val();
+        const toDate = $('#to_date').val();
+        const createdBy = $('#created_by').val();
+        const status = @json($canViewStatus) ? ($('#status').val() || '') : '';
+        const paymentStatus = $('#payment_status').val() || '';
+        const organizationId = $('#organization_id').val();
+        const branchId = $('#branch_id').val();
+
+        if (fromDate) {
+            params.append('from_date', fromDate);
+        }
+
+        if (toDate) {
+            params.append('to_date', toDate);
+        }
+
+        if (createdBy) {
+            params.append('created_by', createdBy);
+        }
+
+        if (status) { params.append('status', status); }
+        if (paymentStatus) { params.append('payment_status', paymentStatus); }
+
+        if (organizationId) {
+            params.append(
+                'organization_id',
+                organizationId
+            );
+        }
+
+        if (branchId) {
+            params.append('branch_id', branchId);
+        }
+
+        selectedColumns().forEach(function (column) {
+            params.append('columns[]', column);
+        });
+
+        return params;
+    }
+
+    $('#from_date,#to_date,#created_by,#payment_status,#organization_id,#branch_id{{ $canViewStatus ? ',#status' : '' }}').on('change', function(){
+        if (window.CrmPersistentFilters) window.CrmPersistentFilters.saveNow();
+    });
+
+    $('#reportFilterForm').on('submit', function (event) {
+        event.preventDefault();
+        if (window.CrmPersistentFilters) window.CrmPersistentFilters.saveNow();
+        loadReport();
+    });
+
+    $('#btnApplyFields').on('click', function () {
+        if (selectedColumns().length === 0) {
+            Swal.fire(
+                'Field Required',
+                'Please select at least one report field.',
+                'warning'
+            );
+
+            return;
+        }
+
+        const modalElement =
+            document.getElementById('columnModal');
+
+        const modal =
+            bootstrap.Modal.getInstance(modalElement);
+
+        modal.hide();
+
+        loadReport();
+    });
+
+    $('#btnSelectAllFields').on('click', function () {
+        $('.report-column').prop('checked', true);
+    });
+
+    $('#btnDefaultFields').on('click', function () {
+        $('.report-column').prop('checked', false);
+
+        DEFAULT_COLUMNS.forEach(function (column) {
+            $('#column_' + column).prop('checked', true);
+        });
+    });
+
+    $('#btnReset').on('click', function () {
+        $('#from_date').val(
+            @json(now()->startOfMonth()->format('Y-m-d'))
+        );
+
+        $('#to_date').val(
+            @json(now()->format('Y-m-d'))
+        );
+
+        $('#created_by')
+            .val('')
+            .trigger('change');
+
+        @if($canViewStatus)
+        $('#status').val('').trigger('change.select2');
+        @endif
+        $('#payment_status').val('');
+
+        $('#organization_id')
+            .val('')
+            .trigger('change');
+
+        $('#branch_id').val(null).trigger('change.select2');
+
+        $('.report-column').prop('checked', false);
+
+        DEFAULT_COLUMNS.forEach(function (column) {
+            $('#column_' + column).prop('checked', true);
+        });
+
+        loadReport();
+    });
+
+    $('#btnExcel').on('click', function () {
+        window.location.href =
+            REPORT_EXCEL_URL + '?' +
+            reportParameters().toString();
+    });
+
+    $('#btnPdf').on('click', function () {
+        window.location.href =
+            REPORT_PDF_URL + '?' +
+            reportParameters().toString();
+    });
+
+    $('#btnPrint').on('click', function () {
+        window.open(
+            REPORT_PRINT_URL + '?' +
+            reportParameters().toString(),
+            '_blank'
+        );
+    });
+
+    function updateReportSelectedCount() {
+        $('#reportSelectedCount').text($('.report-activity-check:checked').length + ' selected');
+        const eligible = $('.report-activity-check:not(:disabled)').length;
+        const selected = $('.report-activity-check:not(:disabled):checked').length;
+        $('#reportSelectAll').prop('checked', eligible > 0 && eligible === selected);
+    }
+
+    $(document).on('change', '#reportSelectAll', function () {
+        $('.report-activity-check:not(:disabled)').prop('checked', this.checked);
+        updateReportSelectedCount();
+    });
+
+    $(document).on('change', '.report-activity-check', updateReportSelectedCount);
+
+    $('#reportMarkPaid').on('click', function () {
+        const ids = $('.report-activity-check:checked').map(function(){ return Number(this.value); }).get();
+        if (!ids.length) { Swal.fire('Select Activity', 'Please select at least one eligible activity.', 'warning'); return; }
+        Swal.fire({
+            title: 'Mark selected as Paid?',
+            text: ids.length + ' activity(s) selected. Rejected or otherwise ineligible activities will remain unchanged.',
+            icon: 'question', showCancelButton: true, confirmButtonText: 'Yes, Mark Paid'
+        }).then(function(result){
+            if (!result.isConfirmed) return;
+            $.post(ACTIVITY_BULK_URL, {ids: ids, action: 'paid'})
+                .done(function(response){ Swal.fire('Done', response.message, 'success'); loadReport(); })
+                .fail(function(xhr){
+                    let message = xhr.responseJSON?.message || 'Unable to update payment status.';
+                    if (xhr.status === 422 && xhr.responseJSON?.errors) message = Object.values(xhr.responseJSON.errors)[0][0];
+                    Swal.fire('Blocked', message, 'error');
+                });
+        });
+    });
+
+    function loadReport() {
+        const $button = $('#btnFilter');
+
+        $button
+            .prop('disabled', true)
+            .html(
+                '<span class="spinner-border spinner-border-sm"></span> Loading...'
+            );
+
+        $('#reportTableBody').html(`
+            <tr>
+                <td class="loading-report">
+                    <span
+                        class="spinner-border spinner-border-sm"
+                    ></span>
+                    Loading report...
+                </td>
+            </tr>
+        `);
+
+        $.ajax({
+            url: REPORT_DATA_URL,
+            type: 'GET',
+            data: reportParameters().toString(),
+
+            success: function (response) {
+                renderReport(response);
+                renderSummary(response.summary);
+                renderReportSubtitle();
+            },
+
+            error: function (xhr) {
+                let message = 'Unable to load report.';
+
+                if (
+                    xhr.status === 422 &&
+                    xhr.responseJSON?.errors
+                ) {
+                    message = Object
+                        .values(xhr.responseJSON.errors)[0][0];
+                } else if (xhr.responseJSON?.message) {
+                    message = xhr.responseJSON.message;
+                }
+
+                $('#reportTableHead').html('');
+                $('#reportTableFoot').html('');
+
+                $('#reportTableBody').html(`
+                    <tr>
+                        <td class="empty-report">
+                            ${escapeHtml(message)}
+                        </td>
+                    </tr>
+                `);
+
+                Swal.fire(
+                    'Error',
+                    message,
+                    'error'
+                );
+            },
+
+            complete: function () {
+                $button
+                    .prop('disabled', false)
+                    .html(
+                        '<i class="feather-search"></i> Generate Report'
+                    );
+            }
+        });
+    }
+
+    function renderReport(response) {
+        const columns = response.columns || [];
+        const rows = response.rows || [];
+
+        let headerHtml = '<tr>';
+
+        if (CAN_MANAGE_PAYMENT) {
+            headerHtml += '<th style="width:42px" class="text-center"><input type="checkbox" id="reportSelectAll" title="Select all eligible filtered activities"></th>';
+        }
+
+        columns.forEach(function (column) {
+            headerHtml += `
+                <th>${escapeHtml(column.label)}</th>
+            `;
+        });
+
+        headerHtml += '</tr>';
+
+        $('#reportTableHead').html(headerHtml);
+
+        if (rows.length === 0) {
+            $('#reportTableBody').html(`
+                <tr>
+                    <td
+                        colspan="${Math.max(columns.length + (CAN_MANAGE_PAYMENT ? 1 : 0), 1)}"
+                        class="empty-report"
+                    >
+                        No activities found for selected filters.
+                    </td>
+                </tr>
+            `);
+        } else {
+            let bodyHtml = '';
+
+            rows.forEach(function (row) {
+                bodyHtml += '<tr>';
+                if (CAN_MANAGE_PAYMENT) {
+                    const rejected = String(row._status || '').toLowerCase() === 'rejected';
+                    const disabled = rejected ? 'disabled' : '';
+                    const title = rejected ? 'Rejected activity cannot be paid' : 'Select activity';
+                    bodyHtml += `<td class="text-center"><input type="checkbox" class="report-activity-check" value="${Number(row._id)}" ${disabled} title="${title}"></td>`;
+                }
+
+                columns.forEach(function (column) {
+                    bodyHtml += `
+                        <td>
+                            ${escapeHtml(
+                                row[column.key] ?? ''
+                            )}
+                        </td>
+                    `;
+                });
+
+                bodyHtml += '</tr>';
+            });
+
+            $('#reportTableBody').html(bodyHtml);
+        }
+
+        renderFooter(
+            columns,
+            response.summary
+        );
+    }
+
+    function renderFooter(columns, summary) {
+        if (!columns.length) {
+            $('#reportTableFoot').html('');
+            return;
+        }
+
+        let footerHtml = '<tr class="fw-bold">';
+        if (CAN_MANAGE_PAYMENT) footerHtml += '<td></td>';
+
+        columns.forEach(function (column, index) {
+            let value = '';
+
+            if (index === 0) {
+                value = 'Total Amount';
+            }
+
+            if (column.key === 'ta') {
+                value = summary.total_ta;
+            }
+
+            if (column.key === 'da') {
+                value = summary.total_da;
+            }
+
+            if (column.key === 'total') {
+                value = summary.grand_total;
+            }
+
+            footerHtml += `
+                <td>${escapeHtml(value)}</td>
+            `;
+        });
+
+        footerHtml += '</tr>';
+
+        $('#reportTableFoot').html(footerHtml);
+    }
+
+    function renderSummary(summary) {
+        $('#summaryActivityCount').text(
+            summary.activity_count ?? 0
+        );
+
+        $('#summaryTa').text(
+            summary.total_ta ?? '0.00'
+        );
+
+        $('#summaryDa').text(
+            summary.total_da ?? '0.00'
+        );
+
+        $('#summaryGrandTotal').text(
+            summary.grand_total ?? '0.00'
+        );
+    }
+
+    function renderReportSubtitle() {
+        const fromDate = $('#from_date').val();
+        const toDate = $('#to_date').val();
+
+        const employee =
+            $('#created_by option:selected').text().trim();
+
+        const dateText =
+            (fromDate || 'Beginning') +
+            ' To ' +
+            (toDate || 'Today');
+
+        $('#reportSubTitle').text(
+            employee + ' | ' + dateText
+        );
+    }
+
+    function escapeHtml(value) {
+        return $('<div>')
+            .text(value ?? '')
+            .html();
+    }
+</script>
+
+@endpush

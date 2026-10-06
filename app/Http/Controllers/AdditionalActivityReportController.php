@@ -20,7 +20,7 @@ class AdditionalActivityReportController extends Controller
         'vehicle'=>'Vehicles','work_details'=>'Vis. Output','ta'=>'TA','da'=>'DA','total'=>'Total','remarks'=>'Remarks',
         'status'=>'Status','payment_status'=>'Payment Status','tour_type'=>'Tour Type','created_by'=>'Created By',
     ];
-    private const DEFAULT = ['serial','date','organization_name','department','contact_person','from_location','to_location','distance','vehicle','work_details','ta','da','total','remarks','status','payment_status','tour_type','created_by'];
+    private const DEFAULT = ['serial','date','organization_name','from_location','to_location','ta','da','total','created_by'];
 
     public function __construct(){
         $this->middleware('auth');

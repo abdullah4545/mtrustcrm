@@ -1,7 +1,24 @@
 @extends('backend.master')
 @section('title', ($business?->business_name ?? 'Medi Trust Solution').' - '.($mode==='tour'?'Tour Report':'Activity Sort List'))
 @section('maincontent')
-@php $saved=session('crm_filter_sessions.'.md5(trim(request()->path(), '/')),[]); $rf=fn($id,$d='')=>$saved['id:'.$id]??$d; $isTour=$mode==='tour'; @endphp
+@php
+    $saved = session('crm_filter_sessions.'.md5(trim(request()->path(), '/')), []);
+    $rf = function ($id, $default = '') use ($saved) {
+        return $saved['id:'.$id] ?? $default;
+    };
+    $isTour = ($mode === 'tour');
+    $reportUrls = $isTour ? [
+        'data' => route('activities.tour-report.data'),
+        'pdf' => route('activities.tour-report.pdf'),
+        'print' => route('activities.tour-report.print'),
+        'excel' => route('activities.tour-report.excel'),
+    ] : [
+        'data' => route('activities.sort-list.data'),
+        'pdf' => route('activities.sort-list.pdf'),
+        'print' => route('activities.sort-list.print'),
+        'excel' => route('activities.sort-list.excel'),
+    ];
+@endphp
 <div class="nxl-content"><div class="page-header"><div class="page-header-left"><div class="page-header-title"><h5 class="m-b-10">{{ $isTour?'Tour Report':'Activity Sort List' }}</h5></div></div></div>
 <div class="main-content">
 <div class="card"><div class="card-header"><h5 class="mb-0">Report Filters</h5></div><div class="card-body"><form id="reportFilterForm" data-persist-filters><div class="row g-3">
@@ -24,9 +41,18 @@
 @endsection
 @push('scripts')
 <script>
-const urls=@json($isTour?['data'=>route('activities.tour-report.data'),'pdf'=>route('activities.tour-report.pdf'),'print'=>route('activities.tour-report.print'),'excel'=>route('activities.tour-report.excel')]:['data'=>route('activities.sort-list.data'),'pdf'=>route('activities.sort-list.pdf'),'print'=>route('activities.sort-list.print'),'excel'=>route('activities.sort-list.excel')]);
+const urls = {!! json_encode($reportUrls, JSON_UNESCAPED_SLASHES) !!};
 const defaultColumns=@json($defaultColumns);
-function params(){let p=new URLSearchParams(); ['created_by','from_date','to_date'@if(!$isTour),'status','payment_status'@endif].forEach(id=>{let e=document.getElementById(id);if(e&&e.value)p.append(id,e.value)}); defaultColumns.forEach(c=>p.append('columns[]',c)); return p;}
+function params(){
+    let p = new URLSearchParams();
+    const filterIds = @if($isTour) ['created_by','from_date','to_date'] @else ['created_by','from_date','to_date','status','payment_status'] @endif;
+    filterIds.forEach(id => {
+        let e = document.getElementById(id);
+        if (e && e.value) p.append(id, e.value);
+    });
+    defaultColumns.forEach(c => p.append('columns[]', c));
+    return p;
+}
 async function load(){const r=await fetch(urls.data+'?'+params().toString(),{headers:{Accept:'application/json'}}); if(!r.ok){Swal.fire('Error','Could not load report.','error');return;} const d=await r.json(); document.getElementById('count').textContent=d.summary.count;document.getElementById('ta').textContent=d.summary.ta;document.getElementById('da').textContent=d.summary.da;document.getElementById('total').textContent=d.summary.total;document.getElementById('thead').innerHTML='<tr>'+d.columns.map(c=>`<th>${c.label}</th>`).join('')+'</tr>';document.getElementById('tbody').innerHTML=d.rows.length?d.rows.map(row=>'<tr>'+d.columns.map(c=>`<td>${row[c.key]??''}</td>`).join('')+'</tr>').join(''):`<tr><td colspan="${d.columns.length}" class="text-center py-4">No data found.</td></tr>`;}
 $('#reportFilterForm').on('submit',e=>{e.preventDefault();window.CrmPersistentFilters?.saveNow();load();});
 $('#btnReset').on('click',async()=>{if(window.CrmPersistentFilters?.clearCurrentPage){ await window.CrmPersistentFilters.clearCurrentPage(); } location.reload();});

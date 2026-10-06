@@ -221,6 +221,7 @@ class ActivityReportExport implements
     private function query(): Builder
     {
         return Activity::query()
+            ->when(!empty($this->filters['tour_only']), fn (Builder $query) => $query->whereHas('travels', fn (Builder $travel) => $travel->where('tour_type', 'tour')))
             ->when(
                 !empty($this->filters['from_date']),
                 fn (Builder $query) =>

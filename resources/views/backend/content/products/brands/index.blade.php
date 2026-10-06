@@ -132,6 +132,8 @@ $(document).ready(function(){
     modal = new bootstrap.Modal(document.getElementById('brandModal'));
 
     table = $('#brandTable').DataTable({
+        pageLength: 10,
+        lengthMenu: [[10, 50, 100, -1], [10, 50, 100, 'All']],
         processing:true,
         serverSide:true,
         ajax: ROUTE_DATATABLE,

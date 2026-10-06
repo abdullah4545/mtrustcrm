@@ -57,6 +57,8 @@
                         @can('report.leads.view')<li class="nxl-item"><a class="nxl-link" href="{{ route('reports.leads') }}">Leads Report</a></li>@endcan
                         @can('report.collections.view')<li class="nxl-item"><a class="nxl-link" href="{{ route('reports.collections') }}">Sale Payment Report</a></li>@endcan
                         @can('report.activity.view')<li class="nxl-item"><a class="nxl-link" href="{{ route('activities.report.index') }}">Activity Report</a></li>@endcan
+                        @can('report.activity.view')<li class="nxl-item"><a class="nxl-link" href="{{ route('activities.tour-report.index') }}">Tour Report</a></li>@endcan
+                        @can('report.activity.view')<li class="nxl-item"><a class="nxl-link" href="{{ route('activities.sort-list.index') }}">Activity Sort List</a></li>@endcan
                     </ul>
                 </li>
                 @endcanany

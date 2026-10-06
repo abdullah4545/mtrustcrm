@@ -31,6 +31,7 @@ use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\ActivityReportController;
+use App\Http\Controllers\AdditionalActivityReportController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\FollowupController;
 use App\Http\Controllers\CrmReportController;
@@ -76,6 +77,21 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/leads', [CrmReportController::class, 'leads'])->name('reports.leads');
     Route::get('/reports/collections', [CrmReportController::class, 'collections'])->name('reports.collections');
     
+    Route::prefix('activities/tour-report')->name('activities.tour-report.')->group(function () {
+        Route::get('/', [AdditionalActivityReportController::class,'tourIndex'])->name('index');
+        Route::get('/data', [AdditionalActivityReportController::class,'tourData'])->name('data');
+        Route::get('/pdf', [AdditionalActivityReportController::class,'tourPdf'])->name('pdf');
+        Route::get('/print', [AdditionalActivityReportController::class,'tourPrint'])->name('print');
+        Route::get('/excel', [AdditionalActivityReportController::class,'tourExcel'])->name('excel');
+    });
+    Route::prefix('activities/sort-list')->name('activities.sort-list.')->group(function () {
+        Route::get('/', [AdditionalActivityReportController::class,'sortIndex'])->name('index');
+        Route::get('/data', [AdditionalActivityReportController::class,'sortData'])->name('data');
+        Route::get('/pdf', [AdditionalActivityReportController::class,'sortPdf'])->name('pdf');
+        Route::get('/print', [AdditionalActivityReportController::class,'sortPrint'])->name('print');
+        Route::get('/excel', [AdditionalActivityReportController::class,'sortExcel'])->name('excel');
+    });
+
     Route::prefix('activities/report')->name('activities.report.')->group(function () {
         Route::get('/', [ActivityReportController::class,'index'])->name('index');
         Route::get('/data', [ActivityReportController::class,'data'])->name('data');

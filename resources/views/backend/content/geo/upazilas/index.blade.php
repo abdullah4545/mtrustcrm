@@ -173,6 +173,8 @@ $(document).ready(function () {
     upazilaModal = new bootstrap.Modal(document.getElementById('upazilaModal'));
 
     table = $('#upazilasTable').DataTable({
+        pageLength: 10,
+        lengthMenu: [[10, 50, 100, -1], [10, 50, 100, 'All']],
         processing: true,
         serverSide: true,
         ajax: {

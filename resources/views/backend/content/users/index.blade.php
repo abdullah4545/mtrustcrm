@@ -58,7 +58,9 @@ const URL_BASE="{{ url('system/users') }}", URL_STORE="{{ route('users.store') }
 let table,modal;
 $(function(){
  modal=new bootstrap.Modal('#userModal');
- table=$('#userTable').DataTable({processing:true,serverSide:true,pageLength:20,ajax:{url:URL_DT,data:d=>{d.branch_id=$('#filter_branch_id').val();d.role=$('#filter_role').val();d.status=$('#filter_status').val()}},columns:[
+ table=$('#userTable').DataTable({
+        pageLength: 10,
+        lengthMenu: [[10, 50, 100, -1], [10, 50, 100, 'All']],processing:true,serverSide:true,pageLength:20,ajax:{url:URL_DT,data:d=>{d.branch_id=$('#filter_branch_id').val();d.role=$('#filter_role').val();d.status=$('#filter_status').val()}},columns:[
  {data:'DT_RowIndex',orderable:false,searchable:false},{data:'profile',orderable:false,searchable:false},{data:'name'},{data:'phone'},{data:'branch',orderable:false},{data:'role',orderable:false},{data:'areas',orderable:false,searchable:false},{data:'status',orderable:false},{data:'action',orderable:false,searchable:false}
  ]});
  $('#filter_branch_id,#filter_role,#filter_status').change(()=>table.ajax.reload());

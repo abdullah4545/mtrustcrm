@@ -152,36 +152,8 @@
                 <form id="reportFilterForm">
                     <div class="row g-3">
 
-                        <div class="col-md-3 order-md-2">
-                            <label class="form-label">
-                                From Date
-                            </label>
-
-                            <input
-                                type="date"
-                                name="from_date"
-                                id="from_date"
-                                class="form-control"
-                                value="{{ $rf('from_date', now()->startOfMonth()->format('Y-m-d')) }}"
-                            >
-                        </div>
-
-                        <div class="col-md-3 order-md-3">
-                            <label class="form-label">
-                                To Date
-                            </label>
-
-                            <input
-                                type="date"
-                                name="to_date"
-                                id="to_date"
-                                class="form-control"
-                                value="{{ $rf('to_date', now()->format('Y-m-d')) }}"
-                            >
-                        </div>
-
                         @can('staff.filter')
-                        <div class="col-md-3 order-md-1">
+                        <div class="col-md-3">
                             <label class="form-label">
                                 Created By / User
                             </label>
@@ -205,10 +177,37 @@
 
                         @endcan
 
-                        <div class="col-md-3 order-md-5"><label class="form-label">Payment Status</label><select name="payment_status" id="payment_status" class="form-control"><option value="">All</option><option value="unpaid" @selected($rf('payment_status') === 'unpaid')>Unpaid</option><option value="waiting_for_payment" @selected($rf('payment_status') === 'waiting_for_payment')>Waiting for Payment</option><option value="paid" @selected($rf('payment_status') === 'paid')>Paid</option></select></div>
+                        <div class="col-md-3">
+                            <label class="form-label">
+                                From Date
+                            </label>
+
+                            <input
+                                type="date"
+                                name="from_date"
+                                id="from_date"
+                                class="form-control"
+                                value="{{ $rf('from_date', now()->startOfMonth()->format('Y-m-d')) }}"
+                            >
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">
+                                To Date
+                            </label>
+
+                            <input
+                                type="date"
+                                name="to_date"
+                                id="to_date"
+                                class="form-control"
+                                value="{{ $rf('to_date', now()->format('Y-m-d')) }}"
+                            >
+                        </div>
+
 
                         @if($canViewStatus)
-                        <div class="col-md-3 order-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">
                                 Status
                             </label>
@@ -236,6 +235,8 @@
                             </select>
                         </div>
                         @endif
+
+                        <div class="col-md-3"><label class="form-label">Payment Status</label><select name="payment_status" id="payment_status" class="form-control"><option value="">All</option><option value="unpaid" @selected($rf('payment_status') === 'unpaid')>Unpaid</option><option value="waiting_for_payment" @selected($rf('payment_status') === 'waiting_for_payment')>Waiting for Payment</option><option value="paid" @selected($rf('payment_status') === 'paid')>Paid</option></select></div>
 
                         <div class="col-md-4 d-none">
                             <label class="form-label">
@@ -268,7 +269,7 @@
                         </div>
 
                         {{-- Actions must stay after all visible filter fields --}}
-                        <div class="col-md-auto order-md-6 d-flex align-items-end">
+                        <div class="col-md-auto d-flex align-items-end">
                             <div class="report-action-buttons d-flex gap-2 flex-wrap">
                                 <button
                                     type="submit"

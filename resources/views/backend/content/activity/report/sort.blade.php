@@ -268,7 +268,7 @@
                         </div>
 
                         <div
-                            class="col-md-4 d-flex align-items-end order-md-6"
+                            class="col-md-9 d-flex align-items-end order-md-6"
                         >
                             <div
                                 class="report-action-buttons d-flex gap-2 flex-wrap"

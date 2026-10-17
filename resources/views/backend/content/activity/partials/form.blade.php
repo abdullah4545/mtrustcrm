@@ -1,6 +1,6 @@
 @php
     $editing = isset($activity) && $activity;
-    $activityTime = $editing ? ($activity->activity_at ?? $activity->created_at) : now('Asia/Dhaka');
+    $activityTime = $editing ? ($activity->activity_at ?? $activity->created_at) : null;
     $travelRows = $editing && $activity->travels->count()
         ? $activity->travels
         : ($editing && ($activity->from_location || $activity->to_location || (float)$activity->ta > 0)
@@ -125,12 +125,8 @@
 <div class="card activity-entry-card"><div class="card-body">
 <form id="activityForm">
 <div class="row g-3">
-    @if($canManageActivityEntry)
-    <div class="col-6 col-md-2"><label>Activity Date</label><input type="date" id="activity_date" class="form-control" value="{{ $activityTime?->timezone('Asia/Dhaka')->format('Y-m-d') }}" required></div>
-    <div class="col-6 col-md-2"><label>Activity Time</label><input type="time" id="activity_time" class="form-control" value="{{ $activityTime?->timezone('Asia/Dhaka')->format('H:i') }}" required></div>
-    @else
-    <div class="col-12 col-md-4"><label>Activity Date & Time</label><input class="form-control" value="{{ $activityTime?->timezone('Asia/Dhaka')->format('d M Y, h:i A') }}" readonly></div>
-    @endif
+    <div class="col-6 col-md-2"><label>Activity Date</label><input type="date" id="activity_date" class="form-control" value="{{ $activityTime?->timezone('Asia/Dhaka')->format('Y-m-d') }}" @disabled($editing && !auth()->user()->hasPermissionTo('activity.view_all')) required></div>
+    <div class="col-6 col-md-2"><label>Activity Time</label><input type="time" id="activity_time" class="form-control" value="{{ ($activityTime ?? now('Asia/Dhaka'))->timezone('Asia/Dhaka')->format('H:i') }}" @disabled($editing && !auth()->user()->hasPermissionTo('activity.view_all')) required></div>
 
     @if($canManageActivityEntry)
     <div class="col-12 col-md-4">
@@ -190,7 +186,7 @@
                     <div class="col-12"><label>From *</label><input id="travel_from" class="form-control" required placeholder="From location"></div>
                     <div class="col-12"><label>To *</label><input id="travel_to" class="form-control" required placeholder="To location"></div>
                     <div class="col-12 col-sm-6"><label>Vehicle</label><select id="travel_vehicle" class="form-control"><option value="">Select Vehicle</option></select></div>
-                    <div class="col-6 col-sm-3"><label>Distance (KM) <span class="required-mark">*</span></label><input type="number" min="0" step="0.01" id="travel_distance" class="form-control" value="0" required></div>
+                    <div class="col-6 col-sm-3"><label>Dist. (KM) <span class="required-mark">*</span></label><input type="number" min="0" step="0.01" id="travel_distance" class="form-control" value="0" required></div>
                     <div class="col-6 col-sm-3"><label>Cost</label><input type="number" min="0" step="0.01" id="travel_cost" class="form-control" value="0"></div>
                     <div class="col-12"><label>TA Image</label><input type="file" accept="image/*" id="travel_image" class="form-control"><small class="text-muted" id="travel_image_hint">JPG, PNG or WEBP - max 5 MB.</small><div id="travel_current_image" class="mt-2"></div></div>
                 </div>
@@ -463,10 +459,11 @@ $(document).on('click','.delete-expense',function(){
 
 $('#btnSave').on('click',function(){
     if(!$.trim($('#work_details').val())){ Swal.fire('Error','Visit Output is required','error'); return; }
+    if(!$('#activity_date').val() || !$('#activity_time').val()){ Swal.fire('Required','Please select activity date and time.','warning'); return; }
     const fd=new FormData();
+    fd.append('activity_at',$('#activity_date').val()+'T'+$('#activity_time').val());
     if(CAN_MANAGE_ENTRY){
         fd.append('staff_id',$('#staff_id').val()||'');
-        fd.append('activity_at',($('#activity_date').val()&&$('#activity_time').val()) ? $('#activity_date').val()+'T'+$('#activity_time').val() : '');
     }
     fd.append('organization_id',$('#organization_id').val());
     fd.append('department_id',$('#department').val());

@@ -192,7 +192,7 @@
                                 class="form-control"
                             >
                                 <option value="">
-                                    All Users
+                                    All
                                 </option>
 
                                 @foreach($users as $user)
@@ -219,7 +219,7 @@
                                 class="form-control"
                             >
                                 <option value="" @selected($rf('status') === '')>
-                                    All Status
+                                    All
                                 </option>
 
                                 <option value="pending" @selected($rf('status') === 'pending')>
@@ -610,14 +610,12 @@
     function initSelect2() {
         $('#created_by,#branch_id,#organization_id{{ $canViewStatus ? ',#status' : '' }}').each(function(){ if($(this).hasClass('select2-hidden-accessible')) $(this).select2('destroy'); });
         $('#created_by').select2({
-            placeholder: 'All Users',
             allowClear: false,
             width: '100%'
         });
 
         @if($canViewStatus)
         $('#status').select2({
-            placeholder: 'All Status',
             allowClear: false,
             minimumResultsForSearch: Infinity,
             width: '100%'

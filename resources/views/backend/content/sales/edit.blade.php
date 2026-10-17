@@ -43,7 +43,7 @@
                     <input type="hidden" name="organization_contact_id" value="{{ old('organization_contact_id', $sale->organization_contact_id) }}">
 
                     <div class="row g-3">
-                        @include('backend.partials.sale-organization')
+                        @include('backend.partials.sale-organization', ['organizationColumn' => 'col-md-4'])
                         <div class="col-md-4">
                             <label class="form-label">Invoice</label>
                             <input class="form-control" value="{{ $sale->invoice_no }}" readonly>

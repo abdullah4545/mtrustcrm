@@ -80,12 +80,16 @@ class SaleController extends Controller
     {
         $items = CrmAccess::applyOrganizationScope(Organization::query())
             ->when($request->filled('q'), fn($q)=>$q->where('name','like','%'.$request->input('q').'%'))
-            ->orderBy('name')->paginate(25, ['id','name']);
-        return response()->json(['results'=>$items->getCollection()->map(fn($o)=>['id'=>$o->id,'text'=>$o->name]), 'pagination'=>['more'=>$items->hasMorePages()]]);
+            ->orderBy('name')->paginate(25, ['id','name','phone_primary','phone_numbers','email','email_addresses']);
+        return response()->json(['results'=>$items->getCollection()->map(fn($o)=>['id'=>$o->id,'text'=>$o->name,'client_phone'=>$o->phone_primary ?: ($o->phone_numbers[0] ?? ''),'client_email'=>$o->email ?: ($o->email_addresses[0] ?? '')]), 'pagination'=>['more'=>$items->hasMorePages()]]);
     }
 
     private function validateSaleOrganization(Request $request): void
     {
+        if (!$request->filled('organization_id')) {
+            $request->merge(['organization_id' => null, 'organization_contact_id' => null]);
+            return;
+        }
         $organization = Organization::findOrFail($request->integer('organization_id'));
         CrmAccess::ensureOrganizationAllowed($organization);
         if ($request->filled('organization_contact_id')) {
@@ -303,7 +307,7 @@ class SaleController extends Controller
             'lead_id' => 'nullable|exists:leads,id',
             'quotation_id' => 'nullable|exists:quotations,id',
 
-            'organization_id' => 'required|exists:organizations,id',
+            'organization_id' => 'nullable|exists:organizations,id',
             'organization_contact_id' => 'nullable|exists:organization_contacts,id',
 
             'client_name' => 'nullable|string|max:150',
@@ -473,7 +477,7 @@ class SaleController extends Controller
         $this->ensureSaleAccess($sale);
 
         $request->validate([
-            'organization_id' => 'required|exists:organizations,id',
+            'organization_id' => 'nullable|exists:organizations,id',
             'organization_contact_id' => 'nullable|exists:organization_contacts,id',
             'client_name' => 'nullable|string|max:150',
             'client_phone' => 'nullable|string|max:30',
@@ -498,7 +502,7 @@ class SaleController extends Controller
 
         $this->validateSaleOrganization($request);
         $sale->update([
-            'organization_id' => $request->integer('organization_id'),
+            'organization_id' => $request->filled('organization_id') ? $request->integer('organization_id') : null,
             'organization_contact_id' => $request->has('organization_contact_id') ? $request->organization_contact_id : ((int)$sale->organization_id === $request->integer('organization_id') ? $sale->organization_contact_id : null),
             'client_name' => $request->client_name,
             'client_phone' => $request->client_phone,

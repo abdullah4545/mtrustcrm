@@ -45,27 +45,27 @@
 
                     <div class="row g-3">
                         @include('backend.partials.sale-organization')
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Client Name</label>
                             <input class="form-control" name="client_name" value="{{ $lead?->person_name ?? $quotation?->client_name }}" placeholder="Client name">
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Client Phone</label>
                             <input class="form-control" name="client_phone" value="{{ $lead?->person_phone ?? $quotation?->client_phone }}" placeholder="Phone">
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Client Email</label>
                             <input class="form-control" name="client_email" value="{{ $lead?->person_email ?? $quotation?->client_email }}" placeholder="Email">
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Sale Date</label>
                             <input type="date" class="form-control" name="sale_date" value="{{ now()->toDateString() }}">
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Sales Status</label>
                             <select class="form-control" name="status_stage_id">
                                 <option value="">--</option>
@@ -75,13 +75,13 @@
                             </select>
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Discount</label>
                             <input type="number" step="0.01" class="form-control" name="discount_amount" id="discount_amount"
                                    value="{{ $quotation?->discount_amount ?? 0 }}">
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label d-block">VAT / Tax</label>
                             <div class="form-check mt-2">
                                 <input type="hidden" name="tax_enabled" value="0">

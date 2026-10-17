@@ -297,11 +297,15 @@ class ActivityController extends Controller
         $ta = $travels->sum(fn($r)=>(float)($r['cost']??0));
         $da = $expenses->sum(fn($r)=>(float)($r['amount']??0));
         $now = now('Asia/Dhaka');
-        $activityAt = $now;
-        if ($this->canManageActivityEntry() && !empty($data['activity_at'])) {
-            $activityAt = \Carbon\Carbon::parse($data['activity_at'], 'Asia/Dhaka');
-        } elseif ($activity->exists) {
-            $activityAt = ($activity->activity_at ?? $activity->created_at ?? $now)->copy()->timezone('Asia/Dhaka');
+        if (!$activity->exists && empty($data['activity_at'])) {
+            throw ValidationException::withMessages(['activity_at' => 'Please select an activity date and time.']);
+        }
+        if ($activity->exists && !$u->hasPermissionTo('activity.view_all')) {
+            $activityAt = ($activity->activity_at ?? $activity->created_at ?? $activity->date)->copy()->timezone('Asia/Dhaka');
+        } else {
+            $activityAt = !empty($data['activity_at'])
+                ? \Carbon\Carbon::parse($data['activity_at'], 'Asia/Dhaka')
+                : ($activity->activity_at ?? $activity->created_at ?? $now)->copy()->timezone('Asia/Dhaka');
         }
 
         $oldTravelImages = $activity->exists ? $activity->travels->pluck('image_url')->filter()->values()->all() : [];
@@ -325,7 +329,7 @@ class ActivityController extends Controller
                 $activity->entered_by = $u->id;
             }
 
-            if (!$activity->exists || $this->canManageActivityEntry()) {
+            if (!$activity->exists || $u->hasPermissionTo('activity.view_all')) {
                 $activity->date = $activityAt->toDateString();
                 $activity->activity_at = $activityAt;
             }

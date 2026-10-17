@@ -6,18 +6,33 @@ html body .form-control:focus,html body .form-select:focus,html body .select2-co
 html body .form-control:disabled,html body .form-select:disabled,html body .select2-container--disabled .select2-selection{border-color:#666!important;background:#eee!important;opacity:.75}
 html body .is-invalid,html body .is-invalid+.select2 .select2-selection,html body .was-validated :invalid{border-color:#dc3545!important;outline-color:#dc3545}
 html body .required-mark,html body .required-indicator,html body label .text-danger{color:#dc3545!important}
-.nxl-navigation .navbar-content{scrollbar-width:auto!important;scrollbar-color:#555 #e5e7eb;overflow-y:auto!important}
-.nxl-navigation ::-webkit-scrollbar{display:block!important;width:14px!important}.nxl-navigation ::-webkit-scrollbar-thumb{background:#555;border:3px solid #e5e7eb;border-radius:10px}.nxl-navigation .navbar-content>.ps__rail-y{display:none!important}.nxl-navigation .ps__rail-y{width:14px!important;opacity:1!important}.nxl-navigation .ps__thumb-y{width:10px!important;background:#555!important}
-.crm-table-scroll,.crm-table-top{scrollbar-width:auto;scrollbar-color:#555 #e5e7eb;overscroll-behavior-x:contain}
-.crm-table-scroll::-webkit-scrollbar,.crm-table-top::-webkit-scrollbar{height:16px;width:14px}
-.crm-table-scroll::-webkit-scrollbar-thumb,.crm-table-top::-webkit-scrollbar-thumb{background:#555;border:3px solid #e5e7eb;border-radius:10px}
-.crm-table-scroll::-webkit-scrollbar-track,.crm-table-top::-webkit-scrollbar-track{background:#e5e7eb}
-.crm-table-scroll .dataTables_wrapper,.crm-table-scroll .dt-container{overflow:visible!important;height:auto!important;max-height:none!important}
-.crm-table-scroll{overflow-x:auto!important;max-height:none!important;height:auto!important;min-width:0;touch-action:pan-x pan-y}
-.crm-table-top{overflow-x:auto;overflow-y:hidden;height:20px;min-height:20px;background:#f3f4f6}
-.crm-table-top>div{height:1px}.crm-table-dragging,.crm-table-dragging *{cursor:grabbing!important;user-select:none!important}
+/* Main admin/page scrollbar and the existing sidebar scrollbar. */
+html,body,.nxl-container,.nxl-content,.main-content{scrollbar-width:auto;scrollbar-color:#64748b #edf2f7}
+html::-webkit-scrollbar,body::-webkit-scrollbar,.nxl-container::-webkit-scrollbar,.nxl-content::-webkit-scrollbar,.main-content::-webkit-scrollbar{width:16px;height:16px;display:block}
+html::-webkit-scrollbar-thumb,body::-webkit-scrollbar-thumb,.nxl-container::-webkit-scrollbar-thumb,.nxl-content::-webkit-scrollbar-thumb,.main-content::-webkit-scrollbar-thumb{background:#64748b;border:3px solid #edf2f7;border-radius:10px}
+html::-webkit-scrollbar-track,body::-webkit-scrollbar-track,.nxl-container::-webkit-scrollbar-track,.nxl-content::-webkit-scrollbar-track,.main-content::-webkit-scrollbar-track{background:#edf2f7}
+.nxl-navigation .navbar-content{scrollbar-width:auto!important;scrollbar-color:#64748b #edf2f7;overflow-y:auto!important}
+.nxl-navigation .navbar-content::-webkit-scrollbar{display:block!important;width:14px!important}
+.nxl-navigation .navbar-content::-webkit-scrollbar-thumb{background:#64748b;border:3px solid #edf2f7;border-radius:10px}
+.nxl-navigation .navbar-content>.ps__rail-y{display:none!important}
+/* Style native bottom bars only. Do not insert wrappers or top scrollbars. */
+.table-responsive,.dataTables_wrapper,.dt-container,.dataTables_scrollBody,.dt-scroll-body,.report-table-wrapper,.tour-table-wrap{scrollbar-width:auto;scrollbar-color:#64748b #edf2f7;max-width:100%;min-width:0}
+.table-responsive::-webkit-scrollbar,.dataTables_wrapper::-webkit-scrollbar,.dt-container::-webkit-scrollbar,.dataTables_scrollBody::-webkit-scrollbar,.dt-scroll-body::-webkit-scrollbar,.report-table-wrapper::-webkit-scrollbar,.tour-table-wrap::-webkit-scrollbar{height:16px}
+.table-responsive::-webkit-scrollbar-thumb,.dataTables_wrapper::-webkit-scrollbar-thumb,.dt-container::-webkit-scrollbar-thumb,.dataTables_scrollBody::-webkit-scrollbar-thumb,.dt-scroll-body::-webkit-scrollbar-thumb,.report-table-wrapper::-webkit-scrollbar-thumb,.tour-table-wrap::-webkit-scrollbar-thumb{background:#64748b;border:3px solid #edf2f7;border-radius:10px}
+.table-responsive::-webkit-scrollbar-track,.dataTables_wrapper::-webkit-scrollbar-track,.report-table-wrapper::-webkit-scrollbar-track,.tour-table-wrap::-webkit-scrollbar-track{background:#edf2f7}
+.table-responsive,.dataTables_scrollBody,.dt-scroll-body,.report-table-wrapper,.tour-table-wrap{overflow-x:auto!important;height:auto!important;max-height:none!important;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
+.dataTables_wrapper,.dt-container{display:block;clear:both}
+.table-responsive>.dataTables_wrapper,.table-responsive>.dt-container{overflow:visible!important}
+.crm-table-dragging,.crm-table-dragging *{cursor:grabbing!important;user-select:none!important}
 .crm-tables-all:not(.modal-open){height:auto!important;max-height:none!important;overflow-y:auto!important}
-.crm-tables-all .main-content,.crm-tables-all .nxl-container,.crm-tables-all .nxl-content,.crm-tables-all .dataTables_wrapper,.crm-tables-all .dt-container{max-height:none!important;height:auto!important;overflow-y:visible!important}
+.crm-tables-all .main-content,.crm-tables-all .nxl-container,.crm-tables-all .nxl-content{max-height:none!important;height:auto!important;overflow-y:visible!important}
+@media(max-width:767.98px){
+    .nxl-container,.main-content,.nxl-content,.card,.card-body{min-width:0}
+    .dataTables_wrapper .dataTables_length,.dataTables_wrapper .dataTables_filter,.dataTables_wrapper .dataTables_info,.dataTables_wrapper .dataTables_paginate{float:none!important;max-width:100%;white-space:normal}
+    .dataTables_wrapper .dataTables_filter input{max-width:100%;width:min(210px,55vw)!important}
+    .dataTables_wrapper .dataTables_paginate{display:flex;flex-wrap:wrap;justify-content:center;gap:2px}
+    .dataTables_wrapper .dataTables_paginate .paginate_button{margin:2px 0;padding:.4em .65em}
+}
 .org-address{white-space:normal;min-width:180px;max-width:360px;overflow-wrap:anywhere}
 #crmAttachmentPreview img{display:block;max-width:100%;max-height:72dvh;width:auto;height:auto;object-fit:contain;margin:auto}
 </style>
@@ -56,34 +71,23 @@ html body .required-mark,html body .required-indicator,html body label .text-dan
         return false;
     }
     function addScroll(table){
-        if(table.closest('.select2-container,.modal') || table.closest('.dataTables_scrollHead,.dt-scroll-head,.dataTables_scrollFoot,.dt-scroll-foot'))return;
-        let box=table.parentElement;
-        const known=table.closest('.dataTables_scrollBody,.dt-scroll-body,.table-responsive,.tour-table-wrap,.report-table-wrap,.report-table-wrapper');
-        if(known)box=known;
-        if(box===document.body || box.tagName==='FORM')return;
-        if(!known && !box.classList.contains('crm-table-scroll')){
-            const wrapper=document.createElement('div');table.before(wrapper);wrapper.append(table);box=wrapper;
-        }
-        if(box.dataset.crmScroll)return;
-        box.dataset.crmScroll='1';box.classList.add('crm-table-scroll');
-        // Only one horizontal scroll container around each table.
-        let ancestor=box.parentElement;
-        while(ancestor && !ancestor.matches('.main-content,.modal-body')){
-            if(ancestor.matches('.table-responsive,.dataTables_wrapper,.dt-container,.dataTables_scroll,.dt-scroll')){ancestor.style.overflow='visible';ancestor.style.maxHeight='none';ancestor.style.height='auto';}
-            ancestor=ancestor.parentElement;
-        }
-        box.querySelectorAll('.dataTables_wrapper,.dt-container').forEach(el=>{el.style.overflow='visible';el.style.maxHeight='none';el.style.height='auto';});
-        const top=document.createElement('div'),spacer=document.createElement('div');top.className='crm-table-top';top.tabIndex=0;top.setAttribute('role','region');top.setAttribute('aria-label','Scroll table horizontally');top.append(spacer);box.before(top);
-        let syncing=false;
-        function sync(source,target){if(syncing)return;syncing=true;target.scrollLeft=source.scrollLeft;syncing=false;}
-        top.addEventListener('scroll',()=>sync(top,box));box.addEventListener('scroll',()=>sync(box,top));
-        function resize(){spacer.style.width=box.scrollWidth+'px';top.style.display=box.scrollWidth>box.clientWidth+1?'block':'none';top.scrollLeft=box.scrollLeft;}
-        const ro=new ResizeObserver(resize);ro.observe(box);ro.observe(table);resize();
+        if(table.closest('.dataTables_scrollHead,.dt-scroll-head,.dataTables_scrollFoot,.dt-scroll-foot'))return;
+        // Enhance ONLY a scroll container the page already owns; never reparent a table.
+        const box=table.closest('.table-responsive,.dataTables_scrollBody,.dt-scroll-body,.report-table-wrapper,.tour-table-wrap');
+        if(!box || box.dataset.crmDragReady)return;
+        box.dataset.crmDragReady='1';
+        if(!box.hasAttribute('tabindex'))box.setAttribute('tabindex','0');
+        if(!box.hasAttribute('aria-label'))box.setAttribute('aria-label','Scroll table horizontally');
         let drag=null;
+        const finish=()=>{
+            if(drag?.moved)box.dataset.crmSuppressClick='1';
+            drag=null;box.classList.remove('crm-table-dragging');
+            setTimeout(()=>delete box.dataset.crmSuppressClick,0);
+        };
         box.addEventListener('pointerdown',e=>{
             if(e.pointerType!=='mouse'||e.button!==0||e.target.closest(interactive)||window.getSelection()?.toString()||hitsText(e,e.target))return;
-            // Keep native scrollbar thumb interaction intact.
-            const rect=box.getBoundingClientRect();if(e.clientY>rect.top+box.clientHeight)return;
+            const rect=box.getBoundingClientRect();
+            if(e.clientY>=rect.top+box.clientHeight || e.clientX>=rect.left+box.clientWidth)return;
             drag={x:e.clientX,y:e.clientY,left:box.scrollLeft,moved:false};
         });
         window.addEventListener('pointermove',e=>{
@@ -92,7 +96,9 @@ html body .required-mark,html body .required-indicator,html body label .text-dan
             if(!drag.moved && Math.abs(dy)>Math.abs(dx)){drag=null;return;}
             if(Math.abs(dx)>5){drag.moved=true;box.classList.add('crm-table-dragging');box.scrollLeft=drag.left-dx;e.preventDefault();}
         },{passive:false});
-        window.addEventListener('pointerup',()=>{if(drag?.moved)box.dataset.crmSuppressClick='1';drag=null;box.classList.remove('crm-table-dragging');setTimeout(()=>delete box.dataset.crmSuppressClick,0);});
+        window.addEventListener('pointerup',finish);
+        window.addEventListener('pointercancel',finish);
+        window.addEventListener('blur',finish);
         box.addEventListener('click',e=>{if(box.dataset.crmSuppressClick && !e.target.closest(interactive)){e.preventDefault();e.stopPropagation();}},true);
     }
     function scan(){scheduled=false;requiredMarks(document);document.querySelectorAll('table.table').forEach(addScroll);}

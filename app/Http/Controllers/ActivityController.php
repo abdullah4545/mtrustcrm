@@ -155,7 +155,7 @@ class ActivityController extends Controller
                 $superAdmin = $this->isSuperAdmin();
                 $canModifyLocked = !$locked || $superAdmin;
 
-                $html='<div class="d-flex gap-1 flex-wrap">';
+                $html='<div class="activity-actions">';
 
                 $canMultipleEdit = $user->hasPermissionTo('activity.multiple_edit');
                 $editCount = (int) ($row->edit_count ?? 0);

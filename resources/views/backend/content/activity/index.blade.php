@@ -35,12 +35,12 @@
 
     </div>
 
-    <div class="main-content">
+    <div class="main-content activity-list-page">
         <div class="card">
             <div class="card-body">
-                <div class="row g-2 mb-3">
+                <div class="row g-2 mb-3 activity-filters">
                     @if($showStaffColumn && auth()->user()->can('staff.filter'))
-                    <div class="col-md-3">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label">Staff / Created By</label>
                         <select id="f_created_by" class="form-control">
                             <option value="">All Staff</option>
@@ -50,16 +50,16 @@
                         </select>
                     </div>
                     @endif
-                    <div class="col-md-3">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label">From Date</label>
                         <input type="date" id="f_from_date" class="form-control" value="{{ $af('f_from_date') }}">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label">To Date</label>
                         <input type="date" id="f_to_date" class="form-control" value="{{ $af('f_to_date') }}">
                     </div>
                     @if($showStatus)
-                    <div class="col-md-3">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label">Status</label>
                         <select id="f_status" class="form-control">
                             <option value="">All Status</option>
@@ -69,8 +69,8 @@
                         </select>
                     </div>
                     @endif
-                    <div class="col-md-3"><label class="form-label">Payment Status</label><select id="f_payment_status" class="form-control"><option value="">All Payment Status</option><option value="unpaid" @selected($af('f_payment_status') === 'unpaid')>Unpaid</option><option value="waiting_for_payment" @selected($af('f_payment_status') === 'waiting_for_payment')>Waiting for Payment</option><option value="paid" @selected($af('f_payment_status') === 'paid')>Paid</option></select></div>
-                    <div class="col-md-3 d-flex align-items-end">
+                    <div class="col-12 col-sm-6 col-lg-3"><label class="form-label">Payment Status</label><select id="f_payment_status" class="form-control"><option value="">All Payment Status</option><option value="unpaid" @selected($af('f_payment_status') === 'unpaid')>Unpaid</option><option value="waiting_for_payment" @selected($af('f_payment_status') === 'waiting_for_payment')>Waiting for Payment</option><option value="paid" @selected($af('f_payment_status') === 'paid')>Paid</option></select></div>
+                    <div class="col-12 col-sm-6 col-lg-3 d-flex align-items-end">
                         <button type="button" id="f_date_reset" class="btn btn-light w-100">Reset Filter</button>
                     </div>
                     <div class="col-12 d-flex flex-wrap gap-2 mt-2">
@@ -80,9 +80,10 @@
                     </div>
                 </div>
 
-                @if($canBulkReview || $canManagePayment)<div class="d-flex flex-wrap gap-2 mb-3 align-items-center"><strong>Bulk Action:</strong>@if($canBulkReview)<button class="btn btn-sm btn-success bulk-action" data-action="approve">Approve</button><button class="btn btn-sm btn-danger bulk-action" data-action="reject">Reject</button>@endif @if($canManagePayment)<button class="btn btn-sm btn-secondary bulk-action" data-action="unpaid">Mark Unpaid</button><button class="btn btn-sm btn-warning bulk-action" data-action="waiting_for_payment">Waiting for Payment</button><button class="btn btn-sm btn-primary bulk-action" data-action="paid">Mark Paid</button>@endif <span id="selectedCount" class="text-muted small">0 selected</span></div>@endif
+                @if($canBulkReview || $canManagePayment)<div class="d-flex flex-wrap gap-2 mb-3 align-items-center activity-bulk-actions"><strong>Bulk Action:</strong>@if($canBulkReview)<button class="btn btn-sm btn-success bulk-action" data-action="approve">Approve</button><button class="btn btn-sm btn-danger bulk-action" data-action="reject">Reject</button>@endif @if($canManagePayment)<button class="btn btn-sm btn-secondary bulk-action" data-action="unpaid">Mark Unpaid</button><button class="btn btn-sm btn-warning bulk-action" data-action="waiting_for_payment">Waiting for Payment</button><button class="btn btn-sm btn-primary bulk-action" data-action="paid">Mark Paid</button>@endif <span id="selectedCount" class="text-muted small">0 selected</span></div>@endif
 
-                <table class="table table-bordered" id="activityTable">
+                <p class="small text-muted d-md-none mb-2">Swipe left or right inside the table to view all columns.</p>
+                <table class="table table-bordered align-middle" id="activityTable" style="width:100%">
                     <thead>
                     <tr>
                         <th><input type="checkbox" id="selectAll" class="form-check-input"></th>
@@ -108,6 +109,50 @@
         </div>
     </div>
 
+
+<style>
+.activity-list-page .card-body{min-width:0}
+#activityTable_wrapper{display:block!important;width:100%;max-width:100%;overflow:visible!important}
+#activityTable_wrapper::after{content:"";display:block;clear:both}
+#activityTable_wrapper>.row{display:flex;flex-wrap:wrap;margin-top:0}
+#activityTable_wrapper .activity-table-scroll{display:block;clear:both;width:100%;max-width:100%;height:auto!important;max-height:none!important;overflow-x:auto!important;margin:0;border:1px solid #e5e7eb;border-radius:8px}
+#activityTable{width:100%!important;min-width:1480px;margin:0!important;border-collapse:collapse!important;table-layout:auto}
+#activityTable th{white-space:nowrap;background:#f8fafc;font-size:12px;padding:12px 10px;vertical-align:middle}
+#activityTable td{vertical-align:top;padding:10px;font-size:13px;line-height:1.5;height:auto}
+#activityTable .activity-date{min-width:145px;white-space:nowrap}
+#activityTable .activity-staff{min-width:130px;max-width:180px;white-space:normal;overflow-wrap:anywhere}
+#activityTable .activity-organization{min-width:180px;max-width:240px;white-space:normal;overflow-wrap:anywhere}
+#activityTable .activity-location{min-width:150px;max-width:240px;white-space:normal;overflow-wrap:anywhere}
+#activityTable .activity-money{white-space:nowrap;min-width:80px}
+#activityTable .activity-actions-cell{min-width:270px;width:270px}
+#activityTable .activity-actions{display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;align-items:center;gap:6px;min-width:250px;max-width:280px}
+#activityTable .activity-actions .btn{min-height:32px;padding:6px 10px;line-height:1.2;font-size:11px;margin:0;flex:0 0 auto;width:auto;white-space:nowrap}
+#activityTable .activity-actions .badge{align-self:center;white-space:nowrap}
+#activityTable_wrapper .dataTables_length,#activityTable_wrapper .dataTables_filter,#activityTable_wrapper .dataTables_info,#activityTable_wrapper .dataTables_paginate{float:none!important;clear:none!important;margin:0;padding-top:0}
+#activityTable_wrapper .dataTables_filter{text-align:right}
+#activityTable_wrapper .dataTables_filter label{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:0}
+#activityTable_wrapper .dataTables_filter input{width:200px!important;max-width:100%;margin:0}
+#activityTable_wrapper .dataTables_length label{display:flex;align-items:center;gap:8px;margin:0}
+#activityTable_wrapper .dataTables_length select{width:auto!important;min-width:72px}
+#activityTable_wrapper .dataTables_paginate{text-align:right}
+.activity-filters .form-label{margin-bottom:6px}
+@media(max-width:767.98px){
+ .activity-list-page{padding:12px!important}
+ .activity-list-page .card-body{padding:12px!important}
+ .activity-list-page .activity-filters{margin-bottom:16px!important}
+ .activity-list-page .activity-bulk-actions{padding:10px;background:#f8fafc;border-radius:8px}
+ .activity-list-page .activity-bulk-actions>strong{flex-basis:100%}
+ .activity-list-page .activity-bulk-actions .btn{min-height:40px}
+ #activityTable_wrapper .activity-table-tools>div,#activityTable_wrapper .activity-table-footer>div{min-width:0}
+ #activityTable_wrapper .dataTables_filter,#activityTable_wrapper .dataTables_info,#activityTable_wrapper .dataTables_length{text-align:left}
+ #activityTable_wrapper .dataTables_filter label{justify-content:flex-start}
+ #activityTable_wrapper .dataTables_filter input{width:100%!important;min-width:0;flex:1}
+ #activityTable_wrapper .dataTables_paginate{display:flex;flex-wrap:wrap;justify-content:flex-start;white-space:normal}
+ #activityTable_wrapper .dataTables_paginate .paginate_button{padding:6px 10px;min-height:36px;margin:2px}
+ #activityTable{min-width:1480px}
+}
+</style>
+
 @endsection
 
 
@@ -128,41 +173,41 @@
 
                     <div class="row g-2">
 
-                        <div class="col-md-3">
+                        <div class="col-12 col-sm-6 col-lg-3">
                             <label>Date</label>
                             <input type="date" id="date" class="form-control">
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-12 col-sm-6 col-lg-3">
                             <label>Organization</label>
                             <select id="organization_id" class="form-control" required>
                                 <option value="">Select Organization</option>
                             </select>
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-12 col-sm-6 col-lg-3">
                             <label>Department</label>
                             <select id="department" class="form-control">
                                 <option value="">Select Department</option>
                             </select>
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-12 col-sm-6 col-lg-3">
                             <label>Contact Person</label>
                             <input type="text" id="contact_person" class="form-control">
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-12 col-sm-6 col-lg-3">
                             <label>From</label>
                             <input type="text" id="from_location" class="form-control">
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-12 col-sm-6 col-lg-3">
                             <label>To</label>
                             <input type="text" id="to_location" class="form-control">
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-12 col-sm-6 col-lg-3">
                             <label>Vehicle</label>
                             <input type="text" id="vehicle" class="form-control">
                         </div>
@@ -172,17 +217,17 @@
                             <textarea id="work_details" class="form-control"></textarea>
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-12 col-sm-6 col-lg-3">
                             <label>TA</label>
                             <input type="number" id="ta" class="form-control" value="0">
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-12 col-sm-6 col-lg-3">
                             <label>DA</label>
                             <input type="number" id="da" class="form-control" value="0">
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-12 col-sm-6 col-lg-3">
                             <label>Total</label>
                             <input type="number" id="total" class="form-control" readonly>
                         </div>
@@ -252,22 +297,24 @@
         lengthMenu: [[10, 50, 100, -1], [10, 50, 100, 'All']],
             processing:true,
             serverSide:true,
+            autoWidth:false,
+            dom:'<"row g-2 align-items-center mb-3 activity-table-tools"<"col-12 col-sm-6"l><"col-12 col-sm-6"f>><"table-responsive activity-table-scroll"t><"row g-2 align-items-center mt-3 activity-table-footer"<"col-12 col-md-5"i><"col-12 col-md-7"p>>',
             stateSave:true,
             stateDuration:-1,
             ajax:{url:ROUTE_DATATABLE,data:function(d){d.created_by=$('#f_created_by').val();d.from_date=$('#f_from_date').val();d.to_date=$('#f_to_date').val();d.status=@json($showStatus) ? $('#f_status').val() : '';d.payment_status=$('#f_payment_status').val();}},
             columns:[
                 {data:'select',orderable:false,searchable:false},
                 {data:'DT_RowIndex', orderable:false, searchable:false},
-                {data:'date'},
+                {data:'date',className:'activity-date'},
                 @if($showStaffColumn)
-                {data:'staff_name', orderable:false, searchable:false},
+                {data:'staff_name',className:'activity-staff', orderable:false, searchable:false},
                 @endif
-                {data:'organization_contact', name:'organization_name'},
-                {data:'from_location'},
-                {data:'to_location'},
-                {data:'ta'},
-                {data:'da'},
-                {data:'total'},
+                {data:'organization_contact',name:'organization_name',className:'activity-organization'},
+                {data:'from_location',className:'activity-location'},
+                {data:'to_location',className:'activity-location'},
+                {data:'ta',className:'activity-money text-end'},
+                {data:'da',className:'activity-money text-end'},
+                {data:'total',className:'activity-money text-end'},
                 {data:'tour_type',orderable:false,searchable:false},
                 {data:'payment_status',orderable:false,searchable:false},
                 @if($showStatus)
@@ -276,7 +323,7 @@
                 @if($showEditAudit)
                 {data:'edit_history', orderable:false, searchable:false},
                 @endif
-                {data:'action', orderable:false, searchable:false},
+                {data:'action',className:'activity-actions-cell',orderable:false,searchable:false},
             ]
         });
 

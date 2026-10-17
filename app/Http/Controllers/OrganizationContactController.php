@@ -57,7 +57,8 @@ class OrganizationContactController extends Controller
     {
         CrmAccess::ensureOrganizationAllowed($organization);
         $request->validate([
-            'name' => 'nullable|string|max:255',
+            'first_name' => 'nullable|string|max:255',
+            'last_name' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:50',
             'phone_numbers' => 'nullable|array|max:10',
@@ -70,8 +71,9 @@ class OrganizationContactController extends Controller
 
         $contact = new OrganizationContact();
         $contact->organization_id = $organization->id;
-        $contact->title = $request->title;
-        $contact->name = $request->name;
+        $contact->first_name = $request->first_name;
+        $contact->last_name = $request->last_name;
+        $contact->name = trim(($request->first_name ?? '').' '.($request->last_name ?? ''));
         $phones = collect($request->input('phone_numbers', [$request->phone,$request->phone_two]))->filter()->values();
         $emails = collect($request->input('email_addresses', [$request->email]))->filter()->values();
         $contact->phone_numbers = $phones->all();
@@ -114,7 +116,8 @@ class OrganizationContactController extends Controller
     {
         CrmAccess::ensureOrganizationAllowed(Organization::findOrFail($contact->organization_id));
         $request->validate([
-            'name' => 'nullable|string|max:255',
+            'first_name' => 'nullable|string|max:255',
+            'last_name' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:50',
             'phone_numbers' => 'nullable|array|max:10',
@@ -125,8 +128,9 @@ class OrganizationContactController extends Controller
             'image' => 'nullable|image|max:2048',
         ]);
 
-        $contact->title = $request->title;
-        $contact->name = $request->name;
+        $contact->first_name = $request->first_name;
+        $contact->last_name = $request->last_name;
+        $contact->name = trim(($request->first_name ?? '').' '.($request->last_name ?? ''));
         $phones = collect($request->input('phone_numbers', [$request->phone,$request->phone_two]))->filter()->values();
         $emails = collect($request->input('email_addresses', [$request->email]))->filter()->values();
         $contact->phone_numbers = $phones->all();

@@ -78,6 +78,7 @@
                         </select>
                     </div>
                     @endcan
+                    <div class="col-md-4"><label class="form-label">Organization</label><select id="f_organization_id" class="form-control no-select2"><option value="">All Organizations</option></select></div>
                     <div class="col-md-3">
                         <label class="form-label mb-1">Search</label>
                         <input type="text" id="f_search_text" class="form-control" placeholder="invoice / name / phone / sale no">
@@ -103,7 +104,7 @@
                             <th>Invoice</th>
                             <th>Sold By</th>
                             <th>Sale Date</th>
-                            <th>Client</th>
+                            <th>Organization</th><th>Client</th>
                             <th>Phone</th>
                             <th>Status</th>
                             <th>Payment</th>
@@ -145,6 +146,7 @@ $(document).ready(function(){
             data: function(d){
                 d.status_stage_id = $('#f_status_stage_id').val();
                 d.payment_status = $('#f_payment_status').val();
+                d.organization_id = $('#f_organization_id').val();
                 d.search_text = $('#f_search_text').val();
                 d.sold_by = $('#f_sold_by').val();
                 d.date_from = $('#f_date_from').val();
@@ -156,6 +158,7 @@ $(document).ready(function(){
             {data:'invoice_no', name:'invoice_no'},
             {data:'staff_name', orderable:false, searchable:false},
             {data:'sale_date', name:'sale_date'},
+            {data:'organization_name', name:'organization.name'},
             {data:'client_name', name:'client_name'},
             {data:'client_phone', name:'client_phone'},
             {data:'status_badge', orderable:false, searchable:false},
@@ -166,11 +169,12 @@ $(document).ready(function(){
         ]
     });
 
-    $('#f_status_stage_id,#f_payment_status,#f_date_from,#f_date_to,#f_sold_by').on('change', ()=>table.ajax.reload());
+    $('#f_organization_id,#f_status_stage_id,#f_payment_status,#f_date_from,#f_date_to,#f_sold_by').on('change', ()=>table.ajax.reload());
+    $('#f_organization_id').select2({width:'100%',placeholder:'All Organizations',allowClear:true,ajax:{url:@json(route('sales.organizations.options')),dataType:'json',delay:250,data:p=>({q:p.term||'',page:p.page||1}),processResults:r=>r}});
     $('#f_search_text').on('keyup', ()=>table.ajax.reload());
 
     $('#btnReset').on('click', function(){
-        $('#f_status_stage_id,#f_payment_status,#f_search_text,#f_date_from,#f_date_to,#f_sold_by').val('').trigger('change');
+        $('#f_organization_id,#f_status_stage_id,#f_payment_status,#f_search_text,#f_date_from,#f_date_to,#f_sold_by').val('').trigger('change');
         table.ajax.reload();
     });
 

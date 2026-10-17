@@ -144,6 +144,7 @@
 
         const isFilterControl = (el) => {
             if (!el || !el.matches || !el.matches('input,select,textarea')) return false;
+            if (el.closest('#saleForm,form[action*="/sales/"]') || el.id === 'sale_organization_id') return false;
             const id = (el.id || '').toLowerCase();
             const name = (el.name || '').toLowerCase();
             if (id.startsWith('f_') || id.startsWith('filter_') || id.startsWith('filter')) return true;
@@ -158,6 +159,7 @@
             const key = keyOf(el);
             if (!key || !(key in saved)) return;
             restoring = true;
+            if (el.id === 'f_organization_id' && saved[key] && !Array.from(el.options).some(o=>o.value===String(saved[key]))) el.add(new Option(saved['label:'+key] || ('Organization #'+saved[key]),saved[key]));
             if (el.type === 'checkbox') el.checked = !!saved[key]; else el.value = saved[key] ?? '';
             if (window.jQuery && jQuery(el).hasClass('select2-hidden-accessible')) jQuery(el).trigger('change.select2');
             restoring = false;
@@ -171,6 +173,7 @@
             document.querySelectorAll('input,select,textarea').forEach(el => {
                 if (!isFilterControl(el)) return;
                 const key = keyOf(el); if (key) data[key] = valueOf(el);
+                if(el.id==='f_organization_id') data['label:'+key]=el.selectedOptions[0]?.text || '';
             });
             return data;
         }
@@ -364,6 +367,7 @@
     </script>
 
 
+@include('backend.partials.crm-usability')
 </body>
 
 </html>

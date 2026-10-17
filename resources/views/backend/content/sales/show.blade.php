@@ -69,7 +69,7 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <h6>Client</h6>
-                                <div><b>{{ $sale->client_name }}</b></div>
+                                <div><b>{{ $sale->organization?->name ?? 'Unknown / legacy' }}</b></div><div><b>{{ $sale->client_name }}</b></div>
                                 <div>{{ $sale->client_phone }}</div>
                                 <div>{{ $sale->client_email }}</div>
                                 <div class="text-muted">{{ $sale->client_address }}</div>

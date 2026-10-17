@@ -53,6 +53,7 @@
                     <tr>
                         <th>#</th>
                         <th>Name</th>
+                        <th>Created By</th>
                         <th>Category</th>
                         <th>Type</th>
                         <th>Activity</th>
@@ -312,6 +313,7 @@ $(document).ready(function(){
         columns:[
             {data:'DT_RowIndex', orderable:false, searchable:false},
             {data:'name', name:'name'},
+            {data:'staff_name', name:'creator.name', orderable:false},
             {data:'category', orderable:false, searchable:false},
             {data:'type', orderable:false, searchable:false},
             {data:'activity_summary', orderable:false, searchable:false},
@@ -335,7 +337,8 @@ $(document).ready(function(){
             <div class="card mb-2 shadow-sm">
                 <div class="card-body p-2 pb-4">
 
-                    <h6 class="mb-1">${item.name}</h6>
+                    <div class="mb-1 fw-semibold">${item.name}</div>
+                    <div class="small text-muted mb-1">Created By: ${item.staff_name ?? 'Unknown / legacy'}</div>
 
                     <div class="small text-muted">
                         ${item.category ?? ''} | ${item.type ?? ''}

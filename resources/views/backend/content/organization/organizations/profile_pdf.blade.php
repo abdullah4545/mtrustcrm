@@ -250,7 +250,7 @@
                         </td>
 
                         <td>
-                            <strong>{{ $contact->title }} {{ $contact->name ?? '-' }}</strong>
+                            <strong>{{ $contact->name ?? '-' }}</strong>
 
                             @if($contact->is_primary)
                                 <br><span class="primary">K.O.L</span>

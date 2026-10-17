@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Branch;
+use App\Models\Organization;
 use App\Models\Business;
 use App\Models\Lead;
 use App\Models\Product;
@@ -32,7 +33,7 @@ class SaleController extends Controller
                 'index','datatable','show',
                 'create','edit',
                 'createFromLead','createFromQuotation',
-                'pdf'
+                'pdf','organizationOptions'
             ]);
  
         $this->middleware('permission:sale.create')
@@ -73,6 +74,25 @@ class SaleController extends Controller
         if ($u->can('sale.view_all_branches')) return;
         if ((int)$sale->sold_by === (int)$u->id) return;
         abort(403);
+    }
+
+    public function organizationOptions(Request $request)
+    {
+        $items = CrmAccess::applyOrganizationScope(Organization::query())
+            ->when($request->filled('q'), fn($q)=>$q->where('name','like','%'.$request->input('q').'%'))
+            ->orderBy('name')->paginate(25, ['id','name']);
+        return response()->json(['results'=>$items->getCollection()->map(fn($o)=>['id'=>$o->id,'text'=>$o->name]), 'pagination'=>['more'=>$items->hasMorePages()]]);
+    }
+
+    private function validateSaleOrganization(Request $request): void
+    {
+        $organization = Organization::findOrFail($request->integer('organization_id'));
+        CrmAccess::ensureOrganizationAllowed($organization);
+        if ($request->filled('organization_contact_id')) {
+            validator($request->all(), ['organization_contact_id'=>[
+                \Illuminate\Validation\Rule::exists('organization_contacts','id')->where('organization_id',$organization->id)->whereNull('deleted_at'),
+            ]])->validate();
+        }
     }
 
     private function saleNo(): string
@@ -144,7 +164,7 @@ class SaleController extends Controller
         $u = Auth::user();
 
         $q = Sale::query()
-            ->with(['statusStage:id,name,color','soldBy:id,name'])
+            ->with(['statusStage:id,name,color','soldBy:id,name','organization:id,name'])
             ->latest();
 
         if ($u->can('sale.view_all_branches')) {
@@ -153,6 +173,7 @@ class SaleController extends Controller
             $q->where('sold_by', $u->id);
         }
 
+        if ($request->filled('organization_id')) $q->where('organization_id', $request->integer('organization_id'));
         if ($request->filled('status_stage_id')) $q->where('status_stage_id', $request->status_stage_id);
         if ($request->filled('payment_status')) $q->where('payment_status', $request->payment_status);
         if ($u->can('sale.view_all_branches') && $u->can('staff.filter') && $request->filled('sold_by')) $q->where('sold_by', $request->integer('sold_by'));
@@ -167,12 +188,14 @@ class SaleController extends Controller
                 $qq->where('invoice_no', 'like', "%{$s}%")
                     ->orWhere('sale_no', 'like', "%{$s}%")
                     ->orWhere('client_name', 'like', "%{$s}%")
-                    ->orWhere('client_phone', 'like', "%{$s}%");
+                    ->orWhere('client_phone', 'like', "%{$s}%")
+                    ->orWhereHas('organization', fn($org)=>$org->where('name','like',"%{$s}%"));
             });
         }
 
         return DataTables::of($q)
             ->addIndexColumn()
+            ->addColumn('organization_name', fn($row) => $row->organization?->name ?? 'Unknown / legacy')
             ->addColumn('staff_name', fn($row) => e($row->soldBy?->name ?? '-'))
             ->editColumn('sale_date', fn($row) =>
                 $row->sale_date ? Carbon::parse($row->sale_date)->timezone('Asia/Dhaka')->format('d M Y') : '-'
@@ -280,7 +303,7 @@ class SaleController extends Controller
             'lead_id' => 'nullable|exists:leads,id',
             'quotation_id' => 'nullable|exists:quotations,id',
 
-            'organization_id' => 'nullable|exists:organizations,id',
+            'organization_id' => 'required|exists:organizations,id',
             'organization_contact_id' => 'nullable|exists:organization_contacts,id',
 
             'client_name' => 'nullable|string|max:150',
@@ -330,7 +353,7 @@ class SaleController extends Controller
             }
         }
 
-        if ($request->filled('organization_id')) CrmAccess::ensureOrganizationAllowed(Organization::findOrFail($request->organization_id), $u);
+        $this->validateSaleOrganization($request);
 
         if ($lead && $lead->converted_sale_id) {
             return redirect()->route('sales.show', $lead->converted_sale_id)
@@ -450,6 +473,8 @@ class SaleController extends Controller
         $this->ensureSaleAccess($sale);
 
         $request->validate([
+            'organization_id' => 'required|exists:organizations,id',
+            'organization_contact_id' => 'nullable|exists:organization_contacts,id',
             'client_name' => 'nullable|string|max:150',
             'client_phone' => 'nullable|string|max:30',
             'client_email' => 'nullable|email|max:150',
@@ -471,7 +496,10 @@ class SaleController extends Controller
             'items.*.tax_rate' => 'nullable|numeric|min:0',
         ]);
 
+        $this->validateSaleOrganization($request);
         $sale->update([
+            'organization_id' => $request->integer('organization_id'),
+            'organization_contact_id' => $request->has('organization_contact_id') ? $request->organization_contact_id : ((int)$sale->organization_id === $request->integer('organization_id') ? $sale->organization_contact_id : null),
             'client_name' => $request->client_name,
             'client_phone' => $request->client_phone,
             'client_email' => $request->client_email,

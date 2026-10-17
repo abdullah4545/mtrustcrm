@@ -207,7 +207,7 @@ class ActivitySortListController extends Controller
             $validated['created_by'] ?? null
         );
 
-        $pdf = Pdf::loadView('backend.content.activity.report.pdf', [
+        return \App\Support\PrintedActivityReport::view($activities, [
             'activities'  => $activities,
             'employee'    => $employee,
             'columns'     => $columns,
@@ -224,9 +224,6 @@ class ActivitySortListController extends Controller
             'statusFilter'=> $validated['status'] ?? null,
         ]);
 
-        $pdf->setPaper('a4', 'landscape');
-
-        return $pdf->stream('activity-report.pdf');
     }
 
     /**

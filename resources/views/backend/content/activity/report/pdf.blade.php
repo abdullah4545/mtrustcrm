@@ -368,5 +368,8 @@
     </tfoot>
 </table>
 
+@isset($printToken)
+@include('backend.partials.activity-print-controls')
+@endisset
 </body>
 </html>

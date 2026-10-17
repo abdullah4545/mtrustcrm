@@ -41,11 +41,10 @@
 
                     <input type="hidden" name="lead_id" value="{{ $lead?->id }}">
                     <input type="hidden" name="quotation_id" value="{{ $quotation?->id }}">
-
-                    <input type="hidden" name="organization_id" value="{{ $lead?->organization_id ?? $quotation?->organization_id }}">
                     <input type="hidden" name="organization_contact_id" value="{{ $lead?->organization_contact_id ?? $quotation?->organization_contact_id }}">
 
                     <div class="row g-3">
+                        @include('backend.partials.sale-organization')
                         <div class="col-md-4">
                             <label class="form-label">Client Name</label>
                             <input class="form-control" name="client_name" value="{{ $lead?->person_name ?? $quotation?->client_name }}" placeholder="Client name">
@@ -111,10 +110,10 @@
                             <thead>
                                 <tr>
                                     <th width="240">Product/Custom Item</th>
-                                    <th>Description</th>
-                                    <th width="90">Qty</th>
+                                    <th>Item Name <span class="required-indicator">*</span> / Description (Optional)</th>
+                                    <th width="90">Qty <span class="required-indicator">*</span></th>
                                     <th width="90">Unit</th>
-                                    <th width="120">Unit Price</th>
+                                    <th width="120">Unit Price <span class="required-indicator">*</span></th>
                                     <th width="90">Tax %</th>
                                     <th width="130">Amount</th>
                                     <th width="50"></th>
@@ -194,14 +193,14 @@ function addRow(item = null){
             <select class="form-control product_id" name="items[${idx}][product_id]">
                 <option value="">-- Custom Item --</option>
             </select>
-            <input class="form-control mt-2 item_name" name="items[${idx}][item_name]" placeholder="Item name *" required>
+            <input class="form-control mt-2 item_name" name="items[${idx}][item_name]" placeholder="Item name" aria-label="Item name (required)" required>
         </td>
         <td>
             <textarea class="form-control item_desc" name="items[${idx}][description]" rows="2" placeholder="Description (optional)"></textarea>
         </td>
-        <td><input type="number" step="0.01" class="form-control qty" name="items[${idx}][qty]" value="1"></td>
+        <td><input type="number" step="0.01" class="form-control qty" min="0.01" required name="items[${idx}][qty]" value="1"></td>
         <td><input type="text" class="form-control unit" name="items[${idx}][unit]" value="pcs"></td>
-        <td><input type="number" step="0.01" class="form-control unit_price" name="items[${idx}][unit_price]" value="0"></td>
+        <td><input type="number" step="0.01" class="form-control unit_price" min="0" required name="items[${idx}][unit_price]" value="0"></td>
         <td><input type="number" step="0.01" class="form-control tax_rate" name="items[${idx}][tax_rate]" value="0"></td>
         <td><b class="line_total_text">0.00</b></td>
         <td class="text-center">

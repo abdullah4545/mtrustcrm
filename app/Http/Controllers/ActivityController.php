@@ -231,10 +231,10 @@ class ActivityController extends Controller
             'department_id'=>'nullable|exists:departments,id','contact_id'=>'nullable','contact_person'=>'nullable|string|max:255',
             'work_details'=>'required|string','remarks'=>'nullable|string','status'=>'nullable|in:pending,approved,rejected',
             'travels.*.tour_type'=>'nullable|in:local_tour,tour',
-            'travels'=>'nullable|array','travels.*.id'=>'nullable|integer','travels.*.entry_at'=>'required_with:travels|date','travels.*.from_location'=>'nullable|string|max:255','travels.*.to_location'=>'nullable|string|max:255',
+            'travels'=>'nullable|array','travels.*.id'=>'nullable|integer','travels.*.entry_at'=>'required_with:travels|date_format:Y-m-d\TH:i','travels.*.from_location'=>'required_with:travels|string|max:255','travels.*.to_location'=>'required_with:travels|string|max:255',
             'travels.*.vehicle'=>'nullable|string|max:255','travels.*.distance'=>'required_with:travels|numeric|min:0.01','travels.*.cost'=>'nullable|numeric|min:0',
             'travels.*.existing_image_url'=>'nullable|string|max:500','travels.*._edited'=>'nullable|boolean','travels.*.image'=>'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
-            'expenses'=>'nullable|array','expenses.*.id'=>'nullable|integer','expenses.*.entry_at'=>'required_with:expenses|date','expenses.*.expense_type_id'=>'nullable|exists:expense_types,id','expenses.*.amount'=>'nullable|numeric|min:0','expenses.*.note'=>'nullable|string|max:500',
+            'expenses'=>'nullable|array','expenses.*.id'=>'nullable|integer','expenses.*.entry_at'=>'required_with:expenses|date_format:Y-m-d\TH:i','expenses.*.expense_type_id'=>'required_with:expenses|exists:expense_types,id','expenses.*.amount'=>'nullable|numeric|min:0','expenses.*.note'=>'nullable|string|max:500',
             'expenses.*.existing_image_url'=>'nullable|string|max:500','expenses.*._edited'=>'nullable|boolean','expenses.*.image'=>'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
     }
@@ -310,7 +310,7 @@ class ActivityController extends Controller
 
         return DB::transaction(function () use ($activity,$data,$org,$owner,$u,$travels,$expenses,$ta,$da,$now,$activityAt,$oldTravelImages,$oldExpenseImages,$wasExisting) {
             $activity->fill([
-                'organization_id'=>$org?->id,'organization_name'=>$org?->name,'department_id'=>$data['department_id']??null,'department'=>$data['department'],
+                'organization_id'=>$org?->id,'organization_name'=>$org?->name,'department_id'=>$data['department_id']??null,'department'=>!empty($data['department_id']) ? \App\Models\Department::find($data['department_id'])?->title : null,
                 'contact_id'=>null,'contact_person'=>$data['contact_person']??null,'work_details'=>$data['work_details']??null,
                 'from_location'=>$travels->pluck('from_location')->filter()->implode(' | '),
                 'to_location'=>$travels->pluck('to_location')->filter()->implode(' | '),

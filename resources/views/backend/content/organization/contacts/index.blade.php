@@ -69,8 +69,8 @@
                                 <tr>
                                     <th>#</th>
                                     <th>Image</th>
-                                    <th>Title</th>
-                                    <th>Name</th>
+                                    <th>First Name</th>
+                                    <th>Last Name</th>
                                     <th>Phone</th>
                                     <th>Email</th>
                                     <th>K.O.L</th>
@@ -115,13 +115,13 @@
                     <div class="row g-2">
 
                         <div class="col-md-4">
-                            <label class="form-label">Title</label>
-                            <input type="text" id="title" class="form-control" placeholder="Dr / Mr / Ms">
+                            <label class="form-label">First Name</label>
+                            <input type="text" id="first_name" class="form-control" placeholder="First Name">
                         </div>
 
                         <div class="col-md-8">
-                            <label class="form-label">Name</label>
-                            <input type="text" id="name" class="form-control">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" id="last_name" class="form-control">
                         </div>
 
                         <div class="col-md-6">
@@ -236,8 +236,8 @@ $(document).ready(function(){
         columns:[
             {data:'DT_RowIndex', orderable:false, searchable:false},
             {data:'image', orderable:false, searchable:false},
-            {data:'title'},
-            {data:'name'},
+            {data:'first_name'},
+            {data:'last_name'},
             {data:'phone'},
             {data:'email'},
             {data:'is_primary', orderable:false, searchable:false},
@@ -258,7 +258,7 @@ $(document).ready(function(){
                 <div class="card-body p-2">
 
                     <h6>${item.name}</h6>
-                    <div class="small text-muted">${item.title ?? ''}</div>
+                    <div class="small text-muted"></div>
 
                     <div class="small"><b>Phone:</b> ${item.phone}</div>
                     <div class="small"><b>Email:</b> ${item.email}</div>
@@ -286,8 +286,8 @@ $(document).ready(function(){
         const id = $('#contact_id').val();
         let fd = new FormData();
 
-        fd.append('title', $('#title').val());
-        fd.append('name', $('#name').val());
+        fd.append('first_name', $('#first_name').val());
+        fd.append('last_name', $('#last_name').val());
         $('.contact-phone').each(function(){ if($.trim($(this).val())) fd.append('phone_numbers[]',$.trim($(this).val())); });
         $('.contact-email').each(function(){ if($.trim($(this).val())) fd.append('email_addresses[]',$.trim($(this).val())); });
         fd.append('address', $('#address').val());
@@ -345,8 +345,8 @@ $(document).ready(function(){
             $('#modalTitle').text('Edit Contact');
             $('#contact_id').val(d.id);
 
-            $('#title').val(d.title);
-            $('#name').val(d.name);
+            $('#first_name').val(d.first_name);
+            $('#last_name').val(d.last_name);
             renderPhones(d.phone_numbers?.length ? d.phone_numbers : [d.phone,d.phone_two].filter(Boolean));
             renderEmails(d.email_addresses?.length ? d.email_addresses : [d.email].filter(Boolean));
             $('#address').val(d.address);

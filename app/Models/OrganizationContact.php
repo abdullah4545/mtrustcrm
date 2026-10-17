@@ -11,7 +11,7 @@ class OrganizationContact extends Model
 
     protected $fillable = [
         'organization_id',
-        'title','name','email','phone','phone_two','address',
+        'first_name','last_name','title','name','email','phone','phone_two','address',
         'phone_numbers','email_addresses','image_url','designation_id','department_id','additional_info','is_primary','status','created_by'
     ];
 
@@ -20,6 +20,18 @@ class OrganizationContact extends Model
         'phone_numbers' => 'array',
         'email_addresses' => 'array',
     ];
+
+    protected static function booted()
+    {
+        static::saving(function ($contact) {
+            if ($contact->isDirty('first_name') || $contact->isDirty('last_name')) {
+                $contact->name = trim(($contact->first_name ?? '').' '.($contact->last_name ?? ''));
+                if (mb_strlen($contact->name) > 255) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['first_name'=>'First Name and Last Name together must not exceed 255 characters.']);
+                }
+            }
+        });
+    }
 
     public function organization()
     {

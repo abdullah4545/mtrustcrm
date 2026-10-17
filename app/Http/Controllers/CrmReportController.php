@@ -39,6 +39,7 @@ class CrmReportController extends Controller
         $to = $request->get('to', now()->toDateString());
 
         $sales = $this->applyReportScope(Sale::query(), 'sold_by');
+        if ($request->filled('organization_id')) $sales->where('organization_id', $request->integer('organization_id'));
         $sales->whereBetween('sale_date', [$from, $to]);
         if (Auth::user()->can('staff.filter') && $request->filled('user_id')) $sales->where('sold_by', $request->integer('user_id'));
 
@@ -49,10 +50,23 @@ class CrmReportController extends Controller
             'due_total' => (float)(clone $sales)->sum('due_total'),
         ];
 
-        $rows = $sales->with('soldBy:id,name')->latest('sale_date')->paginate(30)->withQueryString();
+        if ($request->input('export') === 'csv') {
+            return response()->streamDownload(function () use ($sales) {
+                $out = fopen('php://output', 'w');
+                fwrite($out, "\xEF\xBB\xBF");
+                fputcsv($out, ['Date','Invoice','Organization','Staff','Client','Phone','Total','Paid','Due']);
+                foreach ((clone $sales)->with(['organization:id,name','soldBy:id,name'])->orderBy('id')->lazyById(500) as $sale) {
+                    $safe = fn($v) => preg_match('/^[=+@\\-]/', (string)$v) ? "'".$v : $v;
+                    fputcsv($out, array_map($safe, [$sale->sale_date?->format('Y-m-d'),$sale->invoice_no,$sale->organization?->name ?? 'Unknown / legacy',$sale->soldBy?->name,$sale->client_name,$sale->client_phone,$sale->grand_total,$sale->paid_total,$sale->due_total]));
+                }
+                fclose($out);
+            }, 'sales-report.csv', ['Content-Type'=>'text/csv; charset=UTF-8']);
+        }
+        $rows = $sales->with(['soldBy:id,name','organization:id,name'])->latest('sale_date')->paginate(30)->withQueryString();
         $u = Auth::user();
         $staffs = User::where('status',1)->when(!$u->can('report.view_all'), fn($q)=>$q->where('branch_id',$u->branch_id))->orderBy('name')->get(['id','name']);
-        return view('backend.content.reports.sales', compact('summary','rows','from','to','staffs'));
+        $organizations = CrmAccess::applyOrganizationScope(\App\Models\Organization::query())->orderBy('name')->get(['id','name']);
+        return view('backend.content.reports.sales', compact('summary','rows','from','to','staffs','organizations'));
     }
 
     public function leads(Request $request)

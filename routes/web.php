@@ -45,6 +45,7 @@ use Illuminate\Http\Request;
 
 
 Route::middleware('auth')->group(function () { 
+    Route::post('/activities/printed-payment', [\App\Http\Controllers\PrintedActivityPaymentController::class, 'store'])->name('activities.printed-payment');
     // CRM-wide server-side persistent filter session.
     Route::post('/crm/filter-session', function (Request $request) {
         $path = trim((string) $request->input('path', ''), '/');
@@ -193,6 +194,7 @@ Route::middleware('auth')->group(function () {
     Route::get('products/{id}/details', [QuotationController::class,'productDetails'])->name('products.details');
 
     // sales
+    Route::get('sales/organizations/options', [SaleController::class,'organizationOptions'])->name('sales.organizations.options');
     Route::get('sales', [SaleController::class,'index'])->name('sales.index');
     Route::get('sales/datatable', [SaleController::class,'datatable'])->name('sales.datatable');
 

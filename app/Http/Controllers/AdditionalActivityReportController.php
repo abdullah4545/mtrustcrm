@@ -54,6 +54,9 @@ class AdditionalActivityReportController extends Controller
     private function pdf(Request $r,string $mode,bool $stream){
         $f=$this->filters($r,$mode); $cols=$this->columns($f['columns']??[]); $items=$this->query($f,$mode)->with(['creator','travels'])->orderBy('date')->orderBy('id')->get();
         $employee=!empty($f['created_by'])?DB::table('users')->where('id',$f['created_by'])->first():null;
+        if($stream) return \App\Support\PrintedActivityReport::view($items,['activities'=>$items,'employee'=>$employee,'columns'=>$cols,'columnLabels'=>self::COLUMNS,
+            'fromDate'=>!empty($f['from_date'])?Carbon::parse($f['from_date'])->format('d-m-Y'):null,'toDate'=>!empty($f['to_date'])?Carbon::parse($f['to_date'])->format('d-m-Y'):null,
+            'totalTa'=>$items->sum('ta'),'totalDa'=>$items->sum('da'),'grandTotal'=>$items->sum('total'),'statusFilter'=>$f['status']??null]);
         $pdf=Pdf::loadView('backend.content.activity.report.pdf',['activities'=>$items,'employee'=>$employee,'columns'=>$cols,'columnLabels'=>self::COLUMNS,
             'fromDate'=>!empty($f['from_date'])?Carbon::parse($f['from_date'])->format('d-m-Y'):null,'toDate'=>!empty($f['to_date'])?Carbon::parse($f['to_date'])->format('d-m-Y'):null,
             'totalTa'=>$items->sum('ta'),'totalDa'=>$items->sum('da'),'grandTotal'=>$items->sum('total'),'statusFilter'=>$f['status']??null])->setPaper('a4','landscape');

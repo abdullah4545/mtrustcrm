@@ -75,7 +75,7 @@ class OrganizationController extends Controller
             'name'   => 'required|string|max:255',
             'organization_category_id' => 'required|exists:organization_categories,id',
             'division_id' => 'required|exists:divisions,id',
-            'district_id' => 'required|exists:districts,id',
+            'district_id' => ['required', \Illuminate\Validation\Rule::exists('districts','id')->where('division_id', $request->division_id)],
             'no_of_beds' => 'nullable|integer|min:0',
             'status' => 'required|in:active,inactive',
             'existing_machine' => 'required|string',
@@ -89,9 +89,8 @@ class OrganizationController extends Controller
             'map_location_link' => 'nullable|string|max:1000',
     
             'contacts' => 'nullable|array',
-    
-            'contacts.*.title'           => 'nullable|string|max:50',
-            'contacts.*.name'            => 'nullable|string|max:255',
+            'contacts.*.last_name' => 'nullable|string|max:255',
+            'contacts.*.first_name'            => 'nullable|string|max:255',
             'contacts.*.phone'           => 'nullable|string|max:20',
             'contacts.*.email'           => 'nullable|email',
             'contacts.*.phone_two'       => 'nullable|string|max:20',
@@ -146,7 +145,7 @@ class OrganizationController extends Controller
             foreach ($contacts as $index => $c) {
     
                 if (
-                    empty($c['name']) &&
+                    empty($c['first_name']) && empty($c['last_name']) &&
                     empty($c['phone']) && empty($c['email']) &&
                     empty(array_filter($c['phone_numbers'] ?? [])) &&
                     empty(array_filter($c['email_addresses'] ?? []))
@@ -185,8 +184,9 @@ class OrganizationController extends Controller
     
                 OrganizationContact::create([
                     'organization_id' => $org->id,
-                    'title'           => $c['title'] ?? null,
-                    'name'            => $c['name'] ?? null,
+                    'first_name' => $c['first_name'] ?? null,
+                    'last_name' => $c['last_name'] ?? null,
+                    'name' => trim(($c['first_name'] ?? '').' '.($c['last_name'] ?? '')),
                     'phone'           => collect($c['phone_numbers'] ?? [$c['phone'] ?? null])->filter()->values()->get(0),
                     'email'           => collect($c['email_addresses'] ?? [$c['email'] ?? null])->filter()->values()->get(0),
                     'phone_two'       => collect($c['phone_numbers'] ?? [$c['phone'] ?? null, $c['phone_two'] ?? null])->filter()->values()->get(1),
@@ -259,8 +259,11 @@ class OrganizationController extends Controller
 
         return DataTables::of($q)
             ->addIndexColumn()
-            ->editColumn('name', function($row){ return auth()->user()->can('org.details.view') ? '<a class="fw-semibold" href="'.route('org.contacts.index',$row->id).'">'.e($row->name).'</a>' : e($row->name); })
-            ->addColumn('staff_name', fn($row) => e($row->creator?->name ?? '-'))
+            ->editColumn('name', function($row){
+                $name = auth()->user()->can('org.details.view') ? '<a class="fw-semibold" href="'.route('org.contacts.index',$row->id).'">'.e($row->name).'</a>' : e($row->name);
+                return $name.($row->address ? '<div class="small text-muted mt-1 org-address"><i class="feather-map-pin" aria-hidden="true"></i> '.e($row->address).'</div>' : '');
+            })
+            ->addColumn('staff_name', fn($row) => e($row->creator?->name ?? 'Unknown / legacy'))
             ->addColumn('category', fn($row) => $row->category?->name ?? '-')
             ->addColumn('type', fn($row) => $row->type?->name ?? '-')
             ->addColumn('activity_summary', function($row){
@@ -311,7 +314,7 @@ class OrganizationController extends Controller
             'no_of_beds'               => 'nullable|integer|min:0',
             'address'                  => 'nullable|string|max:255',
             'division_id'              => 'required|exists:divisions,id',
-            'district_id'              => 'required|exists:districts,id',
+            'district_id'              => ['required', \Illuminate\Validation\Rule::exists('districts','id')->where('division_id', $request->division_id)],
             'upazila_id'               => 'nullable|exists:upazilas,id',
             'union_id'                 => 'nullable|exists:unions,id',
             'phone_primary'            => 'nullable|string|max:30',
@@ -378,7 +381,7 @@ class OrganizationController extends Controller
             'name'   => 'required|string|max:255',
             'organization_category_id' => 'required|exists:organization_categories,id',
             'division_id' => 'required|exists:divisions,id',
-            'district_id' => 'required|exists:districts,id',
+            'district_id' => ['required', \Illuminate\Validation\Rule::exists('districts','id')->where('division_id', $request->division_id)],
             'no_of_beds' => 'nullable|integer|min:0',
             'status' => 'required|in:active,inactive',
             'existing_machine' => 'required|string',
@@ -391,10 +394,10 @@ class OrganizationController extends Controller
             'email_addresses.*' => 'nullable|email|max:150',
     
             'contacts' => 'nullable|array',
+            'contacts.*.last_name' => 'nullable|string|max:255',
     
             'contacts.*.id'              => 'nullable|exists:organization_contacts,id',
-            'contacts.*.title'           => 'nullable|string|max:50',
-            'contacts.*.name'            => 'nullable|string|max:255',
+            'contacts.*.first_name'            => 'nullable|string|max:255',
             'contacts.*.phone'           => 'nullable|string|max:20',
             'contacts.*.email'           => 'nullable|email',
             'contacts.*.phone_two'       => 'nullable|string|max:20',
@@ -458,7 +461,7 @@ class OrganizationController extends Controller
             foreach ($contacts as $index => $c) {
     
                 if (
-                    empty($c['name']) &&
+                    empty($c['first_name']) && empty($c['last_name']) &&
                     empty($c['phone']) && empty($c['email']) &&
                     empty(array_filter($c['phone_numbers'] ?? [])) &&
                     empty(array_filter($c['email_addresses'] ?? []))
@@ -505,8 +508,9 @@ class OrganizationController extends Controller
     
                 $data = [
                     'organization_id' => $org->id,
-                    'title'           => $c['title'] ?? null,
-                    'name'            => $c['name'] ?? null,
+                    'first_name' => $c['first_name'] ?? null,
+                    'last_name' => $c['last_name'] ?? null,
+                    'name' => trim(($c['first_name'] ?? '').' '.($c['last_name'] ?? '')),
                     'phone'           => collect($c['phone_numbers'] ?? [$c['phone'] ?? null])->filter()->values()->get(0),
                     'email'           => collect($c['email_addresses'] ?? [$c['email'] ?? null])->filter()->values()->get(0),
                     'phone_two'       => collect($c['phone_numbers'] ?? [$c['phone'] ?? null, $c['phone_two'] ?? null])->filter()->values()->get(1),

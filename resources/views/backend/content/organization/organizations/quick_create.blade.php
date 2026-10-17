@@ -63,7 +63,7 @@
 
         <div class="col-md-4">
             <label>Status</label>
-            <select name="status" class="form-control">
+            <select name="status" class="form-control" required>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
             </select>
@@ -98,7 +98,7 @@
 
         <div class="col-md-3">
             <label>Upazila</label>
-            <select name="upazila_id" id="upazila_id" class="form-control">
+            <select name="upazila_id" id="upazila_id" class="form-control" @required(\App\Support\CrmAccess::hasAreaRestriction())>
                 <option value="">Select Upazila</option>
             </select>
         </div>
@@ -156,11 +156,11 @@
             <div class="row g-2">
 
                 <div class="col-md-3">
-                    <input name="contacts[0][title]" class="form-control" placeholder="Title (Mr/Ms/Dr)">
+                    <input name="contacts[0][first_name]" class="form-control" placeholder="First Name">
                 </div>
 
                 <div class="col-md-3">
-                    <input name="contacts[0][name]" class="form-control" placeholder="Full Name">
+                    <input name="contacts[0][last_name]" class="form-control" placeholder="Last Name">
                 </div>
 
                 <div class="col-md-3">
@@ -263,11 +263,11 @@ $('#addMore').on('click', function(){
         <div class="row g-2">
 
             <div class="col-md-3">
-                <input name="contacts[${i}][title]" class="form-control" placeholder="Title (Mr/Ms/Dr)">
+                <input name="contacts[${i}][first_name]" class="form-control" placeholder="First Name">
             </div>
 
             <div class="col-md-3">
-                <input name="contacts[${i}][name]" class="form-control" placeholder="Full Name">
+                <input name="contacts[${i}][last_name]" class="form-control" placeholder="Last Name">
             </div>
 
             <div class="col-md-3">

@@ -17,7 +17,7 @@
     $canMultipleTaDaEdit = auth()->user()?->hasPermissionTo('activity.multiple_edit') ?? false;
 
     $initialTravels = $travelRows->map(function ($row) use ($activityTime) {
-        $entryAt = data_get($row, 'entry_at') ?: $activityTime;
+        $entryAt = data_get($row, 'entry_at');
         $imageUrl = (string) data_get($row, 'image_url', '');
 
         return [
@@ -43,7 +43,7 @@
     })->values();
 
     $initialExpenses = $expenseRows->map(function ($row) use ($activityTime) {
-        $entryAt = data_get($row, 'entry_at') ?: $activityTime;
+        $entryAt = data_get($row, 'entry_at');
         $imageUrl = (string) data_get($row, 'image_url', '');
 
         return [
@@ -69,7 +69,7 @@
 
 <style>
 .activity-entry-card{border:0;border-radius:18px;box-shadow:0 10px 30px rgba(15,23,42,.07)}
-.activity-entry-card label{font-weight:600;margin-bottom:6px;display:inline-flex;align-items:center;gap:3px;line-height:1.25}.required-mark{color:#111!important;font-weight:700;display:inline!important;line-height:1!important;vertical-align:baseline!important}
+.activity-entry-card label{font-weight:600;margin-bottom:6px;display:inline-flex;align-items:center;gap:3px;line-height:1.25}.required-mark{color:#dc3545!important;font-weight:700;display:inline!important;line-height:1!important;vertical-align:baseline!important}
 .activity-section{border:1px solid #e8edf3;border-radius:16px;background:#fff;overflow:hidden}
 .activity-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #eef2f6;background:#fafbfc}
 .activity-section-body{padding:12px}
@@ -186,12 +186,12 @@
                 <div class="row g-3">
                     <div class="col-6"><label>TA Date *</label><input type="date" id="travel_date" class="form-control" required></div>
                     <div class="col-6"><label>TA Time *</label><input type="time" id="travel_time" class="form-control" required></div>
-                    <div class="col-12"><label>Tour Type *</label><select id="travel_tour_type" class="form-control"><option value="local_tour">Local Tour</option><option value="tour">Tour</option></select></div>
-                    <div class="col-12"><label>From *</label><input id="travel_from" class="form-control" placeholder="From location"></div>
-                    <div class="col-12"><label>To *</label><input id="travel_to" class="form-control" placeholder="To location"></div>
+                    <div class="col-12"><label>Tour Type</label><select id="travel_tour_type" class="form-control"><option value="local_tour">Local Tour</option><option value="tour">Tour</option></select></div>
+                    <div class="col-12"><label>From *</label><input id="travel_from" class="form-control" required placeholder="From location"></div>
+                    <div class="col-12"><label>To *</label><input id="travel_to" class="form-control" required placeholder="To location"></div>
                     <div class="col-12 col-sm-6"><label>Vehicle</label><select id="travel_vehicle" class="form-control"><option value="">Select Vehicle</option></select></div>
                     <div class="col-6 col-sm-3"><label>Distance (KM) <span class="required-mark">*</span></label><input type="number" min="0" step="0.01" id="travel_distance" class="form-control" value="0" required></div>
-                    <div class="col-6 col-sm-3"><label>Cost *</label><input type="number" min="0" step="0.01" id="travel_cost" class="form-control" value="0"></div>
+                    <div class="col-6 col-sm-3"><label>Cost</label><input type="number" min="0" step="0.01" id="travel_cost" class="form-control" value="0"></div>
                     <div class="col-12"><label>TA Image</label><input type="file" accept="image/*" id="travel_image" class="form-control"><small class="text-muted" id="travel_image_hint">JPG, PNG or WEBP - max 5 MB.</small><div id="travel_current_image" class="mt-2"></div></div>
                 </div>
             </div>
@@ -209,8 +209,8 @@
                 <div class="row g-3">
                     <div class="col-6"><label>DA Date *</label><input type="date" id="expense_date" class="form-control" required></div>
                     <div class="col-6"><label>DA Time *</label><input type="time" id="expense_time" class="form-control" required></div>
-                    <div class="col-12"><label>Expense Type *</label><select id="expense_type" class="form-control"><option value="">Select Type</option>@foreach($expenseTypes as $type)<option value="{{ $type->id }}" data-name="{{ $type->name }}" data-bill-required="{{ $type->bill_required ? 1 : 0 }}">{{ $type->name }}</option>@endforeach</select></div>
-                    <div class="col-12"><label>Amount *</label><input type="number" min="0" step="0.01" id="expense_amount" class="form-control" value="0"></div>
+                    <div class="col-12"><label>Expense Type *</label><select id="expense_type" class="form-control" required><option value="">Select Type</option>@foreach($expenseTypes as $type)<option value="{{ $type->id }}" data-name="{{ $type->name }}" data-bill-required="{{ $type->bill_required ? 1 : 0 }}">{{ $type->name }}</option>@endforeach</select></div>
+                    <div class="col-12"><label>Amount</label><input type="number" min="0" step="0.01" id="expense_amount" class="form-control" value="0"></div>
                     <div class="col-12"><label>Note</label><input id="expense_note" class="form-control" placeholder="Optional note"></div>
                     <div class="col-12"><label>DA / Cost Image</label><input type="file" accept="image/*" id="expense_image" class="form-control"><small class="text-muted" id="expense_image_hint">JPG, PNG or WEBP - max 5 MB.</small><div id="expense_current_image" class="mt-2"></div></div>
                 </div>
@@ -227,7 +227,7 @@ $.ajaxSetup({headers:{'X-CSRF-TOKEN':$('meta[name="csrf-token"]').attr('content'
 const ACTIVITY_URL = @json($editing ? route('activities.update',$activity->id) : route('activities.quick.store'));
 const ORG_URL = @json(url('activities/ajax/organizations'));
 const VEHICLE_URL = @json(url('activities/ajax/vehicles'));
-const DEPT_URL = @json(url('activities/ajax/org-departments'));
+const DEPT_URL = @json(url('activities/ajax/departments'));
 const CONTACT_URL = @json(url('activities/ajax/org-contacts'));
 const OLD_ORG = @json($editing ? (string)$activity->organization_id : '');
 const OLD_DEPT = @json($editing ? (string)$activity->department_id : '');
@@ -242,7 +242,7 @@ let travelModal, expenseModal;
 function esc(v){ return $('<div>').text(v ?? '').html(); }
 function money(v){ return (parseFloat(v)||0).toFixed(2); }
 function nowParts(){ const d=new Date(); const pad=n=>String(n).padStart(2,'0'); return {date:d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()),time:pad(d.getHours())+':'+pad(d.getMinutes())}; }
-function entryParts(v){ if(!v) return nowParts(); const a=String(v).replace(' ','T').split('T'); return {date:a[0]||nowParts().date,time:(a[1]||nowParts().time).slice(0,5)}; }
+function entryParts(v){ if(!v) return {date:nowParts().date,time:''}; const a=String(v).replace(' ','T').split('T'); return {date:a[0]||nowParts().date,time:(a[1]||'').slice(0,5)}; }
 function displayEntry(v){ if(!v) return ''; const p=entryParts(v); const d=new Date(p.date+'T'+p.time); return isNaN(d)?'':d.toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true}); }
 
 function recalc(){
@@ -272,7 +272,7 @@ function renderTravels(){
             </div>
             <div class="activity-list-amount">৳${money(r.cost)}</div>
             <div class="activity-list-actions">
-                ${(r.image_preview_url || r.image_view_url) ? `<a href="${esc(r.image_preview_url || r.image_view_url)}" target="_blank" class="btn btn-outline-success icon-action" title="View Image"><i class="feather-image"></i></a>` : ''}
+                ${(r.image_preview_url || r.image_view_url) ? `<a href="${esc(r.image_preview_url || r.image_view_url)}" data-crm-image="true" class="btn btn-outline-success icon-action" title="View Image"><i class="feather-image"></i></a>` : ''}
                 ${(!r.id || CAN_MULTIPLE_TADA_EDIT || Number(r.edit_count||0) < 1) ? `<button type="button" class="btn btn-outline-primary icon-action edit-travel" data-index="${i}" title="Edit"><i class="feather-edit-2"></i></button>` : `<span class="badge bg-light text-dark align-self-center">Edited</span>`}
                 ${CAN_MULTIPLE_TADA_EDIT && r.id ? `<span class="badge bg-info-subtle text-info align-self-center" title="${esc(r.last_edited_by_name||'')}${r.last_edited_at ? ' · '+esc(r.last_edited_at) : ''}">${Number(r.edit_count||0)>0 ? 'Edited '+Number(r.edit_count||0)+'x' : 'Not Edited'}</span>` : ''}
                 <button type="button" class="btn btn-outline-danger icon-action delete-travel" data-index="${i}" title="Delete"><i class="feather-trash-2"></i></button>
@@ -297,7 +297,7 @@ function renderExpenses(){
             </div>
             <div class="activity-list-amount">৳${money(r.amount)}</div>
             <div class="activity-list-actions">
-                ${(r.image_preview_url || r.image_view_url) ? `<a href="${esc(r.image_preview_url || r.image_view_url)}" target="_blank" class="btn btn-outline-success icon-action" title="View Image"><i class="feather-image"></i></a>` : ''}
+                ${(r.image_preview_url || r.image_view_url) ? `<a href="${esc(r.image_preview_url || r.image_view_url)}" data-crm-image="true" class="btn btn-outline-success icon-action" title="View Image"><i class="feather-image"></i></a>` : ''}
                 ${(!r.id || CAN_MULTIPLE_TADA_EDIT || Number(r.edit_count||0) < 1) ? `<button type="button" class="btn btn-outline-primary icon-action edit-expense" data-index="${i}" title="Edit"><i class="feather-edit-2"></i></button>` : `<span class="badge bg-light text-dark align-self-center">Edited</span>`}
                 ${CAN_MULTIPLE_TADA_EDIT && r.id ? `<span class="badge bg-info-subtle text-info align-self-center" title="${esc(r.last_edited_by_name||'')}${r.last_edited_at ? ' · '+esc(r.last_edited_at) : ''}">${Number(r.edit_count||0)>0 ? 'Edited '+Number(r.edit_count||0)+'x' : 'Not Edited'}</span>` : ''}
                 <button type="button" class="btn btn-outline-danger icon-action delete-expense" data-index="${i}" title="Delete"><i class="feather-trash-2"></i></button>
@@ -315,7 +315,7 @@ function fillVehicleOptions(selected=''){
 
 function resetTravelModal(){
     $('#travelEditIndex').val(''); $('#travelModalTitle').text('Add Travel');
-    $('#travel_from,#travel_to').val(''); $('#travel_tour_type').val('local_tour'); const np=nowParts(); $('#travel_date').val(np.date); $('#travel_time').val(np.time); $('#travel_distance,#travel_cost').val(0); $('#travel_image').val(''); $('#travel_image_hint').text('JPG, PNG or WEBP - max 5 MB.'); $('#travel_current_image').empty(); fillVehicleOptions('');
+    $('#travel_from,#travel_to').val(''); $('#travel_tour_type').val('local_tour'); const np=nowParts(); $('#travel_date').val(np.date); $('#travel_time').val(''); $('#travel_distance,#travel_cost').val(0); $('#travel_image').val(''); $('#travel_image_hint').text('JPG, PNG or WEBP - max 5 MB.'); $('#travel_current_image').empty(); fillVehicleOptions('');
 }
 function openTravelEdit(index){
     const r=travels[index]; if(!r) return;
@@ -324,13 +324,13 @@ function openTravelEdit(index){
     const ep=entryParts(r.entry_at); $('#travel_date').val(ep.date); $('#travel_time').val(ep.time); $('#travel_tour_type').val(r.tour_type||'local_tour'); $('#travel_from').val(r.from_location); $('#travel_to').val(r.to_location); fillVehicleOptions(r.vehicle); $('#travel_distance').val(r.distance); $('#travel_cost').val(r.cost); $('#travel_image').val('');
     $('#travel_image_hint').text((r.image_file?.name || (r.image_url ? 'Current image attached. Choose a file only to replace it.' : 'JPG, PNG or WEBP - max 5 MB.')));
     const travelImg = r.image_preview_url || r.image_view_url || '';
-    $('#travel_current_image').html(travelImg ? `<a href="${esc(travelImg)}" target="_blank" rel="noopener" class="d-inline-flex align-items-center gap-2"><img src="${esc(travelImg)}" alt="TA attachment" style="width:72px;height:72px;object-fit:cover;border:1px solid #ddd;border-radius:8px"><span>Open current image</span></a>` : '');
+    $('#travel_current_image').html(travelImg ? `<a href="${esc(travelImg)}" data-crm-image="true" class="d-inline-flex align-items-center gap-2"><img src="${esc(travelImg)}" alt="TA attachment" style="width:72px;height:72px;object-fit:cover;border:1px solid #ddd;border-radius:8px"><span>Open current image</span></a>` : '');
     travelModal.show();
 }
 
 function resetExpenseModal(){
     $('#expenseEditIndex').val(''); $('#expenseModalTitle').text('Add Cost');
-    const np=nowParts(); $('#expense_date').val(np.date); $('#expense_time').val(np.time); $('#expense_type').val(''); $('#expense_amount').val(0); $('#expense_note').val(''); $('#expense_image').val(''); $('#expense_image_hint').text('JPG, PNG or WEBP - max 5 MB.'); $('#expense_current_image').empty();
+    const np=nowParts(); $('#expense_date').val(np.date); $('#expense_time').val(''); $('#expense_type').val(''); $('#expense_amount').val(0); $('#expense_note').val(''); $('#expense_image').val(''); $('#expense_image_hint').text('JPG, PNG or WEBP - max 5 MB.'); $('#expense_current_image').empty();
 }
 function openExpenseEdit(index){
     const r=expenses[index]; if(!r) return;
@@ -347,16 +347,16 @@ function openExpenseEdit(index){
     $('#expense_amount').val(r.amount); $('#expense_note').val(r.note||''); $('#expense_image').val('');
     $('#expense_image_hint').text((r.image_file?.name || (r.image_url ? 'Current image attached. Choose a file only to replace it.' : 'JPG, PNG or WEBP - max 5 MB.')));
     const expenseImg = r.image_preview_url || r.image_view_url || '';
-    $('#expense_current_image').html(expenseImg ? `<a href="${esc(expenseImg)}" target="_blank" rel="noopener" class="d-inline-flex align-items-center gap-2"><img src="${esc(expenseImg)}" alt="DA attachment" style="width:72px;height:72px;object-fit:cover;border:1px solid #ddd;border-radius:8px"><span>Open current image</span></a>` : '');
+    $('#expense_current_image').html(expenseImg ? `<a href="${esc(expenseImg)}" data-crm-image="true" class="d-inline-flex align-items-center gap-2"><img src="${esc(expenseImg)}" alt="DA attachment" style="width:72px;height:72px;object-fit:cover;border:1px solid #ddd;border-radius:8px"><span>Open current image</span></a>` : '');
     expenseModal.show();
 }
 
 function loadDepartments(org,selected='',contact=''){
-    $.get(DEPT_URL+'/'+org,r=>{
+    $.get(DEPT_URL,r=>{
         let h='<option value="">No Department / Select Department</option>';
         r.forEach(v=>h+=`<option value="${v.id}" data-title="${esc(v.title)}" ${String(v.id)===String(selected)?'selected':''}>${esc(v.title)}</option>`);
         $('#department').html(h).trigger('change.select2');
-        loadContacts(org,selected||'',contact);
+        if(org) loadContacts(org,selected||'',contact);
     });
 }
 function loadContacts(org,dept='',selected=''){
@@ -389,9 +389,10 @@ $(function(){
         $.ajax({url:ORG_URL,data:{q:'',page:1}}).always(()=>{});
         const oldText=@json($editing ? $activity->organization_name : '');
         $('#organization_id').append(new Option(oldText||('Organization #'+OLD_ORG),OLD_ORG,true,true)).trigger('change.select2');
-        loadDepartments(OLD_ORG,OLD_DEPT,OLD_CONTACT);
+
     }
 
+    loadDepartments(OLD_ORG,OLD_DEPT,OLD_CONTACT);
     $.get(VEHICLE_URL,r=>{ vehicles=r; fillVehicleOptions(''); });
 
     renderTravels(); renderExpenses();
@@ -399,8 +400,7 @@ $(function(){
 
 $('#organization_id').on('change',function(){
     const v=$(this).val();
-    $('#department').html('<option value="">Select Department</option>').trigger('change.select2');
-    if(v) loadDepartments(v); else $('#department').html('<option value="">Select Department</option>').trigger('change.select2');
+    if(v) loadContacts(v,$('#department').val());
 });
 $('#department').on('change',function(){
     const org=$('#organization_id').val(), d=$(this).val();
@@ -427,6 +427,16 @@ $(document).on('click','.delete-travel',function(){
     Swal.fire({title:'Delete this travel?',text:'This row will be removed from the activity.',icon:'warning',showCancelButton:true,confirmButtonText:'Delete'}).then(r=>{ if(r.isConfirmed){ travels.splice(idx,1); renderTravels(); } });
 });
 
+function updateBillRequired(){
+    const required=String($('#expense_type option:selected').data('bill-required'))==='1';
+    const idx=$('#expenseEditIndex').val();
+    const row=idx===''?{}:(expenses[Number(idx)]||{});
+    const needsUpload=required && !(row.image_url||row.image_view_url||row.image_preview_url);
+    $('#expense_image').prop('required',needsUpload);
+    $('#expense_image').closest('.col-12').find('label').html('DA / Cost Image'+(needsUpload?' <span class="required-mark">*</span>':''));
+}
+$('#expense_type').on('change',updateBillRequired);
+$('#expenseModal').on('shown.bs.modal',updateBillRequired);
 $('#addExpense').on('click',function(){ resetExpenseModal(); expenseModal.show(); });
 $('#saveExpenseRow').on('click',function(){
     const typeId=$('#expense_type').val(), amount=parseFloat($('#expense_amount').val())||0;

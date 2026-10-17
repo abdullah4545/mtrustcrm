@@ -29,8 +29,6 @@ html::-webkit-scrollbar-track,body::-webkit-scrollbar-track,.nxl-container::-web
 .dataTables_wrapper,.dt-container{display:block;clear:both}
 .table-responsive>.dataTables_wrapper,.table-responsive>.dt-container{overflow:visible!important}
 .crm-table-dragging,.crm-table-dragging *{cursor:grabbing!important;user-select:none!important}
-.crm-tables-all:not(.modal-open){height:auto!important;max-height:none!important;overflow:visible!important}
-.crm-tables-all .main-content,.crm-tables-all .nxl-container,.crm-tables-all .nxl-content{max-height:none!important;height:auto!important;overflow-y:visible!important}
 @media(max-width:767.98px){
     .nxl-container,.main-content,.nxl-content,.card,.card-body{min-width:0}
     .dataTables_wrapper .dataTables_length,.dataTables_wrapper .dataTables_filter,.dataTables_wrapper .dataTables_info,.dataTables_wrapper .dataTables_paginate{float:none!important;max-width:100%;white-space:normal}
@@ -109,10 +107,8 @@ html::-webkit-scrollbar-track,body::-webkit-scrollbar-track,.nxl-container::-web
     function scan(){scheduled=false;requiredMarks(document);document.querySelectorAll('table.table').forEach(addScroll);}
     function schedule(){if(!scheduled){scheduled=true;requestAnimationFrame(scan);}}
     new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true});
-    if(window.jQuery)$(document).on('draw.dt length.dt',function(){
-        let all=false;if($.fn.dataTable) $.fn.dataTable.tables({api:true}).tables().every(function(){if(this.page.len()===-1)all=true;});
-        document.body.classList.toggle('crm-tables-all',all);schedule();
-    });
+    // Layout is independent of page length; no version-specific table iteration is needed.
+    if(window.jQuery)window.jQuery(document).on('draw.dt length.dt',schedule);
     window.addEventListener('message',e=>{if(e.origin===location.origin && e.data?.type==='crm-report-payment-updated')location.reload();});
     scan();
 })();

@@ -742,3 +742,6 @@ function escapeHtml(text) {
 
 </script>
 @endpush
+@push('scripts')
+@include('backend.partials.crm-list-design')
+@endpush

@@ -88,18 +88,12 @@
                     <tr>
                         <th><input type="checkbox" id="selectAll" class="form-check-input"></th>
                         <th>#</th>
-                        <th>Date</th>
-                        @if($showStaffColumn)<th>Staff</th>@endif
+                        <th>Created</th>
                         <th>Organization / Contact</th>
-                        <th>From</th>
-                        <th>To</th>
-                        <th>TA</th>
-                        <th>DA</th>
-                        <th>Total</th>
-                        <th>Tour Type</th>
+                        <th>From &rarr; To</th>
+                        <th>Amount</th>
                         <th>Payment Status</th>
                         @if($showStatus)<th>Status</th>@endif
-                        @if($showEditAudit)<th>Edit History</th>@endif
                         <th width="150">Action</th>
                     </tr>
                     </thead>
@@ -301,27 +295,20 @@
             dom:'<"row g-2 align-items-center mb-3 activity-table-tools"<"col-12 col-sm-6"l><"col-12 col-sm-6"f>><"table-responsive activity-table-scroll"t><"row g-2 align-items-center mt-3 activity-table-footer"<"col-12 col-md-5"i><"col-12 col-md-7"p>>',
             stateSave:true,
             stateDuration:-1,
+            stateSaveParams:function(settings,data){data.crmListLayout='reference-v2';},
+            stateLoadParams:function(settings,data){return data.crmListLayout==='reference-v2';},
+            order:[[2,'desc']],
             ajax:{url:ROUTE_DATATABLE,data:function(d){d.created_by=$('#f_created_by').val();d.from_date=$('#f_from_date').val();d.to_date=$('#f_to_date').val();d.status=@json($showStatus) ? $('#f_status').val() : '';d.payment_status=$('#f_payment_status').val();}},
             columns:[
                 {data:'select',orderable:false,searchable:false},
                 {data:'DT_RowIndex', orderable:false, searchable:false},
-                {data:'date',className:'activity-date'},
-                @if($showStaffColumn)
-                {data:'staff_name',className:'activity-staff', orderable:false, searchable:false},
-                @endif
+                {data:'created_display',name:'activity_at',className:'activity-date',searchable:false},
                 {data:'organization_contact',name:'organization_name',className:'activity-organization'},
-                {data:'from_location',className:'activity-location'},
-                {data:'to_location',className:'activity-location'},
-                {data:'ta',className:'activity-money text-end'},
-                {data:'da',className:'activity-money text-end'},
-                {data:'total',className:'activity-money text-end'},
-                {data:'tour_type',orderable:false,searchable:false},
+                {data:'route_display',className:'activity-location',orderable:false,searchable:false},
+                {data:'amount_display',className:'activity-money',orderable:false,searchable:false},
                 {data:'payment_status',orderable:false,searchable:false},
                 @if($showStatus)
                 {data:'status'},
-                @endif
-                @if($showEditAudit)
-                {data:'edit_history', orderable:false, searchable:false},
                 @endif
                 {data:'action',className:'activity-actions-cell',orderable:false,searchable:false},
             ]
@@ -396,4 +383,7 @@
         $('#total').val(0);
     }
 </script>
+@endpush
+@push('scripts')
+@include('backend.partials.crm-list-design')
 @endpush

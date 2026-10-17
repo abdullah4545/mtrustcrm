@@ -90,7 +90,7 @@ class ActivityController extends Controller
     private function visibleQuery()
     {
         $u = Auth::user();
-        $q = Activity::query()->with(['creator:id,name','lastEditor:id,name','travels:id,activity_id,tour_type']);
+        $q = Activity::query()->with(['creator:id,name','lastEditor:id,name','travels:id,activity_id,tour_type,from_location,to_location']);
         if ($u->can('activity.view_all')) return $q;
         return $q->where('created_by',$u->id);
     }
@@ -137,7 +137,30 @@ class ActivityController extends Controller
                 $contact = trim((string) ($row->contact_person ?? ''));
                 return $contact !== '' ? $org.'<br><strong>'.e($contact).'</strong>' : $org;
             })
-            ->editColumn('date', fn($row) => optional($row->activity_at)->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?? optional($row->date)->format('d M Y'))
+            ->addColumn('created_display', function($row) {
+                $when = ($row->activity_at ?? $row->date)?->copy()->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?? '-';
+                $html = '<div class="crm-created">'.e($when).'</div>';
+                if (Auth::user()->can('activity.view_all')) {
+                    $html .= '<span class="crm-staff-badge"><i class="feather-user" aria-hidden="true"></i> '.e($row->creator?->name ?? '-').'</span>';
+                }
+                return $html;
+            })
+            ->addColumn('route_display', function($row) {
+                $routes = $row->travels->map(fn($travel) => [$travel->from_location, $travel->to_location]);
+                if ($routes->isEmpty()) {
+                    $from = explode(' | ', (string)$row->from_location);
+                    $to = explode(' | ', (string)$row->to_location);
+                    $routes = collect(range(0, max(count($from),count($to))-1))->map(fn($i) => [$from[$i] ?? '', $to[$i] ?? '']);
+                }
+                return '<div class="crm-routes">'.$routes->map(function($pair) {
+                    if (!filled($pair[0]) && !filled($pair[1])) return '';
+                    return '<div class="crm-route"><span class="crm-route-from">'.e($pair[0] ?: '-').'</span><span class="crm-route-arrow" aria-label="to">&#8594;</span><span class="crm-route-to">'.e($pair[1] ?: '-').'</span></div>';
+                })->implode('').'</div>';
+            })
+            ->addColumn('amount_display', function($row) {
+                $format = fn($v) => rtrim(rtrim(number_format((float)$v,2,'.',','),'0'),'.');
+                return '<div class="crm-amount">TA: '.$format($row->ta).'<br>DA: '.$format($row->da).'<br><strong>Total: '.$format($row->total).'</strong></div>';
+            })
             ->addColumn('tour_type', fn($row) => e($row->travels->pluck('tour_type')->map(fn($v)=>$v==='tour'?'Tour':'Local Tour')->unique()->implode(', ') ?: 'Local Tour'))
             ->addColumn('payment_status', function($row){ $map=['unpaid'=>'secondary','waiting_for_payment'=>'warning','paid'=>'success']; $label=['unpaid'=>'Unpaid','waiting_for_payment'=>'Waiting for Payment','paid'=>'Paid']; return '<span class="badge bg-'.($map[$row->payment_status]??'secondary').'">'.e($label[$row->payment_status]??ucfirst($row->payment_status)).'</span>'.($row->paid_at?'<div class="small text-muted mt-1">'.$row->paid_at->timezone('Asia/Dhaka')->format('d M Y, h:i A').'</div>':''); })
             ->addColumn('status', fn($row) => '<span class="badge bg-'.($row->status==='approved'?'success':($row->status==='rejected'?'danger':'secondary')).'">'.e($row->status).'</span>')
@@ -193,7 +216,7 @@ class ActivityController extends Controller
                 }
 
                 return $html.'</div>';
-            })->rawColumns(['select','organization_contact','payment_status','status','edit_history','action'])->make(true);
+            })->rawColumns(['created_display','route_display','amount_display','select','organization_contact','payment_status','status','edit_history','action'])->make(true);
     }
 
     public function quickCreate()

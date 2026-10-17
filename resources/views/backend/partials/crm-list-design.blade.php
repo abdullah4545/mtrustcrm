@@ -1,4 +1,5 @@
 <style>
+@media (min-width:769px){
 /* Shared reference design; scoped to the four CRM lists. */
 :is(#activityTable,#orgTable,#leadTable,#salesTable){border-collapse:collapse!important;width:100%!important;color:#173566!important;font-size:14px!important;background:#fff!important}
 :is(#activityTable,#orgTable,#leadTable,#salesTable) thead th{background:#f5f8fb!important;color:#102a59!important;font-size:12px!important;font-weight:750!important;text-transform:uppercase;white-space:nowrap;padding:15px 18px!important;border:1px solid #dce4ed!important;vertical-align:middle!important}
@@ -36,5 +37,32 @@
  #activityTable{min-width:1150px!important}
  .crm-route{gap:8px}
  :is(#activityTable,#orgTable,#leadTable,#salesTable) tbody td{padding:10px 12px!important}
+}
+
+.crm-owner{display:table;margin-top:6px;background:#00b957;color:#fff;border-radius:4px;padding:6px 10px;font-size:12px;font-weight:700;line-height:1.35}
+.crm-owner i{margin-right:6px}
+.crm-category-stack,.crm-status-stack{display:flex;flex-direction:column;align-items:flex-start;gap:7px}
+.crm-category,.crm-type{display:inline-block;padding:6px 11px;border-radius:4px;font-size:12px;font-weight:650;line-height:1.3}
+.crm-category{background:#d6edff;color:#005eb8}
+.crm-type{background:#e9dfff;color:#344782}
+.crm-lead-number{font-weight:750;color:#006be6;font-size:15px;margin-bottom:7px}
+.crm-contact-org{color:#006be6;font-weight:700;margin-bottom:9px}
+.crm-no-org{color:#8291ac;font-style:italic;margin-bottom:9px}
+.crm-contact-line,.crm-followup-line{display:flex;align-items:center;gap:10px;margin:7px 0;color:#233e68}
+.crm-contact-line i,.crm-followup-line i{color:#7184a5}
+.crm-stage{display:inline-flex;align-items:center;gap:9px;background:#e5f4ff;color:#007fb2;border-radius:6px;padding:8px 11px;font-size:13px;font-weight:650}
+.crm-stage-dot{width:9px;height:9px;flex-shrink:0;border-radius:50%}
+#orgTable td:nth-child(2){min-width:235px}
+#orgTable td:nth-child(3){min-width:155px}
+#orgTable td:nth-child(5){min-width:230px}
+#orgTable td:last-child{min-width:160px}
+#orgTable td:last-child .d-flex{flex-wrap:wrap}
+#leadTable td:nth-child(2){min-width:200px}
+#leadTable td:nth-child(3){min-width:235px}
+#leadTable td:nth-child(4){min-width:155px}
+#leadTable td:nth-child(5){min-width:165px}
+#leadTable td:last-child{min-width:290px;max-width:340px}
+#leadTable .btn-info{background:#30bfbd!important;border-color:#30bfbd!important;color:#fff!important}
+#orgTable thead th,#leadTable thead th{background:#f0f7fe!important}
 }
 </style>

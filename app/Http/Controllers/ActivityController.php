@@ -137,6 +137,7 @@ class ActivityController extends Controller
                 $contact = trim((string) ($row->contact_person ?? ''));
                 return $contact !== '' ? $org.'<br><strong>'.e($contact).'</strong>' : $org;
             })
+            ->editColumn('date', fn($row) => optional($row->activity_at)->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?? optional($row->date)->format('d M Y'))
             ->addColumn('created_display', function($row) {
                 $when = ($row->activity_at ?? $row->date)?->copy()->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?? '-';
                 $html = '<div class="crm-created">'.e($when).'</div>';

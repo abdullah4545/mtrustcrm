@@ -213,6 +213,15 @@ class LeadController extends Controller
                 if (!Auth::user()->can('lead.details.view')) return e($row->lead_no);
                 return '<a class="fw-semibold text-primary text-decoration-none" href="'.route('leads.history',$row->id).'">'.e($row->lead_no).'</a>';
             })
+            ->addColumn('lead_display', function($row) {
+                $lead = e($row->lead_no);
+                if (Auth::user()->can('lead.details.view')) $lead = '<a class="crm-lead-number" href="'.route('leads.history',$row->id).'">'.$lead.'</a>';
+                return '<div class="crm-lead-number">'.$lead.'</div><div class="crm-owner"><i class="feather-user" aria-hidden="true"></i> '.e($row->creator?->name ?? '-').'</div>';
+            })
+            ->addColumn('organization_contact', function($row) {
+                $org = $row->organization ? '<div class="crm-contact-org">'.e($row->organization->name).'</div>' : '<div class="crm-no-org">No organization</div>';
+                return $org.'<div class="crm-contact-line"><i class="feather-user" aria-hidden="true"></i> '.e($row->person_name ?: '-').'</div><div class="crm-contact-line"><i class="feather-phone" aria-hidden="true"></i> '.e($row->person_phone ?: '-').'</div>';
+            })
             ->addColumn('staff_name', fn($row) => e($row->creator?->name ?? '-'))
             ->addColumn('org_name', fn($row) => $row->organization ? e($row->organization->name) : '-')
             ->addColumn('contact_name', fn($row) => $row->organizationContact ? e($row->organizationContact->name) : '-')
@@ -224,11 +233,35 @@ class LeadController extends Controller
                     <span class="badge bg-light text-dark" style="border:1px solid #eee;">'.e($row->statusStage->name).'</span>
                 </span>';
             })
+            ->addColumn('desktop_status_badge', function($row){
+                if(!$row->statusStage) return '-';
+                $color = preg_match('/^#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?$/', (string)$row->statusStage->color) ? $row->statusStage->color : '#00a9ce';
+                return '<span class="crm-stage"><span class="crm-stage-dot" style="background:'.e($color).'"></span>'.e($row->statusStage->name).'</span>';
+            })
             ->addColumn('next_followup', function($row){
                 if(!$row->next_followup_at) return '-';
 
                 $dt = Carbon::parse($row->next_followup_at)->timezone('Asia/Dhaka');
                 $show = $dt->format('d M Y, h:i A');
+
+                $type = $row->next_action_type ? strtoupper($row->next_action_type) : null;
+
+                $map = [
+                    'CALL' => 'bg-primary',
+                    'VISIT' => 'bg-success',
+                    'MESSAGE' => 'bg-warning',
+                    'MEETING' => 'bg-info',
+                ];
+                $cls = $map[$type] ?? 'bg-secondary';
+
+                $badge = $type ? '<span class="badge '.$cls.' ms-2">'.$type.'</span>' : '';
+                return $show.$badge;
+            })
+            ->addColumn('desktop_followup', function($row){
+                if(!$row->next_followup_at) return '-';
+
+                $dt = Carbon::parse($row->next_followup_at)->timezone('Asia/Dhaka');
+                $show = '<div class="crm-followup-line"><i class="feather-calendar" aria-hidden="true"></i> '.$dt->format('d M Y').'</div><div class="crm-followup-line"><i class="feather-clock" aria-hidden="true"></i> '.$dt->format('h:i A').'</div>';
 
                 $type = $row->next_action_type ? strtoupper($row->next_action_type) : null;
 
@@ -260,7 +293,7 @@ class LeadController extends Controller
                 if (Auth::user()->can('lead.delete')) $html .= '<button class="btn btn-sm btn-danger btn-delete" data-id="'.$row->id.'"><i class="feather-trash-2"></i></button>';
                 return $html.'</div>';
             })
-            ->rawColumns(['lead_no','status_badge','lead_state','next_followup','action'])
+            ->rawColumns(['desktop_status_badge','desktop_followup','lead_display','organization_contact','lead_no','status_badge','lead_state','next_followup','action'])
             ->make(true);
     }
 

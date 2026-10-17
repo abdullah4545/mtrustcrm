@@ -263,7 +263,12 @@ class OrganizationController extends Controller
                 $name = auth()->user()->can('org.details.view') ? '<a class="fw-semibold" href="'.route('org.contacts.index',$row->id).'">'.e($row->name).'</a>' : e($row->name);
                 return $name.($row->address ? '<div class="small text-muted mt-1 org-address"><i class="feather-map-pin" aria-hidden="true"></i> '.e($row->address).'</div>' : '');
             })
+            ->addColumn('name_display', function($row){
+                $name = auth()->user()->can('org.details.view') ? '<a class="fw-semibold" href="'.route('org.contacts.index',$row->id).'">'.e($row->name).'</a>' : e($row->name);
+                return $name.($row->address ? '<div class="small text-muted mt-1 org-address"><i class="feather-map-pin" aria-hidden="true"></i> '.e($row->address).'</div>' : '').'<div class="crm-owner"><i class="feather-user" aria-hidden="true"></i> '.e($row->creator?->name ?? 'Unknown / legacy').'</div>';
+            })
             ->addColumn('staff_name', fn($row) => e($row->creator?->name ?? 'Unknown / legacy'))
+            ->addColumn('category_type', fn($row) => '<div class="crm-category-stack"><span class="crm-category">'.e($row->category?->name ?? '-').'</span><span class="crm-type">'.e($row->type?->name ?? '-').'</span></div>')
             ->addColumn('category', fn($row) => $row->category?->name ?? '-')
             ->addColumn('type', fn($row) => $row->type?->name ?? '-')
             ->addColumn('activity_summary', function($row){
@@ -285,7 +290,7 @@ class OrganizationController extends Controller
                     $row->upazila?->name,
                     $row->union?->name,
                 ]);
-                return $parts ? implode('-> ', $parts) : '-';
+                return $parts ? implode(' → ', $parts) : '-';
             })
             ->editColumn('status', fn($row) =>
                 $row->status === 'active'
@@ -301,7 +306,7 @@ class OrganizationController extends Controller
                 if (auth()->user()->can('org.delete')) $html .= '<button class="btn btn-sm btn-danger btn-delete" data-id="'.$row->id.'"><i class="feather-trash-2"></i></button>';
                 return $html.'</div>';
             })
-            ->rawColumns(['name','activity_summary','history_summary','status','action'])
+            ->rawColumns(['name_display','category_type','name','activity_summary','history_summary','status','action'])
             ->make(true);
     }
 

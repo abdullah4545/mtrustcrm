@@ -52,14 +52,10 @@
                     <thead>
                     <tr>
                         <th>#</th>
-                        <th>Lead No</th>
-                        <th>Created By</th>
-                        <th>Organization</th>
-                        <th>Contact</th>
-                        <th>Phone</th>
-                        <th>Status</th>
-                        <th>Followup</th>
-                        <th>State</th>
+                        <th>Lead</th>
+                        <th>Organization / Contact</th>
+                        <th>Status / State</th>
+                        <th>Follow-up</th>
                         <th width="160">Action</th>
                     </tr>
                     </thead>
@@ -403,14 +399,12 @@ $(document).ready(function(){
         },
         columns:[
             {data:'DT_RowIndex', orderable:false, searchable:false},
-            {data:'lead_no', name:'lead_no'},
-            {data:'staff_name', orderable:false, searchable:false},
-            {data:'org_name', orderable:false, searchable:false}, 
-            {data:'person_name', name:'person_name'},
-            {data:'person_phone', name:'person_phone'}, 
-            {data:'status_badge', orderable:false, searchable:false},
-            {data:'next_followup', orderable:false, searchable:false},
-            {data:'lead_state', orderable:false, searchable:false},
+            {data:'lead_display', name:'lead_no'},
+            {data:'organization_contact', orderable:false, searchable:false},
+            {data:'desktop_status_badge', orderable:false, searchable:false, render:function(data,type,row){
+                return type==='display' ? '<div class="crm-status-stack">'+data+row.lead_state+'</div>' : data;
+            }},
+            {data:'desktop_followup', orderable:false, searchable:false},
             {data:'action', orderable:false, searchable:false},
         ],
         drawCallback: function (settings) {

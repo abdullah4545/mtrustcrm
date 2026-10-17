@@ -86,14 +86,13 @@
                 <table class="table table-bordered align-middle" id="activityTable" style="width:100%">
                     <thead>
                     <tr>
-                        <th><input type="checkbox" id="selectAll" class="form-check-input"></th>
-                        <th>#</th>
-                        <th>Created</th>
-                        <th>Organization / Contact</th>
-                        <th>From &rarr; To</th>
-                        <th>Amount</th>
-                        <th>Payment Status</th>
+                        <th><input type="checkbox" id="selectAll" class="form-check-input"></th><th>#</th>
+                        <th>Created</th><th>Date</th>
+                        @if($showStaffColumn)<th>Staff</th>@endif
+                        <th>Organization / Contact</th><th>From &rarr; To</th><th>Amount</th>
+                        <th>From</th><th>To</th><th>TA</th><th>DA</th><th>Total</th><th>Tour Type</th><th>Payment Status</th>
                         @if($showStatus)<th>Status</th>@endif
+                        @if($showEditAudit)<th>Edit History</th>@endif
                         <th width="150">Action</th>
                     </tr>
                     </thead>
@@ -286,6 +285,8 @@
 
    
 
+        const activityMedia=window.matchMedia('(max-width:768px)');
+        const activityMobile=activityMedia.matches;
         table = $('#activityTable').DataTable({
         pageLength: 10,
         lengthMenu: [[10, 50, 100, -1], [10, 50, 100, 'All']],
@@ -295,26 +296,45 @@
             dom:'<"row g-2 align-items-center mb-3 activity-table-tools"<"col-12 col-sm-6"l><"col-12 col-sm-6"f>><"table-responsive activity-table-scroll"t><"row g-2 align-items-center mt-3 activity-table-footer"<"col-12 col-md-5"i><"col-12 col-md-7"p>>',
             stateSave:true,
             stateDuration:-1,
-            stateSaveParams:function(settings,data){data.crmListLayout='reference-v2';},
-            stateLoadParams:function(settings,data){return data.crmListLayout==='reference-v2';},
+            stateSaveParams:function(settings,data){data.crmListLayout='responsive-v4';data.crmMobile=activityMedia.matches;},
+            stateLoadParams:function(settings,data){return data.crmListLayout==='responsive-v4' && data.crmMobile===activityMobile;},
             order:[[2,'desc']],
             ajax:{url:ROUTE_DATATABLE,data:function(d){d.created_by=$('#f_created_by').val();d.from_date=$('#f_from_date').val();d.to_date=$('#f_to_date').val();d.status=@json($showStatus) ? $('#f_status').val() : '';d.payment_status=$('#f_payment_status').val();}},
             columns:[
                 {data:'select',orderable:false,searchable:false},
-                {data:'DT_RowIndex', orderable:false, searchable:false},
-                {data:'created_display',name:'activity_at',className:'activity-date',searchable:false},
+                {data:'DT_RowIndex',orderable:false,searchable:false},
+                {data:'created_display',name:'activity_at',className:'activity-date desktop-activity-column',visible:!activityMobile,searchable:false},
+                {data:'date',name:'activity_at',className:'activity-date mobile-activity-column',visible:activityMobile},
+                @if($showStaffColumn)
+                {data:'staff_name',className:'activity-staff mobile-activity-column',visible:activityMobile,orderable:false,searchable:false},
+                @endif
                 {data:'organization_contact',name:'organization_name',className:'activity-organization'},
-                {data:'route_display',className:'activity-location',orderable:false,searchable:false},
-                {data:'amount_display',className:'activity-money',orderable:false,searchable:false},
+                {data:'route_display',className:'activity-location desktop-activity-column',visible:!activityMobile,orderable:false,searchable:false},
+                {data:'amount_display',className:'activity-money desktop-activity-column',visible:!activityMobile,orderable:false,searchable:false},
+                {data:'from_location',className:'activity-location mobile-activity-column',visible:activityMobile},
+                {data:'to_location',className:'activity-location mobile-activity-column',visible:activityMobile},
+                {data:'ta',className:'activity-money text-end mobile-activity-column',visible:activityMobile},
+                {data:'da',className:'activity-money text-end mobile-activity-column',visible:activityMobile},
+                {data:'total',className:'activity-money text-end mobile-activity-column',visible:activityMobile},
+                {data:'tour_type',className:'mobile-activity-column',visible:activityMobile,orderable:false,searchable:false},
                 {data:'payment_status',orderable:false,searchable:false},
                 @if($showStatus)
                 {data:'status'},
+                @endif
+                @if($showEditAudit)
+                {data:'edit_history',className:'mobile-activity-column',visible:activityMobile,orderable:false,searchable:false},
                 @endif
                 {data:'action',className:'activity-actions-cell',orderable:false,searchable:false},
             ]
         });
 
         
+
+        activityMedia.addEventListener('change',function(e){
+            table.columns('.desktop-activity-column').visible(!e.matches,false);
+            table.columns('.mobile-activity-column').visible(e.matches,false);
+            table.columns.adjust().draw(false);
+        });
 
         $('#f_created_by,#f_from_date,#f_to_date,@if($showStatus)#f_status,@endif #f_payment_status').on('change',function(){ if(window.CrmPersistentFilters) window.CrmPersistentFilters.saveNow(); table.ajax.reload(null, false); });
         $('#f_date_reset').on('click',function(){

@@ -53,9 +53,7 @@
                     <tr>
                         <th>#</th>
                         <th>Name</th>
-                        <th>Created By</th>
-                        <th>Category</th>
-                        <th>Type</th>
+                        <th>Category / Type</th>
                         <th>Activity</th>
                         <th>History</th>
                         <th>Geo</th>
@@ -312,10 +310,8 @@ $(document).ready(function(){
         },
         columns:[
             {data:'DT_RowIndex', orderable:false, searchable:false},
-            {data:'name', name:'name'},
-            {data:'staff_name', name:'creator.name', orderable:false},
-            {data:'category', orderable:false, searchable:false},
-            {data:'type', orderable:false, searchable:false},
+            {data:'name_display', name:'name'},
+            {data:'category_type', orderable:false, searchable:false},
             {data:'activity_summary', orderable:false, searchable:false},
             {data:'history_summary', orderable:false, searchable:false},
             {data:'geo', orderable:false, searchable:false},

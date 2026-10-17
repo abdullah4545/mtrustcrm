@@ -6,6 +6,11 @@ html body .form-control:focus,html body .form-select:focus,html body .select2-co
 html body .form-control:disabled,html body .form-select:disabled,html body .select2-container--disabled .select2-selection{border-color:#666!important;background:#eee!important;opacity:.75}
 html body .is-invalid,html body .is-invalid+.select2 .select2-selection,html body .was-validated :invalid{border-color:#dc3545!important;outline-color:#dc3545}
 html body .required-mark,html body .required-indicator,html body label .text-danger{color:#dc3545!important}
+/* Use the document's outer scrollbar on every admin page, not a second content scroller. */
+html{height:auto!important;max-height:none!important;overflow-x:hidden!important;overflow-y:auto!important}
+body:not(.modal-open){height:auto!important;max-height:none!important;overflow:visible!important}
+.nxl-container,.nxl-container .nxl-content,.nxl-container .main-content{height:auto!important;max-height:none!important;overflow:visible!important}
+.nxl-container>.ps__rail-y,.nxl-container .nxl-content>.ps__rail-y,.nxl-container .main-content>.ps__rail-y{display:none!important}
 /* Main admin/page scrollbar and the existing sidebar scrollbar. */
 html,body,.nxl-container,.nxl-content,.main-content{scrollbar-width:auto;scrollbar-color:#64748b #edf2f7}
 html::-webkit-scrollbar,body::-webkit-scrollbar,.nxl-container::-webkit-scrollbar,.nxl-content::-webkit-scrollbar,.main-content::-webkit-scrollbar{width:16px;height:16px;display:block}
@@ -24,7 +29,7 @@ html::-webkit-scrollbar-track,body::-webkit-scrollbar-track,.nxl-container::-web
 .dataTables_wrapper,.dt-container{display:block;clear:both}
 .table-responsive>.dataTables_wrapper,.table-responsive>.dt-container{overflow:visible!important}
 .crm-table-dragging,.crm-table-dragging *{cursor:grabbing!important;user-select:none!important}
-.crm-tables-all:not(.modal-open){height:auto!important;max-height:none!important;overflow-y:auto!important}
+.crm-tables-all:not(.modal-open){height:auto!important;max-height:none!important;overflow:visible!important}
 .crm-tables-all .main-content,.crm-tables-all .nxl-container,.crm-tables-all .nxl-content{max-height:none!important;height:auto!important;overflow-y:visible!important}
 @media(max-width:767.98px){
     .nxl-container,.main-content,.nxl-content,.card,.card-body{min-width:0}

@@ -217,6 +217,7 @@
     })();
     </script>
 
+    @include('backend.partials.datatables-all')
     @stack('scripts')
 
     @stack('modals')

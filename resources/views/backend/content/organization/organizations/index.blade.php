@@ -329,7 +329,10 @@ $(document).ready(function(){
         }
     });
 
+    window.matchMedia('(max-width: 768px)').addEventListener('change',function(){ renderMobileCards(table.rows().data().toArray()); });
+
     function renderMobileCards(data){
+        if(!window.matchMedia('(max-width: 768px)').matches){ $('#mobileCards').empty(); return; }
         let html = '';
 
         data.forEach((item, index) => {

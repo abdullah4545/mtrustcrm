@@ -101,15 +101,10 @@
                         <thead>
                         <tr>
                             <th>#</th>
-                            <th>Invoice</th>
-                            <th>Sold By</th>
-                            <th>Sale Date</th>
-                            <th>Organization</th><th>Client</th>
-                            <th>Phone</th>
-                            <th>Status</th>
-                            <th>Payment</th>
-                            <th>Total</th>
-                            <th>Due</th>
+                            <th>Invoice / Date</th>
+                            <th>Organization / Client</th>
+                            <th>Status / Payment</th>
+                            <th>Amount</th>
                             <th width="180">Action</th>
                         </tr>
                         </thead>
@@ -155,16 +150,10 @@ $(document).ready(function(){
         },
         columns:[
             {data:'DT_RowIndex', orderable:false, searchable:false},
-            {data:'invoice_no', name:'invoice_no'},
-            {data:'staff_name', orderable:false, searchable:false},
-            {data:'sale_date', name:'sale_date'},
-            {data:'organization_name', name:'organization.name'},
-            {data:'client_name', name:'client_name'},
-            {data:'client_phone', name:'client_phone'},
-            {data:'status_badge', orderable:false, searchable:false},
-            {data:'pay_badge', orderable:false, searchable:false},
-            {data:'grand_total', name:'grand_total'},
-            {data:'due_total', name:'due_total'},
+            {data:'invoice_display',name:'invoice_no'},
+            {data:'client_display',orderable:false,searchable:false},
+            {data:'status_badge',orderable:false,searchable:false,render:function(data,type,row){return type==='display' ? '<div class="sale-status-stack">'+data+row.pay_badge+'</div>' : data;}},
+            {data:'amount_display',name:'grand_total',searchable:false},
             {data:'action', orderable:false, searchable:false},
         ]
     });
@@ -208,4 +197,8 @@ function showAjaxError(xhr){
 @endpush
 @push('scripts')
 @include('backend.partials.crm-list-design')
+@endpush
+
+@push('scripts')
+@include('backend.partials.sale-list-design')
 @endpush

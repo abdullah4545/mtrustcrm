@@ -1,3 +1,13 @@
+<style>
+#itemsTable{border-collapse:separate!important;border-spacing:0;width:100%}
+#itemsTable th,#itemsTable td{height:auto!important;overflow:visible!important;vertical-align:top;padding:12px 10px!important}
+#itemsTable input.form-control:not([type="hidden"]),#itemsTable textarea.form-control,#itemsTable select.form-control{box-sizing:border-box!important;border:1px solid #b8c5d7!important;border-bottom:1px solid #b8c5d7!important;border-radius:5px!important;min-height:42px!important;height:auto!important;line-height:1.4!important;padding:9px 10px!important;background:#fff!important;box-shadow:none!important}
+#itemsTable input[type="number"]{min-width:90px}
+#itemsTable .select2-container{min-width:200px;width:100%!important}
+#itemsTable .select2-selection--single{box-sizing:border-box!important;border:1px solid #b8c5d7!important;min-height:42px!important;height:auto!important;padding:8px 28px 8px 10px!important;border-radius:5px!important}
+#itemsTable .select2-selection__rendered{line-height:24px!important;padding:0!important}
+#itemsTable input[type="hidden"]{display:none!important}
+</style>
 <script>
 const PRODUCT_OPTIONS_URL = "{{ route('products.options') }}";
 const GLOBAL_TAX_RATE = Number(@json($taxRate ?? 0));
@@ -80,7 +90,7 @@ function addRow(item = null){
         tr.querySelector('.item_name').addEventListener(ev, calcTotals);
     });
 
-    tr.querySelector('.product_id').addEventListener('change', async (e) => {
+    $(tr.querySelector('.product_id')).on('change.saleItem', async (e) => {
         tr.querySelector('.item-error')?.remove();
         const pid = e.target.value;
         const version = tr._productVersion = (tr._productVersion || 0) + 1;
@@ -158,6 +168,8 @@ function syncItemName(tr){
     const custom=!tr.querySelector('.product_id').value;
     const name=tr.querySelector('.item_name');
     name.type=custom ? 'text' : 'hidden';
+    name.hidden=!custom;
+    name.style.setProperty('display',custom ? 'block' : 'none','important');
     name.required=custom;
     name.classList.toggle('mt-2',custom);
 }

@@ -216,6 +216,17 @@ class SaleController extends Controller
 
         return DataTables::of($q)
             ->addIndexColumn()
+            ->addColumn('invoice_display', function($row){
+                $date=$row->sale_date ? Carbon::parse($row->sale_date)->timezone('Asia/Dhaka')->format('d M Y') : '-';
+                return '<a class="sale-invoice" href="'.route('sales.show',$row->id).'">'.e($row->invoice_no).'</a><div class="sale-detail"><i class="feather-calendar"></i> '.e($date).'</div><div class="sale-owner"><i class="feather-user"></i> '.e($row->soldBy?->name ?? '-').'</div>';
+            })
+            ->addColumn('client_display', function($row){
+                return '<div class="sale-org">'.e($row->organization?->name ?? 'Unknown / Legacy').'</div><div class="sale-detail"><i class="feather-user"></i> <strong>'.e($row->client_name ?: '-').'</strong></div><div class="sale-detail"><i class="feather-phone"></i> '.e($row->client_phone ?: '-').'</div>';
+            })
+            ->addColumn('amount_display', function($row){
+                $fmt=fn($n)=>rtrim(rtrim(number_format((float)$n,2,'.',','),'0'),'.').' TK';
+                return '<div class="sale-amount"><div><span>Total:</span><strong class="sale-total">'.$fmt($row->grand_total).'</strong></div><div><span>Paid:</span><strong class="sale-paid">'.$fmt($row->paid_total).'</strong></div><div><span>Due:</span><strong class="sale-due">'.$fmt($row->due_total).'</strong></div></div>';
+            })
             ->addColumn('organization_name', fn($row) => $row->organization?->name ?? 'Unknown / legacy')
             ->addColumn('staff_name', fn($row) => e($row->soldBy?->name ?? '-'))
             ->editColumn('sale_date', fn($row) =>
@@ -251,7 +262,7 @@ class SaleController extends Controller
                 if (Auth::user()->can('sale.delete')) $html .= '<button class="btn btn-sm btn-danger btn-delete" data-id="'.$row->id.'"><i class="feather-trash-2"></i></button>';
                 return $html.'</div>';
             })
-            ->rawColumns(['status_badge', 'pay_badge', 'action'])
+            ->rawColumns(['invoice_display','client_display','amount_display','status_badge', 'pay_badge', 'action'])
             ->make(true);
     }
 

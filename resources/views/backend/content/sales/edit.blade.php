@@ -113,7 +113,7 @@
                             <thead>
                                 <tr>
                                     <th width="240">Product/Custom Item</th>
-                                    <th>Item Name <span class="required-indicator">*</span> / Description (Optional)</th>
+                                    <th>Description (Optional)</th>
                                     <th width="90">Qty <span class="required-indicator">*</span></th>
                                     <th width="90">Unit</th>
                                     <th width="120">Unit Price <span class="required-indicator">*</span></th>
@@ -162,118 +162,5 @@
 @endsection
 
 @push('scripts')
-<script>
-const PRODUCT_OPTIONS_URL = "{{ route('products.options') }}";
-const GLOBAL_TAX_RATE = Number(@json($taxRate ?? 0));
-const PRODUCT_DETAILS_URL = "{{ url('products') }}";
-let rowIndex = 0;
-const EXISTING_ITEMS = @json($sale->items);
-
-document.addEventListener('DOMContentLoaded', () => {
-    if(EXISTING_ITEMS && EXISTING_ITEMS.length){
-        EXISTING_ITEMS.forEach(it => addRow(it));
-    } else {
-        addRow();
-    }
-
-    document.getElementById('btnAddRow').addEventListener('click', () => addRow());
-    document.getElementById('discount_amount').addEventListener('input', calcTotals);
-document.getElementById('tax_enabled')?.addEventListener('change', calcTotals);
-    calcTotals();
-});
-
-function addRow(item = null){
-    const tbody = document.querySelector('#itemsTable tbody');
-    const idx = rowIndex++;
-    const tr = document.createElement('tr');
-
-    tr.innerHTML = `
-        <td>
-            <select class="form-control product_id" name="items[${idx}][product_id]">
-                <option value="">-- Custom Item --</option>
-            </select>
-            <input class="form-control mt-2 item_name" name="items[${idx}][item_name]" placeholder="Item name" aria-label="Item name (required)" required>
-        </td>
-        <td><textarea class="form-control item_desc" name="items[${idx}][description]" rows="2"></textarea></td>
-        <td><input type="number" step="0.01" class="form-control qty" min="0.01" required name="items[${idx}][qty]" value="1"></td>
-        <td><input type="text" class="form-control unit" name="items[${idx}][unit]" value="pcs"></td>
-        <td><input type="number" step="0.01" class="form-control unit_price" min="0" required name="items[${idx}][unit_price]" value="0"></td>
-        <td><input type="number" step="0.01" class="form-control tax_rate" name="items[${idx}][tax_rate]" value="0"></td>
-        <td><b class="line_total_text">0.00</b></td>
-        <td class="text-center"><button type="button" class="btn btn-sm btn-danger btn-remove">&times;</button></td>
-    `;
-    tbody.appendChild(tr);
-
-    loadProducts(tr, item?.product_id ?? null).then(() => {
-        if(item){
-            tr.querySelector('.item_name').value = item.item_name ?? '';
-            tr.querySelector('.item_desc').value = item.description ?? '';
-            tr.querySelector('.qty').value = item.qty ?? 1;
-            tr.querySelector('.unit').value = item.unit ?? 'pcs';
-            tr.querySelector('.unit_price').value = item.unit_price ?? 0;
-            tr.querySelector('.tax_rate').value = item.tax_rate ?? 0;
-        }
-        calcTotals();
-    });
-
-    tr.querySelector('.btn-remove').addEventListener('click', () => { tr.remove(); calcTotals(); });
-
-    ['input','change'].forEach(ev => {
-        tr.querySelector('.qty').addEventListener(ev, calcTotals);
-        tr.querySelector('.unit_price').addEventListener(ev, calcTotals);
-        tr.querySelector('.tax_rate').addEventListener(ev, calcTotals);
-    });
-
-    tr.querySelector('.product_id').addEventListener('change', async (e) => {
-        const pid = e.target.value;
-        if(!pid) return;
-        const res = await fetch(`${PRODUCT_DETAILS_URL}/${pid}/details`);
-        const json = await res.json();
-        if(json.status){
-            tr.querySelector('.item_name').value = json.data.name || '';
-            tr.querySelector('.unit_price').value = json.data.sale_price || 0;
-            tr.querySelector('.tax_rate').value = json.data.tax_rate || 0;
-            calcTotals();
-        }
-    });
-}
-
-async function loadProducts(tr, selectedId=null){
-    const sel = tr.querySelector('.product_id');
-    const res = await fetch(PRODUCT_OPTIONS_URL);
-    const rows = await res.json();
-    let html = `<option value="">-- Custom Item --</option>`;
-    rows.forEach(r => html += `<option value="${r.id}">${escapeHtml(r.name)}</option>`);
-    sel.innerHTML = html;
-    if(selectedId) sel.value = selectedId;
-}
-
-function calcTotals(){
-    let sub=0, tax=0;
-    document.querySelectorAll('#itemsTable tbody tr').forEach(tr=>{
-        const qty = parseFloat(tr.querySelector('.qty').value || 0);
-        const price = parseFloat(tr.querySelector('.unit_price').value || 0);
-        const rate = document.getElementById('tax_enabled')?.checked ? GLOBAL_TAX_RATE : 0;
-        tr.querySelector('.tax_rate').value = rate;
-
-        const base = qty*price;
-        const taxAmount = rate>0 ? base*rate/100 : 0;
-        const line = base+taxAmount;
-
-        tr.querySelector('.line_total_text').innerText = line.toFixed(2);
-        sub += base; tax += taxAmount;
-    });
-
-    const discount = parseFloat(document.getElementById('discount_amount').value || 0);
-    const grand = (sub - discount) + tax;
-
-    document.getElementById('subTotalText').innerText = sub.toFixed(2);
-    document.getElementById('taxText').innerText = tax.toFixed(2);
-    document.getElementById('grandTotalText').innerText = grand.toFixed(2);
-}
-
-function escapeHtml(text){
-  return (text ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-}
-</script>
+@include('backend.partials.sale-items-script')
 @endpush

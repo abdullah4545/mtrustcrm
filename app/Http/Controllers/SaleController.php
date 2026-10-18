@@ -99,6 +99,23 @@ class SaleController extends Controller
         }
     }
 
+    private function normalizeSaleItems(Request $request): void
+    {
+        $items = $request->input('items', []);
+        $products = Product::whereIn('id', collect($items)->pluck('product_id')->filter()->unique())->get()->keyBy('id');
+        foreach ($items as $key => &$item) {
+            if (!empty($item['product_id'])) {
+                $product = $products->get($item['product_id']);
+                if (!$product) throw \Illuminate\Validation\ValidationException::withMessages(["items.$key.product_id" => 'This product is no longer available.']);
+                $item['item_name'] = $product->name;
+            } elseif (trim((string)($item['item_name'] ?? '')) === '') {
+                throw \Illuminate\Validation\ValidationException::withMessages(["items.$key.item_name" => 'Please enter a name for the custom item.']);
+            }
+        }
+        unset($item);
+        $request->merge(['items' => $items]);
+    }
+
     private function saleNo(): string
     {
         return 'SL-' . date('ymd') . '-' . random_int(1000, 9999);
@@ -323,7 +340,7 @@ class SaleController extends Controller
 
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'nullable|exists:products,id',
-            'items.*.item_name' => 'required|string|max:200',
+            'items.*.item_name' => 'nullable|string|max:200',
             'items.*.description' => 'nullable|string',
             'items.*.qty' => 'required|numeric|min:0.01',
             'items.*.unit' => 'nullable|string|max:20',
@@ -357,6 +374,7 @@ class SaleController extends Controller
             }
         }
 
+        $this->normalizeSaleItems($request);
         $this->validateSaleOrganization($request);
 
         if ($lead && $lead->converted_sale_id) {
@@ -492,7 +510,7 @@ class SaleController extends Controller
 
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'nullable|exists:products,id',
-            'items.*.item_name' => 'required|string|max:200',
+            'items.*.item_name' => 'nullable|string|max:200',
             'items.*.description' => 'nullable|string',
             'items.*.qty' => 'required|numeric|min:0.01',
             'items.*.unit' => 'nullable|string|max:20',
@@ -500,6 +518,7 @@ class SaleController extends Controller
             'items.*.tax_rate' => 'nullable|numeric|min:0',
         ]);
 
+        $this->normalizeSaleItems($request);
         $this->validateSaleOrganization($request);
         $sale->update([
             'organization_id' => $request->filled('organization_id') ? $request->integer('organization_id') : null,

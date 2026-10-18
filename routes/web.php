@@ -44,7 +44,10 @@ use Illuminate\Http\Request;
 
 
 
-Route::middleware('auth')->group(function () { 
+Route::middleware('auth')->group(function () {
+    Route::get('/activities/{id}/bill-review', [\App\Http\Controllers\ActivityBillReviewController::class,'show'])->name('activities.bill-review');
+    Route::post('/activities/{id}/bill-review', [\App\Http\Controllers\ActivityBillReviewController::class,'update'])->name('activities.bill-review.update');
+ 
     Route::post('/activities/printed-payment', [\App\Http\Controllers\PrintedActivityPaymentController::class, 'store'])->name('activities.printed-payment');
     // CRM-wide server-side persistent filter session.
     Route::post('/crm/filter-session', function (Request $request) {

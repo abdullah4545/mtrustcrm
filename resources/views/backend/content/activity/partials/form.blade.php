@@ -123,6 +123,9 @@
 </style>
 
 <div class="card activity-entry-card"><div class="card-body">
+@if($editing)
+<div class="alert alert-info d-flex flex-wrap gap-2 align-items-center">Original claims and deduction reasons are available in <a href="{{ route('activities.bill-review',$activity->id) }}" class="btn btn-sm btn-outline-primary">Bill / History</a></div>
+@endif
 <form id="activityForm">
 <div class="row g-3">
     <div class="col-6 col-md-2"><label>Activity Date</label><input type="date" id="activity_date" class="form-control" value="{{ $activityTime?->timezone('Asia/Dhaka')->format('Y-m-d') }}" @disabled($editing && !auth()->user()->hasPermissionTo('activity.view_all')) required></div>

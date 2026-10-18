@@ -33,7 +33,7 @@ class ActivityReportExport implements
         private readonly array $columnLabels
     ) {
         $this->activities = $this->query()
-            ->with(['creator','travels'])
+            ->with(['creator','travels','expenses'])
             ->orderBy('date')
             ->orderBy('id')
             ->get();
@@ -120,6 +120,7 @@ class ActivityReportExport implements
             $this->activities->sum('total')
         );
 
+        foreach(['claimed_total','deducted_total'] as $column) $this->putTotal($totalRow,$column,$this->activities->sum($column));
         $rows[] = $totalRow;
 
         return $rows;
@@ -290,6 +291,8 @@ class ActivityReportExport implements
 
             'ta',
             'da',
+            'claimed_total',
+            'deducted_total',
             'total' => (float) $activity->{$column},
 
             'distance' => (float) $activity->distance,

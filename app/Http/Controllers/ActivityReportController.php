@@ -36,9 +36,13 @@ class ActivityReportController extends Controller
         'distance'          => 'Dist',
         'vehicle'           => 'Vehicles',
         'work_details'      => 'Vis. Output',
-        'ta'                => 'TA',
-        'da'                => 'DA',
-        'total'             => 'Total',
+        'ta'                => 'TA Payable',
+        'da'                => 'DA Payable',
+        'total'             => 'Payable',
+        'claimed_total' => 'Submitted',
+        'deducted_total' => 'Deducted',
+        'review_note' => 'Activity Review Reason',
+        'bill_review_reasons' => 'TA / DA Review Reasons',
         'remarks'           => 'Remarks',
         'status'            => 'Status',
         'payment_status'    => 'Payment Status',
@@ -60,7 +64,11 @@ class ActivityReportController extends Controller
         'work_details',
         'ta',
         'da',
+        'claimed_total',
+        'deducted_total',
         'total',
+        'review_note',
+        'bill_review_reasons',
         'remarks',
     ];
 
@@ -100,7 +108,7 @@ class ActivityReportController extends Controller
         );
 
         $activities = $this->reportQuery($validated)
-            ->with(['creator','travels'])
+            ->with(['creator','travels','expenses'])
             ->orderBy('date')
             ->orderBy('id')
             ->get();
@@ -127,6 +135,8 @@ class ActivityReportController extends Controller
 
             'summary' => [
                 'activity_count' => $activities->count(),
+                'claimed_total'=>number_format((float)$activities->sum('claimed_total'),2),
+                'deducted_total'=>number_format((float)$activities->sum('deducted_total'),2),
                 'total_ta'       => number_format(
                     (float) $activities->sum('ta'),
                     2
@@ -151,7 +161,7 @@ class ActivityReportController extends Controller
         $columns = $this->resolveColumns($validated['columns'] ?? []);
 
         $activities = $this->reportQuery($validated)
-            ->with(['creator','travels'])
+            ->with(['creator','travels','expenses'])
             ->orderBy('date')
             ->orderBy('id')
             ->get();
@@ -198,7 +208,7 @@ class ActivityReportController extends Controller
         $columns = $this->resolveColumns($validated['columns'] ?? []);
 
         $activities = $this->reportQuery($validated)
-            ->with(['creator','travels'])
+            ->with(['creator','travels','expenses'])
             ->orderBy('date')
             ->orderBy('id')
             ->get();
@@ -417,6 +427,8 @@ class ActivityReportController extends Controller
 
                 'ta',
                 'da',
+                'claimed_total',
+                'deducted_total',
                 'total' => number_format(
                     (float) $activity->{$column},
                     2

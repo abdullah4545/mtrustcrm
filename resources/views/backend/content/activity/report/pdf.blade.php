@@ -221,6 +221,8 @@
         'ta',
         'da',
         'total',
+        'claimed_total',
+        'deducted_total',
     ];
 @endphp
 
@@ -287,6 +289,8 @@
 
                             'ta',
                             'da',
+                            'claimed_total',
+                            'deducted_total',
                             'total' => number_format(
                                 (float) $activity->{$column},
                                 2
@@ -358,6 +362,8 @@
                         {{ number_format((float) $totalTa, 2) }}Tk
                     @elseif($column === 'da')
                         {{ number_format((float) $totalDa, 2) }}Tk
+                    @elseif(in_array($column,['claimed_total','deducted_total'],true))
+                        {{ number_format((float)$activities->sum($column),2) }}Tk
                     @elseif($column === 'total')
                         {{ number_format((float) $grandTotal, 2) }}Tk
                     @endif

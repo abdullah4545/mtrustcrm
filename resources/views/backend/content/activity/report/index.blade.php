@@ -983,6 +983,7 @@
                 value = summary.total_da;
             }
 
+            if (column.key === 'claimed_total' || column.key === 'deducted_total') value=summary[column.key];
             if (column.key === 'total') {
                 value = summary.grand_total;
             }

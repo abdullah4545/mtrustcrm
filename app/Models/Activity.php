@@ -15,10 +15,16 @@ class Activity extends Model
         'created_by','entered_by','branch_id','status','payment_status','paid_at','paid_by','reviewed_by','reviewed_at','review_note','edit_count','last_edited_by','last_edited_at',
     ];
 
-    protected $casts = [
+    protected $casts = ['claimed_ta'=>'decimal:2','claimed_da'=>'decimal:2','claimed_total'=>'decimal:2','deducted_total'=>'decimal:2',
         'date'=>'date','activity_at'=>'datetime','paid_at'=>'datetime','reviewed_at'=>'datetime','last_edited_at'=>'datetime','edit_count'=>'integer','distance'=>'decimal:2','ta'=>'decimal:2','da'=>'decimal:2','total'=>'decimal:2',
     ];
 
+    public function getBillReviewReasonsAttribute(): string {
+        return $this->travels->filter(fn($row)=>filled($row->deduction_reason))->map(fn($row)=>'TA #'.$row->id.': '.$row->deduction_reason)
+            ->concat($this->expenses->filter(fn($row)=>filled($row->deduction_reason))->map(fn($row)=>'DA #'.$row->id.': '.$row->deduction_reason))->implode(' | ');
+    }
+
+    public function billHistories(){ return $this->hasMany(ActivityBillHistory::class); }
     public function payer(){ return $this->belongsTo(User::class, 'paid_by'); }
     public function reviewer(){ return $this->belongsTo(User::class, 'reviewed_by'); }
     public function lastEditor(){ return $this->belongsTo(User::class, 'last_edited_by'); }

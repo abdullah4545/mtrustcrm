@@ -359,12 +359,12 @@
         $(document).on('click','.bulk-action',function(){
             const ids=$('.activity-check:checked').map(function(){return Number(this.value)}).get(), action=$(this).data('action');
             if(!ids.length){Swal.fire('Select Activity','Please select at least one activity.','warning');return;}
-            Swal.fire({title:'Apply bulk action?',text:`${ids.length} activity(s): ${String(action).replaceAll('_',' ')}`,icon:'question',showCancelButton:true,confirmButtonText:'Yes, continue'}).then(r=>{if(!r.isConfirmed)return; $.post(@json(route('activities.bulk-action')),{ids,action}).done(x=>{Swal.fire('Done',x.message,'success');table.ajax.reload(null,false)}).fail(x=>{let m=x.responseJSON?.message||'Unable to update';if(x.status===422&&x.responseJSON?.errors)m=Object.values(x.responseJSON.errors)[0][0];Swal.fire('Blocked',m,'error')});});
+            Swal.fire({input:action==='reject'?'textarea':undefined,inputLabel:action==='reject'?'Rejection reason for the selected activities':undefined,inputValidator:value=>action==='reject'&&!String(value||'').trim()?'Please enter a rejection reason.':undefined,title:'Apply bulk action?',text:`${ids.length} activity(s): ${String(action).replaceAll('_',' ')}`,icon:'question',showCancelButton:true,confirmButtonText:'Yes, continue'}).then(r=>{if(!r.isConfirmed)return; $.post(@json(route('activities.bulk-action')),{ids,action,review_note:action==='reject'?r.value:''}).done(x=>{Swal.fire('Done',x.message,'success');table.ajax.reload(null,false)}).fail(x=>{let m=x.responseJSON?.message||'Unable to update';if(x.status===422&&x.responseJSON?.errors)m=Object.values(x.responseJSON.errors)[0][0];Swal.fire('Blocked',m,'error')});});
         });
 
         $(document).on('click','.btn-review',function(){
             const id=$(this).data('id'), status=$(this).data('status');
-            Swal.fire({title:status==='approved'?'Approve activity?':'Reject activity?',input:'text',inputLabel:'Review note (optional)',showCancelButton:true,confirmButtonText:status==='approved'?'Approve':'Reject'}).then(r=>{
+            Swal.fire({title:status==='approved'?'Approve activity?':'Reject activity?',input:'text',inputLabel:status==='rejected'?'Rejection reason (required)':'Review note (optional)',inputValidator:value=>status==='rejected'&&!String(value||'').trim()?'Please enter a rejection reason.':undefined,showCancelButton:true,confirmButtonText:status==='approved'?'Approve':'Reject'}).then(r=>{
                 if(!r.isConfirmed) return;
                 $.post(ROUTE_UPDATE+'/'+id+'/review',{status:status,review_note:r.value||''}).done(x=>{Swal.fire('Done',x.message,'success');table.ajax.reload(null,false)}).fail(x=>Swal.fire('Error',x.responseJSON?.message||'Unable to review','error'));
             });

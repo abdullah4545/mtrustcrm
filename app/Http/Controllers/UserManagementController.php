@@ -38,7 +38,7 @@ class UserManagementController extends Controller
         return view('backend.content.users.index', [
             'branches' => Branch::orderBy('branch_name')->get(['id','branch_name','branch_code']),
             'roles' => Role::whereIn('name', $this->assignableRoles())->orderBy('name')->get(['name']),
-            'districts' => District::where('is_active',1)->orderBy('name')->get(['id','name','division_id']),
+            'districts' => District::query()->orderBy('name')->get(['id','name','division_id']),
         ]);
     }
 
@@ -59,17 +59,17 @@ class UserManagementController extends Controller
         if ($request->filled('status')) $q->where('status', (int)$request->status);
         if ($request->filled('role')) $q->role($request->role);
 
-        $activeDistrictCount = District::where('is_active', 1)->count();
+        $districtCount = District::count();
 
         return DataTables::of($q)
             ->addIndexColumn()
             ->addColumn('branch', fn($r) => $r->branch?->branch_name ?? '-')
             ->addColumn('role', fn($r) => '<span class="badge bg-dark">'.e($r->getRoleNames()->first() ?? 'No role').'</span>')
-            ->addColumn('areas', function($r) use ($activeDistrictCount){
+            ->addColumn('areas', function($r) use ($districtCount){
                 if ($r->areaAssignments->isEmpty()) return '<span class="text-muted">No area restriction</span>';
                 $groups = $r->areaAssignments->groupBy('district_id');
-                $allDistrictsAllowed = $activeDistrictCount > 0
-                    && $groups->count() === $activeDistrictCount
+                $allDistrictsAllowed = $districtCount > 0
+                    && $groups->count() === $districtCount
                     && $groups->every(fn($rows) => $rows->contains(fn($area) => is_null($area->upazila_id)));
                 if ($allDistrictsAllowed) return '<span class="fw-semibold">All District Allow</span>';
                 $parts = [];
@@ -98,13 +98,9 @@ class UserManagementController extends Controller
         if ($auth->hasRole('superadmin')) return Role::orderBy('name')->pluck('name')->all();
         if (!$auth->can('user.role.assign')) return [];
 
-        $ownPermissions = $auth->getAllPermissions()->pluck('name');
-        return Role::with('permissions')
-            ->where('name','!=','superadmin')
-            ->orderBy('name')
-            ->get()
-            ->filter(fn($role) => $role->permissions->pluck('name')->diff($ownPermissions)->isEmpty())
-            ->pluck('name')->all();
+        // user.role.assign authorizes assigning any non-superadmin role.
+        return Role::where('name', '!=', 'superadmin')
+            ->orderBy('name')->pluck('name')->all();
     }
 
     private function ensureRoleAssignable(string $role): void
@@ -140,7 +136,7 @@ class UserManagementController extends Controller
     {
         $areas = json_decode($request->input('areas','[]'), true);
         if ($request->boolean('all_districts')) {
-            return District::where('is_active',1)->pluck('id')->map(fn($id)=>['district_id'=>(int)$id,'upazila_id'=>null])->all();
+            return District::query()->pluck('id')->map(fn($id)=>['district_id'=>(int)$id,'upazila_id'=>null])->all();
         }
         if (!is_array($areas) || count($areas) === 0) return [];
 
@@ -205,8 +201,9 @@ class UserManagementController extends Controller
                 'upazila_ids'=>$rows->whereNotNull('upazila_id')->pluck('upazila_id')->map(fn($x)=>(int)$x)->values(),
             ];
         })->values();
-        $activeDistrictCount = District::where('is_active',1)->count();
-        $allDistricts = $activeDistrictCount > 0 && $areas->count() === $activeDistrictCount && $areas->every(fn($a)=>$a['all_upazilas']);
+        $districtIds = District::pluck('id')->map(fn($id)=>(int)$id);
+        $fullDistrictIds = $areas->filter(fn($area)=>$area['all_upazilas'])->pluck('district_id');
+        $allDistricts = $districtIds->isNotEmpty() && $districtIds->diff($fullDistrictIds)->isEmpty();
         return response()->json(['status'=>true,'data'=>$user,'role'=>$user->getRoleNames()->first(),'areas'=>$areas,'all_districts'=>$allDistricts]);
     }
 

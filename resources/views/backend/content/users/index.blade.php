@@ -71,7 +71,11 @@ $(function(){
  if($.fn.select2){ $('#district_ids').select2({dropdownParent:$('#userModal'),width:'100%',placeholder:'Select districts',closeOnSelect:false}); }
 });
 function collectAreas(){return ($('#district_ids').val()||[]).map(id=>({district_id:Number(id),all_upazilas:true,upazila_ids:[]}))}
-$('#all_districts').on('change',function(){const on=this.checked; $('#district_ids').prop('disabled',on); if(on) $('#district_ids').val(null).trigger('change');});
+$('#all_districts').on('change',function(){
+ const on=this.checked;
+ if(on) $('#district_ids').val($('#district_ids option').map(function(){return this.value;}).get()).trigger('change');
+ $('#district_ids').prop('disabled',on);
+});
 function makeFd(){let fd=new FormData();['name','email','phone','branch_id','role','status','join_date','present_address','parmanent_address','password','password_confirmation'].forEach(k=>fd.append(k,$('#'+k).val()||''));fd.append('areas',JSON.stringify(collectAreas()));fd.append('all_districts',$('#all_districts').is(':checked')?'1':'0');if($('#profile')[0].files[0])fd.append('profile',$('#profile')[0].files[0]);return fd}
 function saveUser(){const id=$('#user_id').val();$('#btnSave').prop('disabled',true);$.ajax({url:id?URL_BASE+'/'+id:URL_STORE,type:'POST',data:makeFd(),processData:false,contentType:false}).done(r=>{Swal.fire('Saved',r.message||'Saved','success');modal.hide();table.ajax.reload(null,false)}).fail(showError).always(()=>$('#btnSave').prop('disabled',false))}
 function editUser(id){$.get(URL_BASE+'/'+id,r=>{clearForm();const d=r.data;$('#user_id').val(d.id);$('#modalTitle').text('Edit User');$('#passHint').text('(leave blank to keep)');['name','email','phone','branch_id','join_date','present_address','parmanent_address'].forEach(k=>$('#'+k).val(d[k]??''));$('#status').val(String(d.status ?? 1)).trigger('change');$('#branch_id').trigger('change');$('#role').val(r.role||'').trigger('change');$('#all_districts').prop('checked',!!r.all_districts).trigger('change');if(!r.all_districts)$('#district_ids').val((r.areas||[]).map(a=>String(a.district_id))).trigger('change');if(d.profile)$('#imgPreview').html(`<img src="{{ asset('') }}${d.profile}" style="height:64px;border-radius:10px">`);modal.show()})}

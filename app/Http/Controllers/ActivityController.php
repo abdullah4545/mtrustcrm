@@ -152,7 +152,7 @@ class ActivityController extends Controller
                 if($row->tour_type==='tour') $html.='<div class="mt-1"><span class="badge bg-primary">Tour</span></div>';
                 return $html;
             })
-            ->addColumn('route_display', fn($row) => \App\Support\ActivityDisplay::route($row,true))
+            ->addColumn('route_display', fn($row) => \App\Support\ActivityDisplay::route($row,true,true))
             ->addColumn('amount_display', function($row) {
                 $format = fn($v) => rtrim(rtrim(number_format((float)$v,2,'.',','),'0'),'.');
                 return '<div class="crm-amount">TA Payable: '.$format($row->ta).'<br>DA Hotel and Others: '.$format($row->da).'<br>Claimed: '.$format($row->claimed_total).'<br><span class="text-danger">Deducted: '.$format($row->deducted_total).'</span><br><strong>Payable: '.$format($row->total).'</strong></div>';

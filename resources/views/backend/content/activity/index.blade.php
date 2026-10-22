@@ -103,13 +103,14 @@
 #activityTable_wrapper::after{content:"";display:block;clear:both}
 #activityTable_wrapper>.row{display:flex;flex-wrap:wrap;margin-top:0}
 #activityTable_wrapper .activity-table-scroll{display:block;clear:both;width:100%;max-width:100%;height:auto!important;max-height:none!important;overflow-x:auto!important;margin:0;border:1px solid #e5e7eb;border-radius:8px}
-#activityTable{width:100%!important;min-width:1480px;margin:0!important;border-collapse:collapse!important;table-layout:auto}
+#activityTable{width:100%!important;min-width:1480px;margin:0!important;border-collapse:collapse!important;table-layout:auto!important}
 #activityTable th{white-space:nowrap;background:#f8fafc;font-size:12px;padding:12px 10px;vertical-align:middle}
 #activityTable td{vertical-align:top;padding:10px;font-size:13px;line-height:1.5;height:auto}
 #activityTable .activity-date{min-width:145px;white-space:nowrap}
 #activityTable .activity-staff{min-width:130px;max-width:180px;white-space:normal;overflow-wrap:anywhere}
 #activityTable .activity-organization{min-width:180px;max-width:240px;white-space:normal;overflow-wrap:anywhere}
-#activityTable .activity-location{min-width:150px;max-width:240px;white-space:normal;overflow-wrap:anywhere}
+#activityTable td.activity-location{min-width:310px!important;max-width:none!important;white-space:nowrap!important;overflow-wrap:normal!important}
+#activityTable td.activity-location .badge{white-space:nowrap!important}
 #activityTable .activity-money{white-space:nowrap;min-width:80px}
 #activityTable .activity-actions-cell{min-width:270px;width:270px}
 #activityTable .activity-actions{display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;align-items:center;gap:6px;min-width:250px;max-width:280px}

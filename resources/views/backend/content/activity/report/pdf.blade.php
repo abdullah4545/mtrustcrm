@@ -188,6 +188,8 @@
         .status-rejected {
             color: #b91c1c;
         }
+    .column-serial{width:4%}.column-date{width:12%}.column-organization_name{width:19%}.column-from_location{width:27%}.column-work_details{width:13%}.column-ta{width:6%}.column-da{width:7%}.column-total{width:7%}.column-remarks{width:5%}
+        .crm-route{line-height:1.7;white-space:normal}.badge{display:inline-block;padding:2px 4px;border-radius:4px;background:#edf3f8;color:#17324d;font-size:8px}.text-muted{color:#66788a}small{font-size:8px}
     </style>
 </head>
 
@@ -332,7 +334,13 @@
                     @endphp
 
                     <td class="{{ implode(' ', $cellClass) }}">
-                        {{ $value }}
+                        @if($column==='organization_name')
+                            {!! \App\Support\ActivityDisplay::organization($activity,true) !!}
+                        @elseif($column==='from_location')
+                            {!! \App\Support\ActivityDisplay::route($activity,true) !!}
+                        @else
+                            {{ $value }}
+                        @endif
                     </td>
 
                 @endforeach

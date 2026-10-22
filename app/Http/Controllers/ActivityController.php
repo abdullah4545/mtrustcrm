@@ -91,7 +91,7 @@ class ActivityController extends Controller
     private function visibleQuery()
     {
         $u = Auth::user();
-        $q = Activity::query()->withCount('billHistories')->with(['creator:id,name','lastEditor:id,name','travels:id,activity_id,tour_type,from_location,to_location']);
+        $q = Activity::query()->withCount('billHistories')->with(['creator:id,name','lastEditor:id,name','travels','expenses']);
         if ($u->can('activity.view_all')) return $q;
         return $q->where('created_by',$u->id);
     }
@@ -120,6 +120,8 @@ class ActivityController extends Controller
         $query = $this->visibleQuery()
             ->latest('activity_at')->latest('id');
         if (Auth::user()->can('activity.view_all') && Auth::user()->can('staff.filter') && $request->filled('created_by')) $query->where('created_by', $request->integer('created_by'));
+        $query->where('status','!=','approved')->where('payment_status','!=','paid');
+        if (!$request->filled('status')) $query->where('status','pending');
         if ($showStatus = Auth::user()->can('activity.status.view')) {
             if ($request->filled('status')) $query->where('status', $request->string('status'));
         }
@@ -129,7 +131,9 @@ class ActivityController extends Controller
             if ($request->filled('from_date')) $query->whereDate('date','>=',$request->date('from_date'));
             if ($request->filled('to_date')) $query->whereDate('date','<=',$request->date('to_date'));
         }
-        return DataTables::of($query)
+        $summaryQuery=clone $query;
+        $summary=['activity_count'=>(clone $summaryQuery)->count(),'total_ta'=>(clone $summaryQuery)->sum('ta'),'total_da'=>(clone $summaryQuery)->sum('da'),'grand_total'=>(clone $summaryQuery)->sum('total')];
+        return DataTables::of($query)->with('summary',$summary)
             ->addIndexColumn()
             ->addColumn('select', fn($row) => '<input type="checkbox" class="activity-check form-check-input" value="'.$row->id.'">')
             ->addColumn('staff_name', fn($row) => e($row->creator?->name ?? '-'))
@@ -145,26 +149,15 @@ class ActivityController extends Controller
                 if (Auth::user()->can('activity.view_all')) {
                     $html .= '<span class="crm-staff-badge"><i class="feather-user" aria-hidden="true"></i> '.e($row->creator?->name ?? '-').'</span>';
                 }
-                if($row->travels->contains('tour_type','tour')) $html.='<div class="mt-1"><span class="badge bg-primary">Tour</span></div>';
+                if($row->tour_type==='tour') $html.='<div class="mt-1"><span class="badge bg-primary">Tour</span></div>';
                 return $html;
             })
-            ->addColumn('route_display', function($row) {
-                $routes = $row->travels->map(fn($travel) => [$travel->from_location, $travel->to_location]);
-                if ($routes->isEmpty()) {
-                    $from = explode(' | ', (string)$row->from_location);
-                    $to = explode(' | ', (string)$row->to_location);
-                    $routes = collect(range(0, max(count($from),count($to))-1))->map(fn($i) => [$from[$i] ?? '', $to[$i] ?? '']);
-                }
-                return '<div class="crm-routes">'.$routes->map(function($pair) {
-                    if (!filled($pair[0]) && !filled($pair[1])) return '';
-                    return '<div class="crm-route"><span class="crm-route-from">'.e($pair[0] ?: '-').'</span><span class="crm-route-arrow" aria-label="to">&#8594;</span><span class="crm-route-to">'.e($pair[1] ?: '-').'</span></div>';
-                })->implode('').'</div>';
-            })
+            ->addColumn('route_display', fn($row) => \App\Support\ActivityDisplay::route($row,true))
             ->addColumn('amount_display', function($row) {
                 $format = fn($v) => rtrim(rtrim(number_format((float)$v,2,'.',','),'0'),'.');
-                return '<div class="crm-amount">TA Payable: '.$format($row->ta).'<br>DA Payable: '.$format($row->da).'<br>Claimed: '.$format($row->claimed_total).'<br><span class="text-danger">Deducted: '.$format($row->deducted_total).'</span><br><strong>Payable: '.$format($row->total).'</strong></div>';
+                return '<div class="crm-amount">TA Payable: '.$format($row->ta).'<br>DA Hotel and Others: '.$format($row->da).'<br>Claimed: '.$format($row->claimed_total).'<br><span class="text-danger">Deducted: '.$format($row->deducted_total).'</span><br><strong>Payable: '.$format($row->total).'</strong></div>';
             })
-            ->addColumn('tour_type', fn($row) => e($row->travels->pluck('tour_type')->map(fn($v)=>$v==='tour'?'Tour':'Local Tour')->unique()->implode(', ') ?: 'Local Tour'))
+            ->addColumn('tour_type', fn($row) => e($row->tour_type==='tour'?'Tour':'Local Tour'))
             ->addColumn('payment_status', function($row){ $map=['unpaid'=>'secondary','waiting_for_payment'=>'warning','paid'=>'success']; $label=['unpaid'=>'Unpaid','waiting_for_payment'=>'Waiting for Payment','paid'=>'Paid']; return '<span class="badge bg-'.($map[$row->payment_status]??'secondary').'">'.e($label[$row->payment_status]??ucfirst($row->payment_status)).'</span>'.($row->paid_at?'<div class="small text-muted mt-1">'.$row->paid_at->timezone('Asia/Dhaka')->format('d M Y, h:i A').'</div>':''); })
             ->addColumn('status', fn($row) => '<span class="badge bg-'.($row->status==='approved'?'success':($row->status==='rejected'?'danger':'secondary')).'">'.e($row->status).'</span>'.($row->status==='rejected' && $row->review_note ? '<div class="small text-danger mt-1">'.e($row->review_note).'</div>':''))
             ->addColumn('edit_history', function($row) {
@@ -179,7 +172,7 @@ class ActivityController extends Controller
                 $user = Auth::user();
                 $locked = $this->isLocked($row);
                 $superAdmin = $this->isSuperAdmin();
-                $canModifyLocked = !$locked || $superAdmin;
+                $canModifyLocked = $row->status!=='rejected' && (!$locked || $superAdmin);
                 $billFrozen=$row->payment_status==='paid'||(int)$row->bill_histories_count>0;
 
                 $html='<div class="activity-actions"><a class="btn btn-sm btn-outline-primary" href="'.route('activities.bill-review',$row->id).'">Bill / History</a>';
@@ -203,7 +196,7 @@ class ActivityController extends Controller
                 // Pending activities can be reviewed by normal approvers. Once reviewed,
                 // only Super Admin may change the approval decision.
                 if ($user->can('activity.approve') && (!$locked || $superAdmin)) {
-                    if ($row->status !== 'approved') {
+                    if ($row->status !== 'approved' && $row->status !== 'rejected') {
                         $html.='<button class="btn btn-sm btn-success btn-review" data-id="'.$row->id.'" data-status="approved">Approve</button>';
                     }
                     if ($row->status !== 'rejected') {
@@ -219,8 +212,26 @@ class ActivityController extends Controller
                     $html.='<span class="badge bg-light text-dark align-self-center"><i class="feather-lock"></i> Locked</span>';
                 }
 
+                if($row->tour_type==='tour') {
+                    $html.='<span class="badge bg-info">'.($row->tour_ended_at?'Ended: '.e($row->tour_ended_at->format('d M Y h:i A')):'Tour running').'</span>';
+                    if(!$row->tour_ended_at && $row->status!=='rejected' && $user->can('activity.tour.manage')) $html.='<form method="POST" action="'.route('activities.tour-end',$row->id).'">'.csrf_field().'<input type="datetime-local" name="tour_ended_at" class="form-control form-control-sm" required min="'.e(($row->activity_at??$row->date)->format('Y-m-d\TH:i')).'"><button class="btn btn-sm btn-outline-info">End Tour</button></form>';
+                }
                 return $html.'</div>';
             })->rawColumns(['created_display','route_display','amount_display','select','organization_contact','payment_status','status','edit_history','action'])->make(true);
+    }
+
+    public function endTour(Request $request,$id)
+    {
+        abort_unless(auth()->user()->can('activity.tour.manage'),403);
+        $data=$request->validate(['tour_ended_at'=>'required|date']);
+        DB::transaction(function()use($id,$data){
+            $a=$this->visibleQuery()->whereKey($id)->lockForUpdate()->firstOrFail();
+            if($a->tour_type!=='tour'||$a->tour_ended_at||$a->status==='rejected') throw ValidationException::withMessages(['tour_ended_at'=>'This tour cannot be ended.']);
+            $end=\Carbon\Carbon::parse($data['tour_ended_at'],'Asia/Dhaka');
+            if($end->lt($a->activity_at??$a->date)||$end->gt(now('Asia/Dhaka'))) throw ValidationException::withMessages(['tour_ended_at'=>'End time must be between tour start and now.']);
+            $a->tour_ended_at=$end;$a->tour_ended_by=auth()->id();$a->save();
+        });
+        return back()->with('message','Tour ended successfully.');
     }
 
     public function quickCreate()
@@ -257,7 +268,7 @@ class ActivityController extends Controller
             'staff_id'=>'nullable|exists:users,id','activity_at'=>'nullable|date','organization_id'=>'nullable|exists:organizations,id','department'=>'nullable|string|max:255',
             'department_id'=>'nullable|exists:departments,id','contact_id'=>'nullable','contact_person'=>'nullable|string|max:255',
             'work_details'=>'required|string','remarks'=>'nullable|string','status'=>'nullable|in:pending,approved,rejected',
-            'travels.*.tour_type'=>'nullable|in:local_tour,tour',
+            'tour_ended_at'=>'nullable|date','tour_type'=>'nullable|in:local_tour,tour','travels.*.note'=>'nullable|string|max:500',
             'travels'=>'nullable|array','travels.*.id'=>'nullable|integer','travels.*.entry_at'=>'required_with:travels|date_format:Y-m-d\TH:i','travels.*.from_location'=>'required_with:travels|string|max:255','travels.*.to_location'=>'required_with:travels|string|max:255',
             'travels.*.vehicle'=>'nullable|string|max:255','travels.*.distance'=>'required_with:travels|numeric|min:0.01','travels.*.cost'=>'nullable|numeric|min:0',
             'travels.*.existing_image_url'=>'nullable|string|max:500','travels.*._edited'=>'nullable|boolean','travels.*.image'=>'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
@@ -303,6 +314,7 @@ class ActivityController extends Controller
     private function saveActivity(Activity $activity, Request $request): Activity
     {
         if ($activity->exists) {
+            if($activity->status==='rejected') throw ValidationException::withMessages(['activity'=>'Rejected activities cannot be changed.']);
             $this->ensureEditable($activity);
             if($activity->payment_status==='paid' || Bills::hasHistory($activity)) throw ValidationException::withMessages(['activity'=>'Reviewed or paid bills cannot be rewritten. Use Bill / History to correct a deduction.']);
         }
@@ -338,6 +350,7 @@ class ActivityController extends Controller
                 : ($activity->activity_at ?? $activity->created_at ?? $now)->copy()->timezone('Asia/Dhaka');
         }
 
+        if($activity->exists && $activity->tour_type==='tour' && !$activityAt->equalTo($activity->activity_at??$activity->date)) throw ValidationException::withMessages(['activity_at'=>'Tour start time cannot be changed once started.']);
         $oldTravelImages = $activity->exists ? $activity->travels->pluck('image_url')->filter()->values()->all() : [];
         $oldExpenseImages = $activity->exists ? $activity->expenses->pluck('image_url')->filter()->values()->all() : [];
         $wasExisting = $activity->exists;
@@ -346,10 +359,26 @@ class ActivityController extends Controller
         return DB::transaction(function () use ($activity,$data,$org,$owner,$u,$travels,$expenses,$ta,$da,$now,$activityAt,$oldTravelImages,$oldExpenseImages,$wasExisting,$claimOwnerId) {
             if($activity->exists){
                 $locked=Activity::whereKey($activity->id)->lockForUpdate()->firstOrFail();
+                if($locked->status==='rejected') throw ValidationException::withMessages(['activity'=>'Rejected activities cannot be changed.']);
                 $this->ensureEditable($locked);
+                $activity->tour_type=$locked->tour_type;
+                $activity->tour_ended_at=$locked->tour_ended_at;
+                $activity->tour_ended_by=$locked->tour_ended_by;
                 if($locked->payment_status==='paid'||Bills::hasHistory($locked)) throw ValidationException::withMessages(['activity'=>'This bill was reviewed while you were editing. Reload and use Bill / History.']);
             }
 
+            $tourType=$data['tour_type']??($activity->tour_type??'local_tour');
+            if($tourType!==($activity->tour_type??'local_tour')) abort_unless($u->can('activity.tour.manage'),403,'Tour permission is required.');
+            if($activity->exists && $activity->tour_type==='tour' && $tourType!=='tour') throw ValidationException::withMessages(['tour_type'=>'A started tour cannot be removed.']);
+            if($tourType==='tour' && $activityAt->gt($now)) throw ValidationException::withMessages(['activity_at'=>'Tour start cannot be in the future.']);
+            $activity->tour_type=$tourType;
+            if(!empty($data['tour_ended_at'])) {
+                abort_unless($u->can('activity.tour.manage'),403,'Tour permission is required.');
+                $end=\Carbon\Carbon::parse($data['tour_ended_at'],'Asia/Dhaka');
+                if($tourType!=='tour'||$end->lt($activityAt)||$end->gt($now)) throw ValidationException::withMessages(['tour_ended_at'=>'Tour end must be between activity start and now.']);
+                if($activity->tour_ended_at && !$end->equalTo($activity->tour_ended_at)) throw ValidationException::withMessages(['tour_ended_at'=>'Tour has already ended.']);
+                $activity->tour_ended_at=$end;$activity->tour_ended_by=$u->id;
+            }
             $activity->fill([
                 'organization_id'=>$org?->id,'organization_name'=>$org?->name,'department_id'=>$data['department_id']??null,'department'=>!empty($data['department_id']) ? \App\Models\Department::find($data['department_id'])?->title : null,
                 'contact_id'=>null,'contact_person'=>$data['contact_person']??null,'work_details'=>$data['work_details']??null,
@@ -395,7 +424,7 @@ class ActivityController extends Controller
                 }
 
                 $values = [
-                    'tour_type'=>$r['tour_type']??'local_tour','from_location'=>$r['from_location']??null,'to_location'=>$r['to_location']??null,'vehicle'=>$r['vehicle']??null,
+                    'note'=>$r['note']??null,'tour_type'=>$activity->tour_type,'from_location'=>$r['from_location']??null,'to_location'=>$r['to_location']??null,'vehicle'=>$r['vehicle']??null,
                     'distance'=>(float)($r['distance']??0),'cost'=>(float)($r['cost']??0),'entry_at'=>
                         \Carbon\Carbon::parse($r['entry_at'],'Asia/Dhaka'),'image_url'=>$imagePath,
                 ];
@@ -409,7 +438,7 @@ class ActivityController extends Controller
                         throw ValidationException::withMessages(['travels'=>'This TA entry has already been edited once. You cannot edit it again.']);
                     }
                     $travel->fill($values);
-                    $changed = $travel->isDirty(['from_location','to_location','vehicle','distance','cost','entry_at','image_url']) || $newImageUploaded;
+                    $changed = $travel->isDirty(['note','from_location','to_location','vehicle','distance','cost','entry_at','image_url']) || $newImageUploaded;
                     if ($attemptedEdit || $changed) {
                         if (!$this->canMultipleEdit() && (int)$travel->edit_count >= 1) {
                             throw ValidationException::withMessages(['travels'=>'This TA entry has already been edited once. You cannot edit it again.']);
@@ -493,16 +522,29 @@ class ActivityController extends Controller
         });
     }
 
+    private function bulkQuery(string $source)
+    {
+        if($source!=='report') return $this->visibleQuery();
+        $q=Activity::query();
+        if(!auth()->user()->can('report.view_all')) $q->where('created_by',auth()->id())->where('branch_id',auth()->user()->branch_id);
+        return $q;
+    }
+
     public function bulkAction(Request $request)
     {
         $data = $request->validate([
+            'source'=>'nullable|in:activity,report',
             'ids' => 'required|array|min:1',
             'ids.*' => 'integer',
             'action' => 'required|in:approve,reject,unpaid,waiting_for_payment,paid',
             'review_note' => 'required_if:action,reject|nullable|string|max:2000',
         ]);
 
-        $activities = $this->visibleQuery()->whereIn('id', $data['ids'])->get();
+        $source=$data['source']??'activity';
+        if($source==='report') {
+            abort_unless(auth()->user()->can('report.activity.view') && (auth()->user()->can('report.view_all')||auth()->user()->can('report.view_branch')||auth()->user()->can('report.view_self')),403);
+        }
+        $activities = $this->bulkQuery($source)->whereIn('id', $data['ids'])->get();
         if ($activities->count() !== count(array_unique($data['ids']))) {
             abort(403, 'One or more activities are not accessible.');
         }
@@ -516,11 +558,11 @@ class ActivityController extends Controller
         $skipped = 0;
         $skipReasons = [];
 
-        DB::transaction(function () use ($activities, $action, $user, $data, &$updated, &$skipped, &$skipReasons) {
+        DB::transaction(function () use ($activities, $source, $action, $user, $data, &$updated, &$skipped, &$skipReasons) {
             foreach ($activities->sortBy('id') as $listed) {
-                $a=$this->visibleQuery()->whereKey($listed->id)->lockForUpdate()->firstOrFail();
+                $a=$this->bulkQuery($source)->whereKey($listed->id)->lockForUpdate()->firstOrFail();
                 if (in_array($action,['approve','reject'],true)) {
-                    if($a->payment_status==='paid' || ($this->isLocked($a)&&!$this->isSuperAdmin())){ $skipped++; $skipReasons[]="Activity #{$a->id}: paid or locked";continue; }
+                    if($a->status==='rejected' || $a->payment_status==='paid' || ($this->isLocked($a)&&!$this->isSuperAdmin())){ $skipped++; $skipReasons[]="Activity #{$a->id}: paid or locked";continue; }
                     Bills::activityDecision($a,$action==='approve'?'approved':'rejected',$data['review_note']??'');
                 } else {
                     // Global safety rule: a rejected activity can NEVER enter payment processing.
@@ -531,7 +573,7 @@ class ActivityController extends Controller
                     }
                     if(in_array($action,['waiting_for_payment','paid'],true) && (float)$a->total<=0){$skipped++;$skipReasons[]="Activity #{$a->id}: no payable amount";continue;}
                     if ($action === 'waiting_for_payment' && $a->payment_status !== 'unpaid') { $skipped++; continue; }
-                    if ($action === 'paid' && $a->payment_status !== 'waiting_for_payment') { $skipped++; continue; }
+                    if ($action === 'paid' && $a->payment_status === 'paid') { $skipped++; continue; }
                     if ($action === 'unpaid' && $a->payment_status === 'paid') { $skipped++; continue; }
 
                     $a->payment_status = $action === 'waiting_for_payment' ? 'waiting_for_payment' : $action;

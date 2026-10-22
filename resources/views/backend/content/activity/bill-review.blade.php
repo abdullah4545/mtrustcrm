@@ -8,6 +8,10 @@
 <div class="card"><div class="card-body">
 <p><strong>{{ $activity->creator?->name }}</strong> · {{ ($activity->activity_at ?? $activity->date)?->timezone('Asia/Dhaka')->format('d M Y, h:i A') }} · {{ ucfirst($activity->status) }} · {{ ucwords(str_replace('_',' ',$activity->payment_status)) }}</p>
 @if($activity->review_note)<div class="alert {{ $activity->status==='rejected'?'alert-danger':'alert-info' }}"><strong>Activity review reason:</strong> {{ $activity->review_note }}</div>@endif
+@if($activity->tour_type==='tour')
+<div class="alert alert-info"><strong>Tour</strong> · Started: {{ ($activity->activity_at??$activity->date)->format('d M Y h:i A') }} · {{ $activity->tour_ended_at ? 'Ended: '.$activity->tour_ended_at->format('d M Y h:i A') : 'Running' }}
+@if(!$activity->tour_ended_at && $activity->status!=='rejected' && auth()->user()->can('activity.tour.manage'))<form method="POST" action="{{ route('activities.tour-end',$activity->id) }}" class="d-flex flex-wrap gap-2 mt-2">@csrf<input type="datetime-local" name="tour_ended_at" required min="{{ ($activity->activity_at??$activity->date)->format('Y-m-d\TH:i') }}" class="form-control" style="max-width:260px"><button class="btn btn-info">End Tour</button></form>@endif</div>
+@endif
 <p>{{ $activity->organization_name ?: 'No organization' }} @if($activity->contact_person) · {{ $activity->contact_person }} @endif</p><p>{{ $activity->work_details }}</p>
 <div class="table-responsive"><table class="table table-bordered"><thead><tr><th>Bill</th><th>Submitted</th><th>Deducted</th><th>Payable</th></tr></thead><tbody>
 <tr><td>TA</td><td>{{ number_format($activity->claimed_ta,2) }}</td><td>{{ number_format($activity->claimed_ta-$activity->ta,2) }}</td><td>{{ number_format($activity->ta,2) }}</td></tr>
@@ -26,18 +30,21 @@ $payable=$activity->status==='rejected'?0:max(0,(float)$claimed-(float)$entry->d
 @endphp
 <div class="border rounded p-3 mb-3">
 <div class="d-flex flex-wrap justify-content-between gap-2"><strong>{{ strtoupper($type) }} #{{ $entry->id }}: {{ $type==='ta'? $entry->from_location.' → '.$entry->to_location : $entry->expense_type }}</strong><span class="badge bg-secondary">{{ ucfirst($entry->bill_status) }}</span></div>
-@if($type==='ta' && $entry->tour_type==='tour')<span class="badge bg-primary mt-2">Tour</span>@endif
+@if($activity->tour_type==='tour')<span class="badge bg-primary mt-2">Tour</span>@endif
 <p class="small text-muted mt-2 mb-1">{{ $entry->entry_at?->timezone('Asia/Dhaka')->format('d M Y, h:i A') }}</p>
+@if($type==='ta')<p>Vehicle: {{ $entry->vehicle ?: '-' }} · Distance: {{ $entry->distance }} km</p>@endif
+@if($entry->note)<p><strong>Note:</strong> {{ $entry->note }}</p>@endif
+@if($entry->bill_status==='rejected')<p class="text-danger small">Permanently rejected. This entry cannot be restored or approved.</p>@endif
 <p class="mt-2 mb-1">Submitted: <strong>{{ number_format($claimed,2) }}</strong> · Entry deduction: <strong>{{ number_format($entry->deduction_amount,2) }}</strong> · Payable: <strong>{{ number_format($payable,2) }}</strong> TK</p>
 @if($entry->deduction_reason)<p class="mb-1"><strong>Reason:</strong> {{ $entry->deduction_reason }}</p>@endif
 @if($entry->bill_reviewed_at)<p class="small text-muted">Reviewed by {{ $entry->billReviewer?->name ?? 'Former user' }} · {{ $entry->bill_reviewed_at->timezone('Asia/Dhaka')->format('d M Y, h:i A') }}</p>@endif
-@if($entry->image_url)<a href="{{ \Illuminate\Support\Str::startsWith($entry->image_url,['https://','http://']) ? $entry->image_url : asset($entry->image_url) }}" target="_blank" rel="noopener">View submitted bill</a>@endif
-@if(auth()->user()->can('activity.approve') && $activity->payment_status!=='paid' && $activity->status!=='rejected')
+@if($entry->image_url)<a href="{{ \Illuminate\Support\Str::startsWith($entry->image_url,['https://','http://']) ? $entry->image_url : asset($entry->image_url) }}" class="bill-image">View submitted bill</a>@endif
+@if(auth()->user()->can('activity.approve') && $activity->payment_status!=='paid' && $activity->status!=='rejected' && $entry->bill_status!=='rejected')
 <details class="mt-2"><summary class="btn btn-sm btn-outline-primary">Review / Adjust this entry</summary>
-<form method="POST" action="{{ route('activities.bill-review.update',$activity->id) }}" class="mt-3 bill-entry-form">@csrf
+<form method="POST" action="{{ route('activities.bill-review.update',$activity->id) }}" class="mt-3 bill-entry-form" data-deducted="{{ $entry->deduction_amount }}" data-payable="{{ $payable }}">@csrf
 <input type="hidden" name="entry_type" value="{{ $type }}"><input type="hidden" name="entry_id" value="{{ $entry->id }}"><input type="hidden" name="version" value="{{ \App\Services\ActivityBillReview::version($entry) }}">
-<div class="row g-2"><div class="col-md-4"><label class="form-label">Decision</label><select name="decision" class="form-select bill-decision"><option value="deduct">Deduct an amount</option><option value="approve">Approve / remove deduction</option><option value="reject">Reject whole entry</option></select></div>
-<div class="col-md-4"><label class="form-label">Deduction (TK)</label><input name="deduction_amount" type="number" min="0.01" max="{{ $claimed }}" step="0.01" class="form-control bill-deduction" value="{{ $entry->deduction_amount>0?$entry->deduction_amount:'' }}" required></div>
+<div class="row g-2"><div class="col-md-4"><label class="form-label">Decision</label><select name="decision" class="form-select bill-decision"><option value="deduct" @disabled($payable<=0)>Deduct an amount</option><option value="add" @disabled($entry->deduction_amount<=0)>Add back deducted amount</option><option value="reject">Reject whole entry</option></select></div>
+<div class="col-md-4"><label class="form-label">Amount to deduct / add back (TK)</label><input name="deduction_amount" type="number" min="0.01" max="{{ $payable }}" step="0.01" class="form-control bill-deduction" value="" required></div>
 <div class="col-12"><label class="form-label">Reason *</label><textarea name="reason" required maxlength="2000" rows="2" class="form-control" placeholder="Explain this entry's deduction, rejection or correction"></textarea></div>
 <div class="col-12"><button class="btn btn-primary">Save review</button></div></div>
 </form></details>
@@ -46,13 +53,23 @@ $payable=$activity->status==='rejected'?0:max(0,(float)$claimed-(float)$entry->d
 @empty<p class="text-muted">No individual {{ strtoupper($type) }} entries. Legacy aggregate bills remain visible in the summary.</p>@endforelse
 </div></div>
 @endforeach
-<div class="card"><div class="card-header"><h6>Review History</h6></div><div class="card-body table-responsive"><table class="table table-bordered"><thead><tr><th>When / Who</th><th>Entry</th><th>Claim</th><th>Deduction</th><th>Status</th><th>Reason</th></tr></thead><tbody>
-@forelse($history as $log)<tr><td>{{ \Carbon\Carbon::parse($log->created_at)->format('d M Y, h:i A') }}<br>{{ $log->reviewer_name }}</td><td>{{ strtoupper($log->entry_type) }} #{{ $log->entry_id }}<br>{{ $log->entry_label }}</td><td>{{ number_format($log->claimed_amount,2) }}</td><td>{{ number_format($log->old_deduction,2) }} → {{ number_format($log->new_deduction,2) }}</td><td>{{ ucfirst($log->old_status) }} → {{ ucfirst($log->new_status) }}</td><td>{{ $log->reason }}</td></tr>@empty<tr><td colspan="6">No reviews yet.</td></tr>@endforelse
+<div class="card"><div class="card-header"><h6>Review History</h6></div><div class="card-body table-responsive"><table class="table table-bordered"><thead><tr><th>When / Who</th><th>Entry</th><th>Claim</th><th>Adjustment / Deduction balance</th><th>Status</th><th>Reason</th></tr></thead><tbody>
+@forelse($history as $log)<tr><td>{{ \Carbon\Carbon::parse($log->created_at)->format('d M Y, h:i A') }}<br>{{ $log->reviewer_name }}</td><td>{{ strtoupper($log->entry_type) }} #{{ $log->entry_id }}<br>{{ $log->entry_label }}
+@if($log->entry_snapshot)
+@php $snapshot=json_decode($log->entry_snapshot,true)?:[]; @endphp
+<details><summary>Full entry details</summary><div class="small">Date &amp; time: {{ $snapshot['entry_at']??'-' }}<br>
+@if($log->entry_type==='ta')From: {{ $snapshot['from_location']??'-' }} → To: {{ $snapshot['to_location']??'-' }}<br>Vehicle: {{ $snapshot['vehicle']??'-' }} · Distance: {{ $snapshot['distance']??0 }} km<br>@else Type: {{ $snapshot['expense_type']??'-' }}<br>@endif
+Note: {{ $snapshot['note']??'-' }}<br>
+@if(!empty($snapshot['image_url']))<a class="bill-image" href="{{ \Illuminate\Support\Str::startsWith($snapshot['image_url'],['https://','http://'])?$snapshot['image_url']:asset($snapshot['image_url']) }}">View bill image</a>@endif
+</div></details>@endif
+</td><td>{{ number_format($log->claimed_amount,2) }}</td><td><strong>{{ $log->new_status==='rejected' ? 'Rejected' : ($log->new_deduction<$log->old_deduction?'Added back':'Deducted') }} {{ number_format(abs($log->new_deduction-$log->old_deduction),2) }}</strong><br>{{ number_format($log->old_deduction,2) }} → {{ number_format($log->new_deduction,2) }}</td><td>{{ ucfirst($log->old_status) }} → {{ ucfirst($log->new_status) }}</td><td>{{ $log->reason }}</td></tr>@empty<tr><td colspan="6">No reviews yet.</td></tr>@endforelse
 </tbody></table></div></div>
+<div class="modal fade" id="billImageModal" tabindex="-1" aria-label="Submitted bill"><div class="modal-dialog modal-xl modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5>Submitted bill</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body text-center"><img id="billImage" alt="Submitted bill" style="max-width:100%;max-height:75vh"></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button></div></div></div></div>
 </div></div>
 @endsection
 @push('scripts')
 <script>
-document.querySelectorAll('.bill-decision').forEach(select=>select.addEventListener('change',function(){const input=this.closest('form').querySelector('.bill-deduction');input.disabled=this.value!=='deduct';input.required=this.value==='deduct';}));
+document.addEventListener('click',function(event){const link=event.target.closest('.bill-image');if(!link)return;event.preventDefault();document.getElementById('billImage').src=link.href;bootstrap.Modal.getOrCreateInstance(document.getElementById('billImageModal')).show();});
+document.querySelectorAll('.bill-decision').forEach(select=>{select.addEventListener('change',function(){const input=this.closest('form').querySelector('.bill-deduction');input.disabled=this.value==='reject';input.required=this.value!=='reject';const entry=this.closest('form');input.max=this.value==='add'?entry.dataset.deducted:entry.dataset.payable;});select.dispatchEvent(new Event('change'));});
 </script>
 @endpush

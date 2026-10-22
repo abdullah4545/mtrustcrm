@@ -23,17 +23,18 @@ class ActivityBillReviewController extends Controller
         return view('backend.content.activity.bill-review',compact('activity','history'));
     }
     public function update(Request $request,$id){
-        $data=$request->validate(['entry_type'=>'required|in:ta,da','entry_id'=>'required|integer','decision'=>'required|in:approve,deduct,reject',
+        $data=$request->validate(['entry_type'=>'required|in:ta,da','entry_id'=>'required|integer','decision'=>'required|in:add,deduct,reject',
             'deduction_amount'=>'nullable|numeric|min:0|decimal:0,2','reason'=>'required|string|max:2000','version'=>'required|string']);
         if(trim($data['reason'])==='')throw ValidationException::withMessages(['reason'=>'Please enter a reason.']);
         DB::transaction(function()use($data,$id){
             $a=$this->query()->lockForUpdate()->findOrFail($id);
             if($a->payment_status==='paid')throw ValidationException::withMessages(['decision'=>'Paid activities cannot be adjusted.']);
-            if($a->status==='rejected')throw ValidationException::withMessages(['decision'=>'This activity is rejected. Restore its approval first.']);
+            if($a->status==='rejected')throw ValidationException::withMessages(['decision'=>'Rejected activities cannot be adjusted.']);
             $row=($data['entry_type']==='ta'?$a->travels():$a->expenses())->lockForUpdate()->findOrFail($data['entry_id']);
             if(!hash_equals(Bills::version($row),$data['version']))throw ValidationException::withMessages(['version'=>'This entry changed. Reload the page before reviewing it.']);
+            if($row->bill_status==='rejected') throw ValidationException::withMessages(['decision'=>'Rejected entries cannot be restored or approved.']);
             $claimed=$data['entry_type']==='ta'?$row->cost:$row->amount;
-            [$cut,$state]=Bills::deduction($claimed,$data['decision'],$data['deduction_amount']??0);
+            [$cut,$state]=Bills::adjust($claimed,$row->deduction_amount,$row->bill_status,$data['decision'],$data['deduction_amount']??0);
             $label=$data['entry_type']==='ta'?($row->from_location.' → '.$row->to_location):($row->expense_type ?: 'DA');
             Bills::record($a,$data['entry_type'],$row->id,$label,$claimed,$row->deduction_amount,$cut,$row->bill_status,$state,trim($data['reason']));
             $row->deduction_amount=$cut;$row->bill_status=$state;$row->deduction_reason=trim($data['reason']);

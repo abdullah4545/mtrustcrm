@@ -28,12 +28,13 @@ class PrintedActivityPaymentController extends Controller
             foreach (array_chunk($snapshot['ids'], 500) as $ids) {
                 $query = Activity::whereIn('id', $ids);
                 if (!auth()->user()->can('report.view_all')) {
-                    $query->where('branch_id', auth()->user()->branch_id)->where('created_by', auth()->id());
+                    if(auth()->user()->can('report.view_branch')) $query->where('branch_id',auth()->user()->branch_id);
+                    else $query->where('created_by',auth()->id());
                 }
                 foreach ($query->lockForUpdate()->get() as $activity) {
                     $version=hash('sha256',implode('|',[$activity->total,$activity->claimed_total,$activity->deducted_total,$activity->updated_at?->format('Y-m-d H:i:s')]));
                     if(!hash_equals((string)($snapshot['bill_versions'][$activity->id]??''),$version)||(float)$activity->total<=0)continue;
-                    if (strtolower((string)$activity->status) === 'rejected' || $activity->payment_status !== 'waiting_for_payment') continue;
+                    if (strtolower((string)$activity->status) === 'rejected' || $activity->payment_status === 'paid') continue;
                     $activity->payment_status = 'paid';
                     $activity->paid_at = now('Asia/Dhaka');
                     $activity->paid_by = auth()->id();

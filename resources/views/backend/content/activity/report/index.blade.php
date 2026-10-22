@@ -333,7 +333,7 @@
                 <div class="card summary-card">
                     <div class="card-body">
                         <div class="summary-label">
-                            Total TA
+                            TA Payable
                         </div>
 
                         <div
@@ -350,7 +350,7 @@
                 <div class="card summary-card">
                     <div class="card-body">
                         <div class="summary-label">
-                            Total DA
+                            DA Hotel and Others
                         </div>
 
                         <div
@@ -367,7 +367,7 @@
                 <div class="card summary-card">
                     <div class="card-body">
                         <div class="summary-label">
-                            Grand Total
+                            Total Payable
                         </div>
 
                         <div
@@ -812,7 +812,7 @@
             icon: 'question', showCancelButton: true, confirmButtonText: 'Yes, Mark Paid'
         }).then(function(result){
             if (!result.isConfirmed) return;
-            $.post(ACTIVITY_BULK_URL, {ids: ids, action: 'paid'})
+            $.post(ACTIVITY_BULK_URL, {ids: ids, action: 'paid', source:'report'})
                 .done(function(response){ Swal.fire('Done', response.message, 'success'); loadReport(); })
                 .fail(function(xhr){
                     let message = xhr.responseJSON?.message || 'Unable to update payment status.';
@@ -931,18 +931,16 @@
             rows.forEach(function (row) {
                 bodyHtml += '<tr>';
                 if (CAN_MANAGE_PAYMENT) {
-                    const rejected = String(row._status || '').toLowerCase() === 'rejected';
+                    const rejected = row._payment_eligible === false;
                     const disabled = rejected ? 'disabled' : '';
-                    const title = rejected ? 'Rejected activity cannot be paid' : 'Select activity';
+                    const title = rejected ? 'Rejected, paid or zero balance activity cannot be paid' : 'Select activity';
                     bodyHtml += `<td class="text-center"><input type="checkbox" class="report-activity-check" value="${Number(row._id)}" ${disabled} title="${title}"></td>`;
                 }
 
                 columns.forEach(function (column) {
                     bodyHtml += `
                         <td>
-                            ${escapeHtml(
-                                row[column.key] ?? ''
-                            )}
+                            ${['organization_name','from_location'].includes(column.key) && row._html?.[column.key] ? row._html[column.key] : escapeHtml(row[column.key] ?? '')}
                         </td>
                     `;
                 });

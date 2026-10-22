@@ -10,12 +10,14 @@ class ActivityBillReview
     public static function version($row): string {
         return hash('sha256', implode('|',[$row->id,$row->bill_review_version,$row->cost ?? $row->amount,$row->deduction_amount,$row->bill_status,$row->deduction_reason,$row->bill_reviewed_at?->format('Y-m-d H:i:s')]));
     }
-    public static function deduction($claimed,string $decision,$amount): array {
-        $claim=self::cents($claimed);
-        $cut=$decision==='reject'?$claim:($decision==='approve'?0:self::cents($amount));
-        if($cut<0 || $cut>$claim) throw ValidationException::withMessages(['deduction_amount'=>'Deduction must be between zero and the submitted amount.']);
-        if($decision==='deduct' && $cut<=0) throw ValidationException::withMessages(['deduction_amount'=>'Enter an amount greater than zero.']);
-        return [$cut/100,['approve'=>'approved','deduct'=>'deducted','reject'=>'rejected'][$decision]];
+    public static function adjust($claimed,$oldDeduction,string $status,string $decision,$amount): array {
+        if($status==='rejected') throw ValidationException::withMessages(['decision'=>'Rejected entries cannot be restored or approved.']);
+        if(!in_array($decision,['add','deduct','reject'],true)) throw ValidationException::withMessages(['decision'=>'Invalid adjustment.']);
+        $claim=self::cents($claimed);$current=self::cents($oldDeduction);$amount=self::cents($amount);
+        if($decision!=='reject' && $amount<=0) throw ValidationException::withMessages(['deduction_amount'=>'Enter an amount greater than zero.']);
+        $next=$decision==='add'?$current-$amount:($decision==='deduct'?$current+$amount:$claim);
+        if($next<0 || $next>$claim) throw ValidationException::withMessages(['deduction_amount'=>'Amount exceeds the available payable or deducted balance.']);
+        return [$next/100,$decision==='reject'?'rejected':($next>0?'deducted':'approved')];
     }
     public static function hasHistory(Activity $a): bool { return DB::table('activity_bill_histories')->where('activity_id',$a->id)->exists(); }
     // Caller must hold the parent activity lock; ta/da/total are the amounts payable everywhere.
@@ -35,6 +37,7 @@ class ActivityBillReview
     }
     public static function record(Activity $a,string $type,int $entryId,string $label,$claimed,$oldCut,$newCut,string $oldStatus,string $newStatus,string $reason): void {
         DB::table('activity_bill_histories')->insert([
+            'entry_snapshot'=>in_array($type,['ta','da'],true) ? json_encode(($type==='ta'?$a->travels():$a->expenses())->findOrFail($entryId)->toArray(),JSON_UNESCAPED_UNICODE) : null,
             'activity_id'=>$a->id,'entry_type'=>$type,'entry_id'=>$entryId,'entry_label'=>mb_substr($label,0,500),
             'claimed_amount'=>$claimed,'old_deduction'=>$oldCut,'new_deduction'=>$newCut,'old_status'=>$oldStatus,'new_status'=>$newStatus,
             'reason'=>$reason,'reviewed_by'=>auth()->id(),'reviewer_name'=>auth()->user()->name,'created_at'=>now('Asia/Dhaka'),
@@ -44,6 +47,7 @@ class ActivityBillReview
         if ($a->payment_status==='paid') throw ValidationException::withMessages(['status'=>'Paid activities cannot be reviewed or adjusted.']);
         $reason=trim($reason);
         if ($status==='rejected' && $reason==='') throw ValidationException::withMessages(['review_note'=>'A rejection reason is required.']);
+        if($a->status==='rejected') throw ValidationException::withMessages(['status'=>'Rejected activities cannot be approved again.']);
         $old=$a->status;$cut=$a->deducted_total;
         $a->status=$status;$a->review_note=$reason ?: null;$a->reviewed_by=auth()->id();$a->reviewed_at=now('Asia/Dhaka');
         if($status==='rejected'){$a->payment_status='unpaid';$a->paid_at=null;$a->paid_by=null;}

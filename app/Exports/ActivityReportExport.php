@@ -33,7 +33,7 @@ class ActivityReportExport implements
         private readonly array $columnLabels
     ) {
         $this->activities = $this->query()
-            ->with(['creator','travels','expenses'])
+            ->with(['creator','travels','expenses','organization'])
             ->orderBy('date')
             ->orderBy('id')
             ->get();
@@ -222,7 +222,7 @@ class ActivityReportExport implements
     private function query(): Builder
     {
         return Activity::query()
-            ->when(!empty($this->filters['tour_only']), fn (Builder $query) => $query->whereHas('travels', fn (Builder $travel) => $travel->where('tour_type', 'tour')))
+            ->when(!empty($this->filters['tour_only']), fn (Builder $query) => $query->where('tour_type','tour'))
             ->when(
                 !empty($this->filters['from_date']),
                 fn (Builder $query) =>
@@ -283,6 +283,8 @@ class ActivityReportExport implements
     ): mixed {
         return match ($column) {
             'serial' => $serial,
+            'organization_name' => \App\Support\ActivityDisplay::organization($activity),
+            'from_location' => \App\Support\ActivityDisplay::route($activity),
 
             'date' => ($activity->activity_at ?? $activity->created_at ?? $activity->date)
                 ? ($activity->activity_at ?? $activity->created_at ?? $activity->date)
@@ -303,7 +305,7 @@ class ActivityReportExport implements
 
             'status' => ucfirst((string) $activity->status),
             'payment_status' => ucwords(str_replace('_',' ',(string)$activity->payment_status)),
-            'tour_type' => $activity->travels->pluck('tour_type')->map(fn($v)=>$v==='tour'?'Tour':'Local Tour')->unique()->implode(', '),
+            'tour_type' => ($activity->tour_type==='tour'?'Tour':'Local Tour'),
 
             default => $activity->{$column} ?? '',
         };

@@ -29,20 +29,11 @@ class ActivityReportController extends Controller
         'serial'            => 'Sl',
         'date'              => 'Date & Time',
         'organization_name' => 'Name of Organ.',
-        'department'        => 'Depart.',
-        'contact_person'    => 'Cont. Person',
-        'from_location'     => 'From',
-        'to_location'       => 'To',
-        'distance'          => 'Dist',
-        'vehicle'           => 'Vehicles',
+        'from_location'     => 'From → To',
         'work_details'      => 'Vis. Output',
         'ta'                => 'TA Payable',
-        'da'                => 'DA Payable',
-        'total'             => 'Payable',
-        'claimed_total' => 'Submitted',
-        'deducted_total' => 'Deducted',
-        'review_note' => 'Activity Review Reason',
-        'bill_review_reasons' => 'TA / DA Review Reasons',
+        'da'                => 'DA Hotel and Others',
+        'total'             => 'Total Payable',
         'remarks'           => 'Remarks',
         'status'            => 'Status',
         'payment_status'    => 'Payment Status',
@@ -51,26 +42,7 @@ class ActivityReportController extends Controller
     ];
 
     
-    private const DEFAULT_COLUMNS = [
-        'serial',
-        'date',
-        'organization_name',
-        'department',
-        'contact_person',
-        'from_location',
-        'to_location',
-        'distance',
-        'vehicle',
-        'work_details',
-        'ta',
-        'da',
-        'claimed_total',
-        'deducted_total',
-        'total',
-        'review_note',
-        'bill_review_reasons',
-        'remarks',
-    ];
+    private const DEFAULT_COLUMNS = ['serial','date','organization_name','from_location','work_details','ta','da','total','remarks'];
 
     public function index(Request $request)
     {
@@ -108,7 +80,7 @@ class ActivityReportController extends Controller
         );
 
         $activities = $this->reportQuery($validated)
-            ->with(['creator','travels','expenses'])
+            ->with(['creator','travels','expenses','organization'])
             ->orderBy('date')
             ->orderBy('id')
             ->get();
@@ -160,8 +132,8 @@ class ActivityReportController extends Controller
 
         $columns = $this->resolveColumns($validated['columns'] ?? []);
 
-        $activities = $this->reportQuery($validated)
-            ->with(['creator','travels','expenses'])
+        $activities = $this->reportQuery($validated)->where('status','!=','rejected')->where('total','>',0)
+            ->with(['creator','travels','expenses','organization'])
             ->orderBy('date')
             ->orderBy('id')
             ->get();
@@ -207,8 +179,8 @@ class ActivityReportController extends Controller
 
         $columns = $this->resolveColumns($validated['columns'] ?? []);
 
-        $activities = $this->reportQuery($validated)
-            ->with(['creator','travels','expenses'])
+        $activities = $this->reportQuery($validated)->where('status','!=','rejected')->where('total','>',0)
+            ->with(['creator','travels','expenses','organization'])
             ->orderBy('date')
             ->orderBy('id')
             ->get();
@@ -407,14 +379,17 @@ class ActivityReportController extends Controller
     ): array {
         $row = [
             '_id' => $activity->id,
+            '_html' => ['organization_name'=>\App\Support\ActivityDisplay::organization($activity,true),'from_location'=>\App\Support\ActivityDisplay::route($activity,true)],
             '_status' => strtolower((string) $activity->status),
             '_payment_status' => (string) $activity->payment_status,
-            '_payment_eligible' => strtolower((string) $activity->status) !== 'rejected',
+            '_payment_eligible' => $activity->status!=='rejected' && $activity->payment_status!=='paid' && (float)$activity->total>0,
         ];
 
         foreach ($columns as $column) {
             $row[$column] = match ($column) {
                 'serial' => $serial,
+                'organization_name' => \App\Support\ActivityDisplay::organization($activity),
+                'from_location' => \App\Support\ActivityDisplay::route($activity),
 
                 'date' => ($activity->activity_at ?? $activity->created_at ?? $activity->date)
                     ? ($activity->activity_at ?? $activity->created_at ?? $activity->date)
@@ -440,7 +415,7 @@ class ActivityReportController extends Controller
 
                 'status' => ucfirst((string) $activity->status),
                 'payment_status' => ucwords(str_replace('_',' ',(string)$activity->payment_status)),
-                'tour_type' => $activity->travels->pluck('tour_type')->map(fn($v)=>$v==='tour'?'Tour':'Local Tour')->unique()->implode(', '),
+                'tour_type' => $activity->tour_type==='tour'?'Tour':'Local Tour',
 
                 default => $activity->{$column} ?? '',
             };

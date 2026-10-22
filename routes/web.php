@@ -45,6 +45,7 @@ use Illuminate\Http\Request;
 
 
 Route::middleware('auth')->group(function () {
+    Route::post('/activities/{id}/tour-end', [ActivityController::class,'endTour'])->whereNumber('id')->name('activities.tour-end');
     Route::get('/activities/{id}/bill-review', [\App\Http\Controllers\ActivityBillReviewController::class,'show'])->name('activities.bill-review');
     Route::post('/activities/{id}/bill-review', [\App\Http\Controllers\ActivityBillReviewController::class,'update'])->name('activities.bill-review.update');
  

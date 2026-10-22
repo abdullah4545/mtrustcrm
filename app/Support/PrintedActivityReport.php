@@ -8,6 +8,8 @@ class PrintedActivityReport
 {
     public static function view($activities, array $data)
     {
+        $activities=$activities->filter(fn($a)=>$a->status!=='rejected' && (float)$a->total>0)->values();
+        $data['activities']=$activities;$data['totalTa']=$activities->sum('ta');$data['totalDa']=$activities->sum('da');$data['grandTotal']=$activities->sum('total');
         $token = (string) Str::uuid();
         // Snapshot the complete printed dataset, never IDs supplied by the browser.
         Cache::put('printed-activity:'.$token, [

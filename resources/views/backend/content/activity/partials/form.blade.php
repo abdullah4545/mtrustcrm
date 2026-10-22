@@ -28,7 +28,7 @@
             'last_edited_at' => data_get($row, 'last_edited_at')
                 ? \Illuminate\Support\Carbon::parse(data_get($row, 'last_edited_at'))->timezone('Asia/Dhaka')->format('d M Y, h:i A')
                 : '',
-            'tour_type' => (string) data_get($row, 'tour_type', 'local_tour'),
+            'note' => (string) data_get($row, 'note', ''),
             'from_location' => (string) data_get($row, 'from_location', ''),
             'to_location' => (string) data_get($row, 'to_location', ''),
             'vehicle' => (string) data_get($row, 'vehicle', ''),
@@ -127,6 +127,10 @@
 <div class="alert alert-info d-flex flex-wrap gap-2 align-items-center">Original claims and deduction reasons are available in <a href="{{ route('activities.bill-review',$activity->id) }}" class="btn btn-sm btn-outline-primary">Bill / History</a></div>
 @endif
 <form id="activityForm">
+<div class="row mb-3"><div class="col-md-4"><label>Tour Type</label><select id="activity_tour_type" class="form-control" @disabled(!auth()->user()->can('activity.tour.manage') || ($editing && $activity->tour_type==='tour'))><option value="local_tour">Local Tour</option><option value="tour" @selected($editing && $activity->tour_type==='tour')>Tour — start with activity date &amp; time</option></select>
+@if($editing && $activity->tour_type==='tour')<small>Started: {{ ($activity->activity_at??$activity->date)->format('d M Y h:i A') }} · {{ $activity->tour_ended_at ? 'Ended: '.$activity->tour_ended_at->format('d M Y h:i A') : 'Running' }}</small>@endif</div>
+@can('activity.tour.manage')<div class="col-md-4"><label>Tour End Date &amp; Time (optional)</label><input id="tour_ended_at" type="datetime-local" class="form-control" value="{{ $editing && $activity->tour_ended_at ? $activity->tour_ended_at->format('Y-m-d\TH:i') : '' }}" @disabled($editing && $activity->tour_ended_at)><small class="text-muted">Leave empty while the tour is running.</small></div>@endcan
+</div>
 <div class="row g-3">
     <div class="col-6 col-md-2"><label>Activity Date</label><input type="date" id="activity_date" class="form-control" value="{{ $activityTime?->timezone('Asia/Dhaka')->format('Y-m-d') }}" @disabled($editing && !auth()->user()->hasPermissionTo('activity.view_all')) required></div>
     <div class="col-6 col-md-2"><label>Activity Time</label><input type="time" id="activity_time" class="form-control" value="{{ ($activityTime ?? now('Asia/Dhaka'))->timezone('Asia/Dhaka')->format('H:i') }}" @disabled($editing && !auth()->user()->hasPermissionTo('activity.view_all')) required></div>
@@ -170,7 +174,7 @@
     <div class="col-12"><label>Visit Output *</label><textarea id="work_details" class="form-control" rows="4" required>{{ $editing?$activity->work_details:'' }}</textarea></div>
     <div class="col-12"><label>Remarks</label><textarea id="remarks" class="form-control" rows="3">{{ $editing?$activity->remarks:'' }}</textarea></div>
 
-    <div class="col-12"><div class="summary-box row g-2 text-center"><div class="col-4"><small>Total TA</small><h5 class="mb-0" id="taText">0.00</h5></div><div class="col-4"><small>Total DA</small><h5 class="mb-0" id="daText">0.00</h5></div><div class="col-4"><small>Grand Total</small><h5 class="mb-0" id="totalText">0.00</h5></div></div></div>
+    <div class="col-12"><div class="summary-box row g-2 text-center"><div class="col-4"><small>TA Payable</small><h5 class="mb-0" id="taText">0.00</h5></div><div class="col-4"><small>DA Hotel and Others</small><h5 class="mb-0" id="daText">0.00</h5></div><div class="col-4"><small>Total Payable</small><h5 class="mb-0" id="totalText">0.00</h5></div></div></div>
     <div class="col-12 text-end"><button type="button" class="btn btn-primary activity-save" id="btnSave">{{ $editing?'Update Activity':'Save Activity' }}</button></div>
 </div>
 </form>
@@ -185,7 +189,7 @@
                 <div class="row g-3">
                     <div class="col-6"><label>TA Date *</label><input type="date" id="travel_date" class="form-control" required></div>
                     <div class="col-6"><label>TA Time *</label><input type="time" id="travel_time" class="form-control" required></div>
-                    <div class="col-12"><label>Tour Type</label><select id="travel_tour_type" class="form-control"><option value="local_tour">Local Tour</option><option value="tour">Tour</option></select></div>
+                    <div class="col-12"><label>Note</label><input id="travel_note" class="form-control" maxlength="500" placeholder="Optional TA note"></div>
                     <div class="col-12"><label>From *</label><input id="travel_from" class="form-control" required placeholder="From location"></div>
                     <div class="col-12"><label>To *</label><input id="travel_to" class="form-control" required placeholder="To location"></div>
                     <div class="col-12 col-sm-6"><label>Vehicle</label><select id="travel_vehicle" class="form-control"><option value="">Select Vehicle</option></select></div>
@@ -264,7 +268,7 @@ function renderTravels(){
             <div class="activity-list-main">
                 <div class="activity-list-title">${esc(r.from_location || '—')} <i class="feather-arrow-right mx-1"></i> ${esc(r.to_location || '—')}</div>
                 <div class="activity-list-meta">
-                    <span><i class="feather-tag me-1"></i>${r.tour_type==='tour'?'Tour':'Local Tour'}</span><span><i class="feather-truck me-1"></i>${esc(r.vehicle || 'No vehicle')}</span>
+                    ${r.note ? `<span><i class="feather-file-text me-1"></i>${esc(r.note)}</span>` : ''}<span><i class="feather-truck me-1"></i>${esc(r.vehicle || 'No vehicle')}</span>
                     <span><i class="feather-map-pin me-1"></i>${money(r.distance)} KM</span>
                     <span><i class="feather-calendar me-1"></i>${esc(displayEntry(r.entry_at))}</span>
                 </div>
@@ -314,13 +318,13 @@ function fillVehicleOptions(selected=''){
 
 function resetTravelModal(){
     $('#travelEditIndex').val(''); $('#travelModalTitle').text('Add Travel');
-    $('#travel_from,#travel_to').val(''); $('#travel_tour_type').val('local_tour'); const np=nowParts(); $('#travel_date').val(np.date); $('#travel_time').val(''); $('#travel_distance,#travel_cost').val(0); $('#travel_image').val(''); $('#travel_image_hint').text('JPG, PNG or WEBP - max 5 MB.'); $('#travel_current_image').empty(); fillVehicleOptions('');
+    $('#travel_from,#travel_to').val(''); $('#travel_note').val(''); const np=nowParts(); $('#travel_date').val(np.date); $('#travel_time').val(''); $('#travel_distance,#travel_cost').val(0); $('#travel_image').val(''); $('#travel_image_hint').text('JPG, PNG or WEBP - max 5 MB.'); $('#travel_current_image').empty(); fillVehicleOptions('');
 }
 function openTravelEdit(index){
     const r=travels[index]; if(!r) return;
     if(r.id && !CAN_MULTIPLE_TADA_EDIT && Number(r.edit_count||0) >= 1){ Swal.fire('Edit Locked','This TA has already been edited once.','info'); return; }
     $('#travelEditIndex').val(index); $('#travelModalTitle').text('Edit Travel');
-    const ep=entryParts(r.entry_at); $('#travel_date').val(ep.date); $('#travel_time').val(ep.time); $('#travel_tour_type').val(r.tour_type||'local_tour'); $('#travel_from').val(r.from_location); $('#travel_to').val(r.to_location); fillVehicleOptions(r.vehicle); $('#travel_distance').val(r.distance); $('#travel_cost').val(r.cost); $('#travel_image').val('');
+    const ep=entryParts(r.entry_at); $('#travel_date').val(ep.date); $('#travel_time').val(ep.time); $('#travel_note').val(r.note||''); $('#travel_from').val(r.from_location); $('#travel_to').val(r.to_location); fillVehicleOptions(r.vehicle); $('#travel_distance').val(r.distance); $('#travel_cost').val(r.cost); $('#travel_image').val('');
     $('#travel_image_hint').text((r.image_file?.name || (r.image_url ? 'Current image attached. Choose a file only to replace it.' : 'JPG, PNG or WEBP - max 5 MB.')));
     const travelImg = r.image_preview_url || r.image_view_url || '';
     $('#travel_current_image').html(travelImg ? `<a href="${esc(travelImg)}" data-crm-image="true" class="d-inline-flex align-items-center gap-2"><img src="${esc(travelImg)}" alt="TA attachment" style="width:72px;height:72px;object-fit:cover;border:1px solid #ddd;border-radius:8px"><span>Open current image</span></a>` : '');
@@ -416,7 +420,7 @@ $('#saveTravelRow').on('click',function(){
     const idx=$('#travelEditIndex').val();
     const oldRow = idx==='' ? {} : (travels[parseInt(idx,10)] || {});
     const imageFile = document.getElementById('travel_image').files[0] || oldRow.image_file || null;
-    const row={id:oldRow.id||null,edit_count:(oldRow.id && idx!=='' ? Number(oldRow.edit_count||0)+1 : Number(oldRow.edit_count||0)),_edited:(oldRow.id && idx!=='' ? true : !!oldRow._edited),last_edited_by_name:oldRow.last_edited_by_name||'',last_edited_at:oldRow.last_edited_at||'',entry_at:travelDate+'T'+travelTime,tour_type:$('#travel_tour_type').val()||'local_tour',from_location:from,to_location:to,vehicle:$('#travel_vehicle').val()||'',distance:parseFloat($('#travel_distance').val())||0,cost:cost,image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
+    const row={id:oldRow.id||null,edit_count:(oldRow.id && idx!=='' ? Number(oldRow.edit_count||0)+1 : Number(oldRow.edit_count||0)),_edited:(oldRow.id && idx!=='' ? true : !!oldRow._edited),last_edited_by_name:oldRow.last_edited_by_name||'',last_edited_at:oldRow.last_edited_at||'',entry_at:travelDate+'T'+travelTime,note:$.trim($('#travel_note').val()),from_location:from,to_location:to,vehicle:$('#travel_vehicle').val()||'',distance:parseFloat($('#travel_distance').val())||0,cost:cost,image_url:oldRow.image_url||'',image_view_url:oldRow.image_view_url||'',image_file:imageFile,image_preview_url:imageFile ? (oldRow.image_file===imageFile && oldRow.image_preview_url ? oldRow.image_preview_url : URL.createObjectURL(imageFile)) : ''};
     if(idx==='') travels.push(row); else travels[parseInt(idx,10)]=row;
     renderTravels(); travelModal.hide();
 });
@@ -464,6 +468,8 @@ $('#btnSave').on('click',function(){
     if(!$.trim($('#work_details').val())){ Swal.fire('Error','Visit Output is required','error'); return; }
     if(!$('#activity_date').val() || !$('#activity_time').val()){ Swal.fire('Required','Please select activity date and time.','warning'); return; }
     const fd=new FormData();
+    if($('#tour_ended_at').val() && !$('#tour_ended_at').prop('disabled')) fd.append('tour_ended_at',$('#tour_ended_at').val());
+    fd.append('tour_type',$('#activity_tour_type').val()||'local_tour');
     fd.append('activity_at',$('#activity_date').val()+'T'+$('#activity_time').val());
     if(CAN_MANAGE_ENTRY){
         fd.append('staff_id',$('#staff_id').val()||'');
@@ -480,7 +486,7 @@ $('#btnSave').on('click',function(){
         if(r.id) fd.append(`travels[${i}][id]`,r.id);
         if(r.id && r._edited) fd.append(`travels[${i}][_edited]`,'1');
         fd.append(`travels[${i}][entry_at]`,r.entry_at||'');
-        fd.append(`travels[${i}][tour_type]`,r.tour_type||'local_tour');
+        fd.append(`travels[${i}][note]`,r.note||'');
         fd.append(`travels[${i}][from_location]`,r.from_location||'');
         fd.append(`travels[${i}][to_location]`,r.to_location||'');
         fd.append(`travels[${i}][vehicle]`,r.vehicle||'');

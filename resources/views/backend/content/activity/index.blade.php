@@ -62,14 +62,12 @@
                     <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label">Status</label>
                         <select id="f_status" class="form-control">
-                            <option value="">All Status</option>
                             <option value="pending" @selected($af('f_status') === 'pending')>Pending</option>
-                            <option value="approved" @selected($af('f_status') === 'approved')>Approved</option>
                             <option value="rejected" @selected($af('f_status') === 'rejected')>Rejected</option>
                         </select>
                     </div>
                     @endif
-                    <div class="col-12 col-sm-6 col-lg-3"><label class="form-label">Payment Status</label><select id="f_payment_status" class="form-control"><option value="">All Payment Status</option><option value="unpaid" @selected($af('f_payment_status') === 'unpaid')>Unpaid</option><option value="waiting_for_payment" @selected($af('f_payment_status') === 'waiting_for_payment')>Waiting for Payment</option><option value="paid" @selected($af('f_payment_status') === 'paid')>Paid</option></select></div>
+                    <div class="col-12 col-sm-6 col-lg-3"><label class="form-label">Payment Status</label><select id="f_payment_status" class="form-control"><option value="">All Payment Status</option><option value="unpaid" @selected($af('f_payment_status') === 'unpaid')>Unpaid</option><option value="waiting_for_payment" @selected($af('f_payment_status') === 'waiting_for_payment')>Waiting for Payment</option></select></div>
                     <div class="col-12 col-sm-6 col-lg-3 d-flex align-items-end">
                         <button type="button" id="f_date_reset" class="btn btn-light w-100">Reset Filter</button>
                     </div>
@@ -80,6 +78,7 @@
                     </div>
                 </div>
 
+                <div id="activitySummary" class="alert alert-light border d-flex flex-wrap gap-4 mb-3"><strong>Activities: <span data-summary="activity_count">0</span></strong><span>TA Payable: <b data-summary="total_ta">0</b></span><span>DA Hotel and Others: <b data-summary="total_da">0</b></span><strong>Total Payable: <span data-summary="grand_total">0</span></strong></div>
                 @if($canBulkReview || $canManagePayment)<div class="d-flex flex-wrap gap-2 mb-3 align-items-center activity-bulk-actions"><strong>Bulk Action:</strong>@if($canBulkReview)<button class="btn btn-sm btn-success bulk-action" data-action="approve">Approve</button><button class="btn btn-sm btn-danger bulk-action" data-action="reject">Reject</button>@endif @if($canManagePayment)<button class="btn btn-sm btn-secondary bulk-action" data-action="unpaid">Mark Unpaid</button><button class="btn btn-sm btn-warning bulk-action" data-action="waiting_for_payment">Waiting for Payment</button><button class="btn btn-sm btn-primary bulk-action" data-action="paid">Mark Paid</button>@endif <span id="selectedCount" class="text-muted small">0 selected</span></div>@endif
 
                 <p class="small text-muted d-md-none mb-2">Swipe left or right inside the table to view all columns.</p>
@@ -293,7 +292,7 @@
             stateSaveParams:function(settings,data){data.crmListLayout='merged-v5';},
             stateLoadParams:function(settings,data){return data.crmListLayout==='merged-v5';},
             order:[[2,'desc']],
-            ajax:{url:ROUTE_DATATABLE,data:function(d){d.created_by=$('#f_created_by').val();d.from_date=$('#f_from_date').val();d.to_date=$('#f_to_date').val();d.status=@json($showStatus) ? $('#f_status').val() : '';d.payment_status=$('#f_payment_status').val();}},
+            ajax:{url:ROUTE_DATATABLE,dataSrc:function(json){Object.entries(json.summary||{}).forEach(([key,value])=>$('#activitySummary [data-summary="'+key+'"]').text(Number(value).toLocaleString('en-US',{maximumFractionDigits:2})));return json.data;},data:function(d){d.created_by=$('#f_created_by').val();d.from_date=$('#f_from_date').val();d.to_date=$('#f_to_date').val();d.status=@json($showStatus) && $('#f_status').val()==='rejected'?'rejected':'pending';d.payment_status=['unpaid','waiting_for_payment'].includes($('#f_payment_status').val())?$('#f_payment_status').val():'';}},
             columns:[
                 {data:'select',orderable:false,searchable:false},
                 {data:'DT_RowIndex',orderable:false,searchable:false},
@@ -311,9 +310,11 @@
 
         
 
+        if(!['pending','rejected'].includes($('#f_status').val())) $('#f_status').val('pending');
         $('#f_created_by,#f_from_date,#f_to_date,@if($showStatus)#f_status,@endif #f_payment_status').on('change',function(){ if(window.CrmPersistentFilters) window.CrmPersistentFilters.saveNow(); table.ajax.reload(null, false); });
         $('#f_date_reset').on('click',function(){
-            $('#f_created_by,#f_from_date,#f_to_date,#f_payment_status@if($showStatus),#f_status@endif').val('').trigger('change.select2');
+            $('#f_created_by,#f_from_date,#f_to_date,#f_payment_status').val('').trigger('change.select2');
+            $('#f_status').val('pending').trigger('change.select2');
             if (window.CrmPersistentFilters) window.CrmPersistentFilters.clearCurrentPage();
             table.ajax.reload();
         });

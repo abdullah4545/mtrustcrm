@@ -86,8 +86,7 @@
                     <thead>
                     <tr>
                         <th><input type="checkbox" id="selectAll" class="form-check-input"></th><th>#</th>
-                        <th>Created</th><th>Organization / Contact</th><th>From &rarr; To</th><th>Amount</th><th>Payment Status</th>
-                        @if($showStatus)<th>Status</th>@endif
+                        <th>Created</th><th>Organization / Contact</th><th>From &rarr; To</th><th>Amount</th><th>{{ $showStatus ? 'Status / Payment' : 'Payment Status' }}</th>
                         <th width="150">Action</th>
                     </tr>
                     </thead>
@@ -289,8 +288,8 @@
             dom:'<"row g-2 align-items-center mb-3 activity-table-tools"<"col-12 col-sm-6"l><"col-12 col-sm-6"f>><"table-responsive activity-table-scroll"t><"row g-2 align-items-center mt-3 activity-table-footer"<"col-12 col-md-5"i><"col-12 col-md-7"p>>',
             stateSave:true,
             stateDuration:-1,
-            stateSaveParams:function(settings,data){data.crmListLayout='merged-v5';},
-            stateLoadParams:function(settings,data){return data.crmListLayout==='merged-v5';},
+            stateSaveParams:function(settings,data){data.crmListLayout='merged-v6-status-payment';},
+            stateLoadParams:function(settings,data){return data.crmListLayout==='merged-v6-status-payment';},
             order:[[2,'desc']],
             ajax:{url:ROUTE_DATATABLE,dataSrc:function(json){Object.entries(json.summary||{}).forEach(([key,value])=>$('#activitySummary [data-summary="'+key+'"]').text(Number(value).toLocaleString('en-US',{maximumFractionDigits:2})));return json.data;},data:function(d){d.created_by=$('#f_created_by').val();d.from_date=$('#f_from_date').val();d.to_date=$('#f_to_date').val();d.status=@json($showStatus) && $('#f_status').val()==='rejected'?'rejected':'pending';d.payment_status=['unpaid','waiting_for_payment'].includes($('#f_payment_status').val())?$('#f_payment_status').val():'';}},
             columns:[
@@ -300,10 +299,10 @@
                 {data:'organization_contact',name:'organization_name',className:'activity-organization'},
                 {data:'route_display',className:'activity-location',orderable:false,searchable:false},
                 {data:'amount_display',className:'activity-money',orderable:false,searchable:false},
-                {data:'payment_status',orderable:false,searchable:false},
-                @if($showStatus)
-                {data:'status'},
-                @endif
+                {data:'payment_status',className:'activity-status-cell',orderable:false,searchable:false,render:function(data,type,row){
+                    if(type!=='display') return data;
+                    return '<div class="d-flex flex-column align-items-start gap-1">'+(@json($showStatus)?'<div>'+row.status+'</div>':'')+'<div>'+data+'</div></div>';
+                }},
                 {data:'action',className:'activity-actions-cell',orderable:false,searchable:false},
             ]
         });

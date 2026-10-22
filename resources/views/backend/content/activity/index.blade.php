@@ -111,6 +111,8 @@
 #activityTable .activity-organization{min-width:180px;max-width:240px;white-space:normal;overflow-wrap:anywhere}
 #activityTable td.activity-location{min-width:310px!important;max-width:none!important;white-space:nowrap!important;overflow-wrap:normal!important}
 #activityTable td.activity-location .badge{white-space:nowrap!important}
+#activityTable td.activity-location .crm-route-plain{margin-bottom:2px!important}
+#activityTable_wrapper #activityTable thead th,#activityTable_wrapper #activityTable tbody td{padding:6px 8px!important}
 #activityTable .activity-money{white-space:nowrap;min-width:80px}
 #activityTable .activity-actions-cell{min-width:270px;width:270px}
 #activityTable .activity-actions{display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;align-items:center;gap:6px;min-width:250px;max-width:280px}

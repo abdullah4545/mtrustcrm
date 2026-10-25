@@ -20,7 +20,7 @@ class OrganizationContactController extends Controller
     {
         CrmAccess::ensureOrganizationAllowed($organization);
         $organization->load(['contacts' => function($q){
-            $q->orderByDesc('is_primary');
+            $q->orderBy('id');
         }]);
 
         return view('backend.content.organization.contacts.index', compact('organization'));
@@ -66,9 +66,15 @@ class OrganizationContactController extends Controller
             'email_addresses' => 'nullable|array|max:10',
             'email_addresses.*' => 'nullable|email|max:255',
             'status' => 'required|in:active,inactive',
-            'image' => 'nullable|image|max:2048',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'phone_two' => 'nullable|string|max:50',
+            'address' => 'nullable|string|max:255',
+            'additional_info' => 'nullable|string|max:5000',
         ]);
 
+        if (\App\Support\OrganizationContactInput::isBlank($request->all(), $request->file('image'))) {
+            return response()->json(['status'=>true,'message'=>'Empty contact ignored. No contact was created.']);
+        }
         $contact = new OrganizationContact();
         $contact->organization_id = $organization->id;
         $contact->first_name = $request->first_name;
@@ -83,7 +89,7 @@ class OrganizationContactController extends Controller
         $contact->email = $emails->get(0);
         $contact->address = $request->address;
         $contact->additional_info = $request->additional_info;
-        $contact->is_primary = $request->is_primary ? 1 : 0;
+        $contact->is_primary = 0;
         $contact->status = $request->status;
         $contact->created_by = Auth::id();
 
@@ -125,7 +131,10 @@ class OrganizationContactController extends Controller
             'email_addresses' => 'nullable|array|max:10',
             'email_addresses.*' => 'nullable|email|max:255',
             'status' => 'required|in:active,inactive',
-            'image' => 'nullable|image|max:2048',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'phone_two' => 'nullable|string|max:50',
+            'address' => 'nullable|string|max:255',
+            'additional_info' => 'nullable|string|max:5000',
         ]);
 
         $contact->first_name = $request->first_name;
@@ -140,7 +149,7 @@ class OrganizationContactController extends Controller
         $contact->email = $emails->get(0);
         $contact->address = $request->address;
         $contact->additional_info = $request->additional_info;
-        $contact->is_primary = $request->is_primary ? 1 : 0;
+        $contact->is_primary = 0;
         $contact->status = $request->status;
 
         if ($request->hasFile('image')) {

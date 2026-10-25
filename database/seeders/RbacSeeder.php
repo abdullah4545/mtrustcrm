@@ -86,6 +86,7 @@ class RbacSeeder extends Seeder
             'report.view_self',
 
             // Products
+            'catalogue.manage',
             'product.view',
             'product.create',
             'product.edit',

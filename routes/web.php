@@ -45,6 +45,15 @@ use Illuminate\Http\Request;
 
 
 Route::middleware('auth')->group(function () {
+    Route::prefix('products/catalogues')->name('catalogues.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\CatalogueController::class, 'index'])->name('index');
+        Route::get('/datatable', [\App\Http\Controllers\CatalogueController::class, 'datatable'])->name('datatable');
+        Route::post('/', [\App\Http\Controllers\CatalogueController::class, 'store'])->name('store');
+        Route::get('/{id}', [\App\Http\Controllers\CatalogueController::class, 'show'])->whereNumber('id')->name('show');
+        Route::post('/{id}', [\App\Http\Controllers\CatalogueController::class, 'update'])->whereNumber('id')->name('update');
+        Route::delete('/{id}', [\App\Http\Controllers\CatalogueController::class, 'destroy'])->whereNumber('id')->name('destroy');
+    });
+
     Route::post('/activities/{id}/tour-end', [ActivityController::class,'endTour'])->whereNumber('id')->name('activities.tour-end');
     Route::get('/activities/{id}/bill-review', [\App\Http\Controllers\ActivityBillReviewController::class,'show'])->name('activities.bill-review');
     Route::post('/activities/{id}/bill-review', [\App\Http\Controllers\ActivityBillReviewController::class,'update'])->name('activities.bill-review.update');

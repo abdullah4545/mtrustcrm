@@ -51,12 +51,23 @@
                 </div>
 
                 <div class="dropdown nxl-h-item">
-                    <a href="javascript:void(0);" class="crm-user-trigger" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                        <span class="crm-user-avatar">{{ strtoupper(mb_substr(auth()->user()->name ?? 'U',0,1)) }}</span>
+                    <a href="javascript:void(0);" class="crm-user-trigger d-flex align-items-center gap-2" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
+                        <span class="crm-user-avatar" style="overflow:hidden;position:relative">
+                                <span>{{ mb_strtoupper(mb_substr(auth()->user()->name ?? 'U',0,1)) }}</span>
+                                @if(auth()->user()->profile)
+                                    <img src="{{ asset(auth()->user()->profile) }}" alt="{{ auth()->user()->name }}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">
+                                @endif
+                            </span>
+                        <span class="crm-header-username">{{ auth()->user()->name }}</span>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown crm-user-menu p-0">
                         <div class="p-3 border-bottom d-flex align-items-center gap-3">
-                            <span class="crm-user-avatar lg">{{ strtoupper(mb_substr(auth()->user()->name ?? 'U',0,1)) }}</span>
+                            <span class="crm-user-avatar lg" style="overflow:hidden;position:relative">
+                                <span>{{ mb_strtoupper(mb_substr(auth()->user()->name ?? 'U',0,1)) }}</span>
+                                @if(auth()->user()->profile)
+                                    <img src="{{ asset(auth()->user()->profile) }}" alt="{{ auth()->user()->name }}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">
+                                @endif
+                            </span>
                             <div class="min-w-0">
                                 <h6 class="mb-1 text-truncate">{{ auth()->user()->name }}</h6>
                                 <div class="text-muted fs-12 text-truncate">{{ auth()->user()->email }}</div>
@@ -83,6 +94,8 @@
 </header>
 
 <style>
+.crm-header-username{max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:#253248}@media(max-width:575px){.crm-header-username{max-width:95px;font-size:12px}}
+
 .crm-header .header-wrapper{padding-right:18px}.crm-search-menu{width:min(430px,calc(100vw - 24px));border-radius:16px;overflow:hidden}.crm-search-box{background:#f5f7fa;border-radius:12px}.crm-search-box .form-control{box-shadow:none;background:transparent}.crm-search-results,.crm-notification-list{max-height:430px;overflow:auto}.crm-header-empty{min-height:145px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#8492a6;padding:20px;text-align:center}.crm-header-empty i{font-size:24px}.crm-search-item,.crm-notification-item{display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid #f0f2f5;text-decoration:none;transition:.15s}.crm-search-item:hover,.crm-notification-item:hover{background:#f8fafc}.crm-search-icon,.crm-notification-icon{width:38px;height:38px;border-radius:11px;background:#eaf5ff;color:#0b73c9;display:flex;align-items:center;justify-content:center;flex:0 0 auto}.crm-search-meta{min-width:0;flex:1}.crm-search-meta strong,.crm-search-meta span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.crm-search-meta small{color:#8492a6}.crm-notification-menu{width:min(390px,calc(100vw - 24px));border-radius:16px;overflow:hidden}.crm-notification-item .crm-notification-icon.danger{background:#fff1f2;color:#e11d48}.crm-notification-item .crm-notification-icon.warning{background:#fff7ed;color:#ea580c}.crm-notification-item .crm-notification-icon.primary{background:#eff6ff;color:#2563eb}.crm-user-trigger{display:block;padding:6px}.crm-user-avatar{width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,#0b73c9,#ef1b2d);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700}.crm-user-avatar.lg{width:46px;height:46px;border-radius:14px;flex:0 0 auto}.crm-user-menu{width:280px;border-radius:16px;overflow:hidden}.min-w-0{min-width:0}@media(max-width:575.98px){.crm-header .header-wrapper{padding-left:12px;padding-right:8px}.crm-search-menu,.crm-notification-menu{position:fixed!important;left:12px!important;right:12px!important;top:70px!important;width:auto!important;transform:none!important}.crm-user-menu{width:min(280px,calc(100vw - 24px))}}
 </style>
 <script>

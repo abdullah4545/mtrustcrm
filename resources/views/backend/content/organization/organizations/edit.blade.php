@@ -177,7 +177,7 @@
 <div class="section-box">
 
     <div class="d-flex justify-content-between">
-        <div class="section-title">👤 Contacts</div>
+        <div class="section-title">👤 Organization Contacts <span class="badge bg-light text-dark border" id="contactCount">0</span></div>
         <button type="button" id="addMore" class="btn btn-sm btn-primary">+ Add Contact</button>
     </div>
 
@@ -185,7 +185,11 @@
 
         @forelse($org->contacts as $key => $contact)
 
-        <div class="contact-row border p-2 mt-2">
+        <div class="contact-row border rounded p-3 mt-2">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <span class="badge bg-primary contact-serial"></span>
+                <button type="button" class="btn btn-sm btn-outline-danger btnRemoveContact" aria-label="Remove contact"><i class="feather-trash-2 me-1"></i>Remove</button>
+            </div>
             <input type="hidden" name="contacts[{{ $key }}][id]" value="{{ $contact->id }}">
 
             <div class="row g-2">
@@ -243,7 +247,7 @@
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label">Visiting Card</label><input type="file" name="contacts[{{ $key }}][image]" class="form-control">
+                    <label class="form-label">Visiting Card</label><input type="file" name="contacts[{{ $key }}][image]" class="form-control" accept=".jpg,.jpeg,.png,.webp">
                     @if($contact->image_url)
                         <small>
                             <a href="{{ asset($contact->image_url) }}" target="_blank">View Image</a>
@@ -270,16 +274,9 @@
                     <input name="contacts[{{ $key }}][additional_info]" value="{{ $contact->additional_info }}" class="form-control" placeholder="Additional Info">
                 </div>
 
-                <div class="col-md-2 mt-2">
-                    <label>
-                        <input type="checkbox" name="contacts[{{ $key }}][is_primary]" value="1" {{ $contact->is_primary ? 'checked' : '' }}>
-                        K.O.L
-                    </label>
-                </div>
+                
 
-                <div class="col-md-1 mt-1">
-                    <button type="button" class="btn btn-sm btn-danger btnRemoveContact" data-id="{{ $contact->id }}">X</button>
-                </div>
+                
 
             </div>
         </div>
@@ -308,10 +305,11 @@
 
 
 @push('scripts')
+@include('backend.content.organization.organizations.partials.ajax-errors')
 <script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
 <script>
 let existingMachineEditor = null;
-ClassicEditor.create(document.querySelector('#existing_machine_editor'), {toolbar:['heading','|','bold','italic','link','bulletedList','numberedList','|','undo','redo']}).then(editor=>{ existingMachineEditor=editor; }).catch(console.error);
+if(window.ClassicEditor) ClassicEditor.create(document.querySelector('#existing_machine_editor'), {toolbar:['heading','|','bold','italic','link','bulletedList','numberedList','|','undo','redo']}).then(editor=>{ existingMachineEditor=editor; }).catch(console.error);
 $(document).on('click','.org-add-repeat',function(){ const kind=$(this).data('kind'), list=kind==='phone'?'#orgPhoneList':'#orgEmailList', type=kind==='email'?'email':'text', name=kind==='email'?'email_addresses[]':'phone_numbers[]'; $(list).append(`<div class="repeat-field mt-1"><div class="input-group"><input type="${type}" name="${name}" class="form-control" placeholder="Additional ${kind==='email'?'Email':'Phone'}"><button type="button" class="btn btn-outline-danger org-remove-repeat">−</button></div></div>`); });
 $(document).on('click','.org-remove-repeat',function(){ $(this).closest('.repeat-field').remove(); });
 let i = {{ $org->contacts->count() }};
@@ -335,7 +333,11 @@ $('#addMore').on('click', function(){
     $('#noContactState').remove();
 
     let html = `
-    <div class="contact-row border p-2 mt-2">
+    <div class="contact-row border rounded p-3 mt-2">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <span class="badge bg-primary contact-serial"></span>
+                <button type="button" class="btn btn-sm btn-outline-danger btnRemoveContact" aria-label="Remove contact"><i class="feather-trash-2 me-1"></i>Remove</button>
+            </div>
         <div class="row g-2">
 
             <div class="col-md-3">
@@ -373,7 +375,7 @@ $('#addMore').on('click', function(){
             </div>
 
             <div class="col-md-3">
-                <label class="form-label">Visiting Card</label><input type="file" name="contacts[${i}][image]" class="form-control">
+                <label class="form-label">Visiting Card</label><input type="file" name="contacts[${i}][image]" class="form-control" accept=".jpg,.jpeg,.png,.webp">
             </div>
 
             <div class="col-md-3">
@@ -395,46 +397,36 @@ $('#addMore').on('click', function(){
                 <input name="contacts[${i}][additional_info]" class="form-control" placeholder="Additional Info">
             </div>
 
-            <div class="col-md-2 mt-2">
-                <label>
-                    <input type="checkbox" name="contacts[${i}][is_primary]" value="1">
-                    K.O.L
-                </label>
-            </div>
+            
 
-            <div class="col-md-1 mt-1">
-                <button type="button" class="btn btn-sm btn-danger btnRemoveContact">X</button>
-            </div>
+            
 
         </div>
     </div>`;
 
+    $('#noContactState').remove();
     $('#contactBox').append(html);
+    refreshContactSerials();
     i++;
 });
 
+
+function refreshContactSerials(){
+    const rows = $('#contactBox .contact-row');
+    rows.each(function(index){ $(this).find('.contact-serial').text('SL ' + (index + 1)); });
+    $('#contactCount').text(rows.length);
+    if(!rows.length && !$('#noContactState').length){
+        $('#contactBox').html('<div id="noContactState" class="text-center text-muted py-4">No contacts added. Use + Add Contact when needed.</div>');
+    }
+}
 $(document).on('click', '.btnRemoveContact', function(){
-
-    let id = $(this).data('id');
-
-    if(id){
-        $('#deletedContactBox').append(
-            `<input type="hidden" name="deleted_contacts[]" value="${id}">`
-        );
-    }
-
-    $(this).closest('.contact-row').remove();
-
-    if($('#contactBox .contact-row').length === 0){
-        $('#contactBox').html(`
-            <div id="noContactState" class="text-center text-muted py-4">
-                <i class="feather-user-plus d-block mb-2" style="font-size:26px;"></i>
-                <div>No contact added yet.</div>
-                <small>Click <strong>+ Add Contact</strong> to add a contact person.</small>
-            </div>
-        `);
-    }
+    const row = $(this).closest('.contact-row');
+    const id = row.find('input[name$="[id]"]').val();
+    if(id) $('<input>', {type:'hidden', name:'deleted_contacts[]', value:id}).appendTo('#deletedContactBox');
+    row.remove();
+    refreshContactSerials();
 });
+$(refreshContactSerials);
 
 // Organization Edit: same working dependent geo chain as Quick Create.
 // Existing saved values stay visible on initial load. Changing a parent reloads only its children.
@@ -542,38 +534,24 @@ $('#quickForm').on('submit', function(e){
         data: formData,
         processData: false,
         contentType: false,
+        headers: {Accept: 'application/json'},
 
         success: function(res){
 
             btn.prop('disabled', false).text('Update All');
 
             if(res.status){
-                Swal.fire('Success', res.message ?? 'Updated', 'success');
+                Swal.fire('Success', res.message ?? 'Updated', 'success').then(function(){ window.location.reload(); });
             }else{
-                Swal.fire('Error', 'Something went wrong!', 'error');
+                Swal.fire('Error', res.message || 'The request could not be saved.', 'error');
             }
         },
 
         error: function(err){
-
             btn.prop('disabled', false).text('Update All');
-
-            if(err.status === 422){
-
-                let errors = err.responseJSON.errors;
-                let msg = '';
-
-                $.each(errors, function(key, value){
-                    msg += value[0] + "\n";
-                });
-
-                Swal.fire('Error', msg, 'error');
-
-            }else{
-                Swal.fire('Error', 'Server Error!', 'error');
-                console.log(err.responseText);
-            }
+            showOrganizationError(err);
         }
+
     });
 
 });

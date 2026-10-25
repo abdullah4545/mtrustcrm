@@ -93,7 +93,7 @@
                 @endcanany
 
 
-                @canany(['product.view','product.create','product.edit','product.category.manage','brand.manage'])
+                @canany(['catalogue.manage','product.view','product.create','product.edit','product.category.manage','product.subcategory.manage','brand.manage'])
                 <li class="nxl-item nxl-hasmenu">
                     <a href="javascript:void(0);" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-briefcase"></i></span>
@@ -103,6 +103,7 @@
                         @can('product.category.manage')<li class="nxl-item"><a class="nxl-link" href="{{ route('product.categories.index') }}">Categorys</a></li>@endcan
                         @can('product.subcategory.manage')<li class="nxl-item"><a class="nxl-link" href="{{ route('product.subcategories.index') }}">Sub Categorys</a></li>@endcan
                         @can('brand.manage')<li class="nxl-item"><a class="nxl-link" href="{{ route('brands.index') }}">Brands</a></li>@endcan
+                        @can('catalogue.manage')<li class="nxl-item"><a class="nxl-link" href="{{ route('catalogues.index') }}">Catalogue</a></li>@endcan
                         @canany(['product.view','product.create','product.edit'])<li class="nxl-item"><a class="nxl-link" href="{{ route('products.index') }}">Products</a></li>@endcanany
                     </ul>
                 </li>

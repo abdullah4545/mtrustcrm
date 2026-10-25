@@ -205,6 +205,7 @@
 
 
 @push('scripts')
+@include('backend.content.organization.organizations.partials.ajax-errors')
 
 {{-- ⚠️ YOUR JS COMPLETELY SAME (UNCHANGED) --}}
 {{-- শুধু responsive UI যোগ করা হয়েছে --}}
@@ -504,22 +505,7 @@ function clearForm(){
     $('#status').val('active');
 }
 
-function showAjaxError(xhr){
-    let msg = 'Something went wrong';
-    if(xhr.status === 422 && xhr.responseJSON){
-        if(xhr.responseJSON.errors){
-            const firstKey = Object.keys(xhr.responseJSON.errors)[0];
-            msg = xhr.responseJSON.errors[firstKey][0];
-        } else if(xhr.responseJSON.message){
-            msg = xhr.responseJSON.message;
-        }
-    } else if(xhr.status === 419){
-        msg = 'CSRF token mismatch (419)';
-    } else if(xhr.responseJSON && xhr.responseJSON.message){
-        msg = xhr.responseJSON.message;
-    }
-    Swal.fire('Error', msg, 'error');
-}
+function showAjaxError(xhr){ showOrganizationError(xhr); }
 
 // ✅ Geo loaders
 function loadDistricts(divisionSel, districtSel, selectedId=null){
@@ -655,5 +641,6 @@ function ajaxMessage(xhr){
 
 @endpush
 @push('scripts')
+@include('backend.content.organization.organizations.partials.ajax-errors')
 @include('backend.partials.crm-list-design')
 @endpush

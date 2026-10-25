@@ -22,6 +22,8 @@ use App\Models\Activity;
 use App\Models\Lead;
 use App\Models\LeadActivity;
 use App\Models\Sale;
+use App\Support\OrganizationSaveError;
+use App\Support\OrganizationContactInput;
 
 class OrganizationController extends Controller
 {
@@ -71,11 +73,19 @@ class OrganizationController extends Controller
 
     public function quickStore(Request $request)
     {
+        OrganizationContactInput::prepare($request);
         $request->validate([
-            'name'   => 'required|string|max:255',
+            'name'   => 'required|string|max:200',
             'organization_category_id' => 'required|exists:organization_categories,id',
             'division_id' => 'required|exists:divisions,id',
             'district_id' => ['required', \Illuminate\Validation\Rule::exists('districts','id')->where('division_id', $request->division_id)],
+            'organization_type_id' => 'nullable|exists:organization_types,id',
+            'upazila_id' => ['nullable', \Illuminate\Validation\Rule::exists('upazilas','id')->where('district_id', $request->district_id)],
+            'union_id' => ['nullable', \Illuminate\Validation\Rule::exists('unions','id')->where('upazila_id', $request->upazila_id)],
+            'address' => 'nullable|string|max:255',
+            'website' => 'nullable|string|max:150',
+            'notes' => 'nullable|string',
+            'about_us' => 'nullable|string',
             'no_of_beds' => 'nullable|integer|min:0',
             'status' => 'required|in:active,inactive',
             'existing_machine' => 'required|string',
@@ -89,6 +99,7 @@ class OrganizationController extends Controller
             'map_location_link' => 'nullable|string|max:1000',
     
             'contacts' => 'nullable|array',
+            'contacts.*' => 'array',
             'contacts.*.last_name' => 'nullable|string|max:255',
             'contacts.*.first_name'            => 'nullable|string|max:255',
             'contacts.*.phone'           => 'nullable|string|max:20',
@@ -111,9 +122,8 @@ class OrganizationController extends Controller
             CrmAccess::ensureAreaAllowed((int)$request->district_id, (int)$request->upazila_id);
         }
 
-        DB::beginTransaction();
-    
         try {
+            DB::beginTransaction();
     
             $org = Organization::create([
                 'organization_category_id' => $request->organization_category_id,
@@ -140,16 +150,10 @@ class OrganizationController extends Controller
             ]);
     
             $contacts = $request->contacts ?? [];
-            $primarySet = false;
     
             foreach ($contacts as $index => $c) {
     
-                if (
-                    empty($c['first_name']) && empty($c['last_name']) &&
-                    empty($c['phone']) && empty($c['email']) &&
-                    empty(array_filter($c['phone_numbers'] ?? [])) &&
-                    empty(array_filter($c['email_addresses'] ?? []))
-                ) {
+                if (OrganizationContactInput::isBlank($c, $request->file("contacts.$index.image"))) {
                     continue;
                 }
     
@@ -172,15 +176,6 @@ class OrganizationController extends Controller
                     $imagePath = 'public/uploads/organization_contacts/'.$fileName;
                 }
     
-                $isPrimary = isset($c['is_primary']) ? 1 : 0;
-    
-                if ($isPrimary && $primarySet) {
-                    $isPrimary = 0;
-                }
-    
-                if ($isPrimary) {
-                    $primarySet = true;
-                }
     
                 OrganizationContact::create([
                     'organization_id' => $org->id,
@@ -200,7 +195,7 @@ class OrganizationController extends Controller
                     'image_url'           => $imagePath,
     
                     'status'          => $c['status'] ?? 'active',
-                    'is_primary'      => $isPrimary,
+                    'is_primary'      => 0,
                     'created_by'      => auth()->id(),
                 ]);
             }
@@ -213,15 +208,10 @@ class OrganizationController extends Controller
                 'data'    => $org
             ]);
     
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
     
-            DB::rollBack();
-    
-            return response()->json([
-                'status'  => false,
-                'message' => 'Something went wrong!',
-                'error'   => $e->getMessage()
-            ], 500);
+            try { DB::rollBack(); } catch (\Throwable $rollbackError) { report($rollbackError); }
+            return OrganizationSaveError::response($e);
         }
     }
 
@@ -348,7 +338,11 @@ class OrganizationController extends Controller
         $data['phone_secondary'] = $data['phone_numbers'][1] ?? null;
         $data['email'] = $data['email_addresses'][0] ?? null;
 
-        Organization::create($data);
+        try {
+            Organization::create($data);
+        } catch (\Throwable $e) {
+            return OrganizationSaveError::response($e);
+        }
 
         return response()->json(['status'=>true,'message'=>'Organization created successfully']);
     }
@@ -382,11 +376,20 @@ class OrganizationController extends Controller
 
     public function update(Request $request, $id) 
     {
+        $org = $this->visibleOrganization((int)$id);
+        OrganizationContactInput::prepare($request);
         $request->validate([
-            'name'   => 'required|string|max:255',
+            'name'   => 'required|string|max:200',
             'organization_category_id' => 'required|exists:organization_categories,id',
             'division_id' => 'required|exists:divisions,id',
             'district_id' => ['required', \Illuminate\Validation\Rule::exists('districts','id')->where('division_id', $request->division_id)],
+            'organization_type_id' => 'nullable|exists:organization_types,id',
+            'upazila_id' => ['nullable', \Illuminate\Validation\Rule::exists('upazilas','id')->where('district_id', $request->district_id)],
+            'union_id' => ['nullable', \Illuminate\Validation\Rule::exists('unions','id')->where('upazila_id', $request->upazila_id)],
+            'address' => 'nullable|string|max:255',
+            'website' => 'nullable|string|max:150',
+            'notes' => 'nullable|string',
+            'about_us' => 'nullable|string',
             'no_of_beds' => 'nullable|integer|min:0',
             'status' => 'required|in:active,inactive',
             'existing_machine' => 'required|string',
@@ -399,9 +402,10 @@ class OrganizationController extends Controller
             'email_addresses.*' => 'nullable|email|max:150',
     
             'contacts' => 'nullable|array',
+            'contacts.*' => 'array',
             'contacts.*.last_name' => 'nullable|string|max:255',
     
-            'contacts.*.id'              => 'nullable|exists:organization_contacts,id',
+            'contacts.*.id' => ['nullable','integer','distinct', \Illuminate\Validation\Rule::exists('organization_contacts','id')->where('organization_id', $org->id)->whereNull('deleted_at')],
             'contacts.*.first_name'            => 'nullable|string|max:255',
             'contacts.*.phone'           => 'nullable|string|max:20',
             'contacts.*.email'           => 'nullable|email',
@@ -418,12 +422,12 @@ class OrganizationController extends Controller
             'contacts.*.status'          => 'nullable|in:active,inactive',
             'map_location_link'         => 'nullable|string|max:1000',
     
-            'deleted_contacts'           => 'nullable|array',
+            'deleted_contacts' => 'nullable|array',
+            'deleted_contacts.*' => ['integer', \Illuminate\Validation\Rule::exists('organization_contacts','id')->where('organization_id', $org->id)],
         ]);
     
-        DB::beginTransaction();
-    
         try {
+            DB::beginTransaction();
     
             $org = $this->visibleOrganization((int)$id);
             if (CrmAccess::hasAreaRestriction()) {
@@ -461,16 +465,10 @@ class OrganizationController extends Controller
             }
     
             $contacts = $request->contacts ?? [];
-            $primarySet = false;
     
             foreach ($contacts as $index => $c) {
     
-                if (
-                    empty($c['first_name']) && empty($c['last_name']) &&
-                    empty($c['phone']) && empty($c['email']) &&
-                    empty(array_filter($c['phone_numbers'] ?? [])) &&
-                    empty(array_filter($c['email_addresses'] ?? []))
-                ) {
+                if (OrganizationContactInput::isBlank($c, $request->file("contacts.$index.image"))) {
                     continue;
                 }
     
@@ -501,15 +499,6 @@ class OrganizationController extends Controller
                     $imagePath = 'public/uploads/organization_contacts/'.$fileName;
                 }
     
-                $isPrimary = isset($c['is_primary']) ? 1 : 0;
-    
-                if ($isPrimary && $primarySet) {
-                    $isPrimary = 0;
-                }
-    
-                if ($isPrimary) {
-                    $primarySet = true;
-                }
     
                 $data = [
                     'organization_id' => $org->id,
@@ -527,7 +516,7 @@ class OrganizationController extends Controller
                     'designation_id'  => $c['designation_id'] ?? null,
                     'image_url'           => $imagePath,
                     'status'          => $c['status'] ?? 'active',
-                    'is_primary'      => $isPrimary,
+                    'is_primary'      => 0,
                 ];
     
                 if ($contact) {
@@ -546,15 +535,10 @@ class OrganizationController extends Controller
                 'data'    => $org
             ]);
     
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
     
-            DB::rollBack();
-    
-            return response()->json([
-                'status'  => false,
-                'message' => 'Something went wrong!',
-                'error'   => $e->getMessage()
-            ], 500);
+            try { DB::rollBack(); } catch (\Throwable $rollbackError) { report($rollbackError); }
+            return OrganizationSaveError::response($e);
         }
     }
     

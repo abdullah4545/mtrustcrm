@@ -314,10 +314,6 @@
 
                         <td>
                             <strong>{{ $contact->name ?? '-' }}</strong>
-
-                            @if($contact->is_primary)
-                                <br><span class="primary">K.O.L</span>
-                            @endif
                         </td>
 
                         <td>{{ $contact->department?->title ?? '-' }}</td>

@@ -73,7 +73,7 @@
                                     <th>Last Name</th>
                                     <th>Phone</th>
                                     <th>Email</th>
-                                    <th>K.O.L</th>
+                                    
                                     <th>Status</th>
                                     <th width="120">Action</th>
                                 </tr>
@@ -153,12 +153,7 @@
                             <div id="imgPreview" class="mt-2"></div>
                         </div>
 
-                        <div class="col-md-6 d-flex align-items-center">
-                            <div class="form-check form-switch mt-4">
-                                <input class="form-check-input" type="checkbox" id="is_primary">
-                                <label class="form-check-label">K.O.L</label>
-                            </div>
-                        </div>
+                        
 
                         <div class="col-md-12">
                             <label class="form-label">Additional Info</label>
@@ -240,7 +235,6 @@ $(document).ready(function(){
             {data:'last_name'},
             {data:'phone'},
             {data:'email'},
-            {data:'is_primary', orderable:false, searchable:false},
             {data:'status', orderable:false, searchable:false},
             {data:'action', orderable:false, searchable:false},
         ],
@@ -293,7 +287,6 @@ $(document).ready(function(){
         fd.append('address', $('#address').val());
         fd.append('additional_info', $('#additional_info').val());
         fd.append('status', $('#status').val());
-        fd.append('is_primary', $('#is_primary').is(':checked') ? 1 : 0);
 
         if($('#image')[0].files[0]){
             fd.append('image', $('#image')[0].files[0]);
@@ -352,7 +345,6 @@ $(document).ready(function(){
             $('#address').val(d.address);
             $('#additional_info').val(d.additional_info);
             $('#status').val(d.status);
-            $('#is_primary').prop('checked', !!d.is_primary);
 
             if(d.image_url){
                 $('#imgPreview').html(`<img src="{{ asset('') }}${d.image_url}" style="height:60px;border-radius:8px;">`);
@@ -389,7 +381,6 @@ function clearForm(){
     $('#contact_id').val('');
     document.getElementById('contactForm').reset();
     $('#imgPreview').html('');
-    $('#is_primary').prop('checked', false);
     $('#status').val('active');
     renderPhones([]); renderEmails([]);
 }

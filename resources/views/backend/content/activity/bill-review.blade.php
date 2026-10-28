@@ -27,6 +27,7 @@
 @php
 $claimed=$type==='ta'?$entry->cost:$entry->amount;
 $payable=$activity->status==='rejected'?0:max(0,(float)$claimed-(float)$entry->deduction_amount);
+$defaultDecision=$payable>0?'deduct':((float)$entry->deduction_amount>0?'add':'reject');
 @endphp
 <div class="border rounded p-3 mb-3">
 <div class="d-flex flex-wrap justify-content-between gap-2"><strong>{{ strtoupper($type) }} #{{ $entry->id }}: {{ $type==='ta'? $entry->from_location.' → '.$entry->to_location : $entry->expense_type }}</strong><span class="badge bg-secondary">{{ ucfirst($entry->bill_status) }}</span></div>
@@ -43,8 +44,8 @@ $payable=$activity->status==='rejected'?0:max(0,(float)$claimed-(float)$entry->d
 <details class="mt-2"><summary class="btn btn-sm btn-outline-primary">Review / Adjust this entry</summary>
 <form method="POST" action="{{ route('activities.bill-review.update',$activity->id) }}" class="mt-3 bill-entry-form" data-deducted="{{ $entry->deduction_amount }}" data-payable="{{ $payable }}">@csrf
 <input type="hidden" name="entry_type" value="{{ $type }}"><input type="hidden" name="entry_id" value="{{ $entry->id }}"><input type="hidden" name="version" value="{{ \App\Services\ActivityBillReview::version($entry) }}">
-<div class="row g-2"><div class="col-md-4"><label class="form-label">Decision</label><select name="decision" class="form-select bill-decision"><option value="deduct" @disabled($payable<=0)>Deduct an amount</option><option value="add" @disabled($entry->deduction_amount<=0)>Add back deducted amount</option><option value="reject">Reject whole entry</option></select></div>
-<div class="col-md-4"><label class="form-label">Amount to deduct / add back (TK)</label><input name="deduction_amount" type="number" min="0.01" max="{{ $payable }}" step="0.01" class="form-control bill-deduction" value="" required></div>
+<div class="row g-2"><div class="col-md-4"><label class="form-label">Decision</label><select name="decision" class="form-select bill-decision"><option value="deduct" @selected($defaultDecision==='deduct') @disabled($payable<=0)>Deduct an amount</option><option value="add" @selected($defaultDecision==='add') @disabled($entry->deduction_amount<=0)>Add back deducted amount</option><option value="reject" @selected($defaultDecision==='reject')>Reject whole entry</option></select></div>
+<div class="col-md-4"><label class="form-label">Amount to deduct / add back (TK)</label><input name="deduction_amount" type="number" min="0.01" max="{{ $defaultDecision==='add' ? $entry->deduction_amount : $payable }}" step="0.01" class="form-control bill-deduction" value="" @required($defaultDecision!=='reject') @disabled($defaultDecision==='reject')><div class="form-text bill-amount-limit"></div></div>
 <div class="col-12"><label class="form-label">Reason *</label><textarea name="reason" required maxlength="2000" rows="2" class="form-control" placeholder="Explain this entry's deduction, rejection or correction"></textarea></div>
 <div class="col-12"><button class="btn btn-primary">Save review</button></div></div>
 </form></details>
@@ -70,6 +71,35 @@ Note: {{ $snapshot['note']??'-' }}<br>
 @push('scripts')
 <script>
 document.addEventListener('click',function(event){const link=event.target.closest('.bill-image');if(!link)return;event.preventDefault();document.getElementById('billImage').src=link.href;bootstrap.Modal.getOrCreateInstance(document.getElementById('billImageModal')).show();});
-document.querySelectorAll('.bill-decision').forEach(select=>{select.addEventListener('change',function(){const input=this.closest('form').querySelector('.bill-deduction');input.disabled=this.value==='reject';input.required=this.value!=='reject';const entry=this.closest('form');input.max=this.value==='add'?entry.dataset.deducted:entry.dataset.payable;});select.dispatchEvent(new Event('change'));});
+(function () {
+    function syncAmountLimit(form) {
+        const decision = form.querySelector('.bill-decision').value;
+        const input = form.querySelector('.bill-deduction');
+        const rejected = decision === 'reject';
+        input.disabled = rejected;
+        input.required = !rejected;
+        input.setCustomValidity('');
+        if (rejected) {
+            input.removeAttribute('max');
+        } else {
+            // Add back is limited by the remaining deduction, not current payable.
+            input.max = decision === 'add' ? form.dataset.deducted : form.dataset.payable;
+        }
+        form.querySelector('.bill-amount-limit').textContent = rejected ? '' :
+            (decision === 'add' ? 'Maximum add back: ' : 'Maximum deduction: ') + input.max + ' TK';
+    }
+    document.querySelectorAll('.bill-entry-form').forEach(form => {
+        const select = form.querySelector('.bill-decision');
+        select.addEventListener('change', () => syncAmountLimit(form));
+        // Select widgets can emit jQuery change events without a native DOM event.
+        if (window.jQuery) {
+            window.jQuery(select).on('change.billReview', () => syncAmountLimit(form));
+        }
+        // Refresh before browser constraint validation, including keyboard submission.
+        form.addEventListener('click', () => syncAmountLimit(form), true);
+        form.addEventListener('keydown', () => syncAmountLimit(form), true);
+        syncAmountLimit(form);
+    });
+})();
 </script>
 @endpush

@@ -105,13 +105,13 @@ class ActivityReportExport implements
         $this->putTotal(
             $totalRow,
             'ta',
-            $this->activities->sum('ta')
+            $this->activities->sum(fn($a) => \App\Support\ActivityDisplay::reportAmount($a, 'ta'))
         );
 
         $this->putTotal(
             $totalRow,
             'da',
-            $this->activities->sum('da')
+            $this->activities->sum(fn($a) => \App\Support\ActivityDisplay::reportAmount($a, 'da'))
         );
 
         $this->putTotal(
@@ -295,7 +295,7 @@ class ActivityReportExport implements
             'da',
             'claimed_total',
             'deducted_total',
-            'total' => (float) $activity->{$column},
+            'total' => \App\Support\ActivityDisplay::reportAmount($activity, $column),
 
             'distance' => (float) $activity->distance,
 

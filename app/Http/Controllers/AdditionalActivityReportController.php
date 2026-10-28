@@ -14,8 +14,8 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class AdditionalActivityReportController extends Controller
 {
-    private const COLUMNS = ['serial'=>'Sl','date'=>'Date & Time','organization_name'=>'Name of Organ.','from_location'=>'From → To','work_details'=>'Vis. Output','ta'=>'TA Payable','da'=>'DA Hotel and Others','total'=>'Total Payable','remarks'=>'Remarks','tour_type'=>'Tour Type','created_by'=>'Created By'];
-    private const DEFAULT = ['serial','date','organization_name','from_location','work_details','ta','da','total','remarks'];
+    private const COLUMNS = ['serial'=>'Sl','date'=>'Date & Time','organization_name'=>'Name of Organ.','from_location'=>'From → To','work_details'=>'Vis. Output','ta'=>'TA (Claimed)','da'=>'DA / Hotel / Others (Claimed)','deducted_total'=>'Deduct Amount','total'=>'Total Payable','remarks'=>'Remarks','tour_type'=>'Tour Type','created_by'=>'Created By'];
+    private const DEFAULT = ['serial','date','organization_name','from_location','work_details','ta','da','deducted_total','total','remarks'];
 
     public function __construct(){
         $this->middleware('auth');
@@ -40,7 +40,7 @@ class AdditionalActivityReportController extends Controller
         $items=$this->query($f,$mode)->with(['creator','travels','expenses','organization'])->orderBy('date')->orderBy('id')->get();
         return response()->json(['columns'=>collect($cols)->map(fn($c)=>['key'=>$c,'label'=>self::COLUMNS[$c]])->values(),
             'rows'=>$items->values()->map(fn($a,$i)=>$this->row($a,$cols,$i+1)),
-            'summary'=>['count'=>$items->count(),'ta'=>number_format((float)$items->sum('ta'),2),'da'=>number_format((float)$items->sum('da'),2),'total'=>number_format((float)$items->sum('total'),2)]]);
+            'summary'=>['count'=>$items->count(),'ta'=>number_format((float)$items->sum(fn($a) => \App\Support\ActivityDisplay::reportAmount($a, 'ta')),2),'da'=>number_format((float)$items->sum(fn($a) => \App\Support\ActivityDisplay::reportAmount($a, 'da')),2),'total'=>number_format((float)$items->sum('total'),2)]]);
     }
     public function tourPdf(Request $r){ return $this->pdf($r,'tour',false); }
     public function tourPrint(Request $r){ return $this->pdf($r,'tour',true); }
@@ -51,10 +51,10 @@ class AdditionalActivityReportController extends Controller
         $employee=!empty($f['created_by'])?DB::table('users')->where('id',$f['created_by'])->first():null;
         if($stream) return \App\Support\PrintedActivityReport::view($items,['activities'=>$items,'employee'=>$employee,'columns'=>$cols,'columnLabels'=>self::COLUMNS,
             'fromDate'=>!empty($f['from_date'])?Carbon::parse($f['from_date'])->format('d-m-Y'):null,'toDate'=>!empty($f['to_date'])?Carbon::parse($f['to_date'])->format('d-m-Y'):null,
-            'totalTa'=>$items->sum('ta'),'totalDa'=>$items->sum('da'),'grandTotal'=>$items->sum('total'),'statusFilter'=>$f['status']??null]);
+            'totalTa'=>$items->sum(fn($a) => \App\Support\ActivityDisplay::reportAmount($a, 'ta')),'totalDa'=>$items->sum(fn($a) => \App\Support\ActivityDisplay::reportAmount($a, 'da')),'grandTotal'=>$items->sum('total'),'statusFilter'=>$f['status']??null]);
         $pdf=Pdf::loadView('backend.content.activity.report.pdf',['activities'=>$items,'employee'=>$employee,'columns'=>$cols,'columnLabels'=>self::COLUMNS,
             'fromDate'=>!empty($f['from_date'])?Carbon::parse($f['from_date'])->format('d-m-Y'):null,'toDate'=>!empty($f['to_date'])?Carbon::parse($f['to_date'])->format('d-m-Y'):null,
-            'totalTa'=>$items->sum('ta'),'totalDa'=>$items->sum('da'),'grandTotal'=>$items->sum('total'),'statusFilter'=>$f['status']??null])->setPaper('a4','landscape');
+            'totalTa'=>$items->sum(fn($a) => \App\Support\ActivityDisplay::reportAmount($a, 'ta')),'totalDa'=>$items->sum(fn($a) => \App\Support\ActivityDisplay::reportAmount($a, 'da')),'grandTotal'=>$items->sum('total'),'statusFilter'=>$f['status']??null])->setPaper('a4','landscape');
         $name=($mode==='tour'?'tour-report':'activity-sort-list').'-'.now()->format('Y-m-d-His').'.pdf';
         return $stream?$pdf->stream($name):$pdf->download($name);
     }
@@ -76,6 +76,6 @@ class AdditionalActivityReportController extends Controller
         $f=$r->validate($rules); $u=Auth::user(); if(!$u->can('staff.filter')) unset($f['created_by']); if(!$u->can('activity.status.view')) unset($f['status']);
         if(!$u->can('report.view_all')){$f['branch_id']=$u->branch_id;$f['created_by']=$u->id;} return $f;
     }
-    private function columns(array $c):array{ $v=array_values(array_intersect($c,array_keys(self::COLUMNS))); if(!Auth::user()->can('activity.status.view'))$v=array_values(array_diff($v,['status'])); return $v?:array_values(array_filter(self::DEFAULT,fn($x)=>$x!=='status'||Auth::user()->can('activity.status.view'))); }
-    private function row(Activity $a,array $cols,int $n):array{ $r=['_html'=>['organization_name'=>\App\Support\ActivityDisplay::organization($a,true),'from_location'=>\App\Support\ActivityDisplay::route($a,true)]]; if($a->tour_type==='tour'){$r['_html']['organization_name'].='<br><span class="badge bg-info">'.($a->tour_ended_at?'Ended '.e($a->tour_ended_at->format('d M Y h:i A')):'Tour running').'</span>';if(auth()->user()->can('activity.view_all')||(int)$a->created_by===(int)auth()->id())$r['_html']['organization_name'].='<br><a href="'.route('activities.bill-review',$a->id).'">Bill / Tour details</a>';} foreach($cols as $c)$r[$c]=match($c){'serial'=>$n,'organization_name'=>\App\Support\ActivityDisplay::organization($a),'from_location'=>\App\Support\ActivityDisplay::route($a),'date'=>($a->activity_at??$a->created_at??$a->date)?($a->activity_at??$a->created_at??$a->date)->copy()->timezone('Asia/Dhaka')->format('d M Y, h:i A'):'','ta','da','claimed_total','deducted_total','total'=>number_format((float)$a->{$c},2),'created_by'=>$a->creator?->name??'N/A','status'=>ucfirst((string)$a->status),'payment_status'=>ucwords(str_replace('_',' ',(string)$a->payment_status)),'tour_type'=>($a->tour_type==='tour'?'Tour':'Local Tour'),default=>$a->{$c}??''}; return $r; }
+    private function columns(array $c):array{ $v=array_values(array_intersect($c,array_keys(self::COLUMNS))); if(!Auth::user()->can('activity.status.view'))$v=array_values(array_diff($v,['status'])); $v=\App\Support\ActivityDisplay::reportColumns($v); return $v?:array_values(array_filter(self::DEFAULT,fn($x)=>$x!=='status'||Auth::user()->can('activity.status.view'))); }
+    private function row(Activity $a,array $cols,int $n):array{ $r=['_html'=>['organization_name'=>\App\Support\ActivityDisplay::organization($a,true),'from_location'=>\App\Support\ActivityDisplay::route($a,true)]]; if($a->tour_type==='tour'){$r['_html']['organization_name'].='<br><span class="badge bg-info">'.($a->tour_ended_at?'Ended '.e($a->tour_ended_at->format('d M Y h:i A')):'Tour running').'</span>';if(auth()->user()->can('activity.view_all')||(int)$a->created_by===(int)auth()->id())$r['_html']['organization_name'].='<br><a href="'.route('activities.bill-review',$a->id).'">Bill / Tour details</a>';} foreach($cols as $c)$r[$c]=match($c){'serial'=>$n,'organization_name'=>\App\Support\ActivityDisplay::organization($a),'from_location'=>\App\Support\ActivityDisplay::route($a),'date'=>($a->activity_at??$a->created_at??$a->date)?($a->activity_at??$a->created_at??$a->date)->copy()->timezone('Asia/Dhaka')->format('d M Y, h:i A'):'','ta','da','claimed_total','deducted_total','total'=>number_format(\App\Support\ActivityDisplay::reportAmount($a, $c),2),'created_by'=>$a->creator?->name??'N/A','status'=>ucfirst((string)$a->status),'payment_status'=>ucwords(str_replace('_',' ',(string)$a->payment_status)),'tour_type'=>($a->tour_type==='tour'?'Tour':'Local Tour'),default=>$a->{$c}??''}; return $r; }
 }

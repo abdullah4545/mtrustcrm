@@ -120,11 +120,12 @@ class ActivityController extends Controller
         $query = $this->visibleQuery()
             ->latest('activity_at')->latest('id');
         if (Auth::user()->can('activity.view_all') && Auth::user()->can('staff.filter') && $request->filled('created_by')) $query->where('created_by', $request->integer('created_by'));
-        $query->where('status','!=','approved')->where('payment_status','!=','paid');
-        if (!$request->filled('status')) $query->where('status','pending');
-        if ($showStatus = Auth::user()->can('activity.status.view')) {
-            if ($request->filled('status')) $query->where('status', $request->string('status'));
-        }
+        $canViewAll = Auth::user()->can('activity.view_all');
+        $showStatus = Auth::user()->can('activity.status.view');
+        $status = $showStatus ? (string) $request->input('status', 'all') : 'all';
+        abort_unless(in_array($status, ['all','pending','approved','rejected'], true), 422, 'Invalid activity status.');
+        if (!$canViewAll) $query->whereIn('status', ['pending','rejected']);
+        if ($status !== 'all') $query->where('status', $status);
         if ($request->filled('payment_status')) $query->where('payment_status',$request->string('payment_status'));
         if ($request->filled('date')) $query->whereDate('date', $request->date('date'));
         else {

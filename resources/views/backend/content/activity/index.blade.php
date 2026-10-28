@@ -62,6 +62,10 @@
                     <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label">Status</label>
                         <select id="f_status" class="form-control">
+                            <option value="all" @selected(!$af('f_status') || $af('f_status') === 'all')>All Status</option>
+                            @can('activity.view_all')
+                            <option value="approved" @selected($af('f_status') === 'approved')>Approved</option>
+                            @endcan
                             <option value="pending" @selected($af('f_status') === 'pending')>Pending</option>
                             <option value="rejected" @selected($af('f_status') === 'rejected')>Rejected</option>
                         </select>
@@ -294,7 +298,7 @@
             stateSaveParams:function(settings,data){data.crmListLayout='merged-v6-status-payment';},
             stateLoadParams:function(settings,data){return data.crmListLayout==='merged-v6-status-payment';},
             order:[[2,'desc']],
-            ajax:{url:ROUTE_DATATABLE,dataSrc:function(json){Object.entries(json.summary||{}).forEach(([key,value])=>$('#activitySummary [data-summary="'+key+'"]').text(Number(value).toLocaleString('en-US',{maximumFractionDigits:2})));return json.data;},data:function(d){d.created_by=$('#f_created_by').val();d.from_date=$('#f_from_date').val();d.to_date=$('#f_to_date').val();d.status=@json($showStatus) && $('#f_status').val()==='rejected'?'rejected':'pending';d.payment_status=['unpaid','waiting_for_payment'].includes($('#f_payment_status').val())?$('#f_payment_status').val():'';}},
+            ajax:{url:ROUTE_DATATABLE,dataSrc:function(json){Object.entries(json.summary||{}).forEach(([key,value])=>$('#activitySummary [data-summary="'+key+'"]').text(Number(value).toLocaleString('en-US',{maximumFractionDigits:2})));return json.data;},data:function(d){d.created_by=$('#f_created_by').val();d.from_date=$('#f_from_date').val();d.to_date=$('#f_to_date').val();d.status=@json($showStatus)?($('#f_status').val()||'all'):'all';d.payment_status=['unpaid','waiting_for_payment'].includes($('#f_payment_status').val())?$('#f_payment_status').val():'';}},
             columns:[
                 {data:'select',orderable:false,searchable:false},
                 {data:'DT_RowIndex',orderable:false,searchable:false},
@@ -312,11 +316,11 @@
 
         
 
-        if(!['pending','rejected'].includes($('#f_status').val())) $('#f_status').val('pending');
+        if(!['all','pending','approved','rejected'].includes($('#f_status').val())) $('#f_status').val('all');
         $('#f_created_by,#f_from_date,#f_to_date,@if($showStatus)#f_status,@endif #f_payment_status').on('change',function(){ if(window.CrmPersistentFilters) window.CrmPersistentFilters.saveNow(); table.ajax.reload(null, false); });
         $('#f_date_reset').on('click',function(){
             $('#f_created_by,#f_from_date,#f_to_date,#f_payment_status').val('').trigger('change.select2');
-            $('#f_status').val('pending').trigger('change.select2');
+            $('#f_status').val('all').trigger('change.select2');
             if (window.CrmPersistentFilters) window.CrmPersistentFilters.clearCurrentPage();
             table.ajax.reload();
         });

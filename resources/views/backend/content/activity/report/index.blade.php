@@ -5,6 +5,13 @@
 @endsection
 
 @section('maincontent')
+<style>
+.report-table-wrapper,.tour-table-wrap,.table-responsive{max-width:100%;overflow-x:auto}
+#reportTable,.tour-report-table{width:100%;table-layout:fixed;min-width:1100px}
+#reportTable th,#reportTable td,.tour-report-table th,.tour-report-table td,.table-responsive th,.table-responsive td{white-space:normal;overflow-wrap:anywhere;word-wrap:break-word;vertical-align:top}
+#reportTable td div,.tour-report-table td div{max-width:100%;white-space:normal!important;overflow-wrap:anywhere}
+</style>
+
 
 @php
     $reportSavedFilters = session('crm_filter_sessions.'.md5(trim(request()->path(), '/')), []);
@@ -72,11 +79,13 @@
     }
 
     #reportTable {
-        min-width: 1500px;
+        min-width: 1200px;
+        width:100%;
+        table-layout:fixed;
     }
 
     #reportTable th {
-        white-space: nowrap;
+        white-space: normal;
         font-size: 12px;
         background: #f8fafc;
     }
@@ -333,7 +342,7 @@
                 <div class="card summary-card">
                     <div class="card-body">
                         <div class="summary-label">
-                            TA Payable
+                            TA (Claimed)
                         </div>
 
                         <div
@@ -350,7 +359,7 @@
                 <div class="card summary-card">
                     <div class="card-body">
                         <div class="summary-label">
-                            DA Hotel and Others
+                            DA / Hotel / Others (Claimed)
                         </div>
 
                         <div

@@ -129,7 +129,12 @@
             color:#64748b;
             font-size:9px;
         }
-    </style>
+    
+ table{table-layout:fixed;max-width:100%}
+ th,td{white-space:normal!important;word-wrap:break-word;overflow-wrap:break-word}
+ td p,td div,td span,td a{white-space:normal!important;word-wrap:break-word}
+ td img{max-width:100%;height:auto}
+ </style>
 </head>
 
 <body>

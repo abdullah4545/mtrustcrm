@@ -1,6 +1,13 @@
 @extends('backend.master')
 @section('title', ($business?->business_name ?? 'Medi Trust Solution').' - '.($mode==='tour'?'Tour Report':'Activity Sort List'))
 @section('maincontent')
+<style>
+.report-table-wrapper,.tour-table-wrap,.table-responsive{max-width:100%;overflow-x:auto}
+#reportTable,.tour-report-table{width:100%;table-layout:fixed;min-width:1100px}
+#reportTable th,#reportTable td,.tour-report-table th,.tour-report-table td,.table-responsive th,.table-responsive td{white-space:normal;overflow-wrap:anywhere;word-wrap:break-word;vertical-align:top}
+#reportTable td div,.tour-report-table td div{max-width:100%;white-space:normal!important;overflow-wrap:anywhere}
+</style>
+
 @php
     $saved = session('crm_filter_sessions.'.md5(trim(request()->path(), '/')), []);
     $rf = function ($id, $default = '') use ($saved) {
@@ -35,7 +42,7 @@
 @endif
 <div class="col-12 d-flex gap-2"><button class="btn btn-primary" type="submit">Generate Report</button><button class="btn btn-light" type="button" id="btnReset">Reset</button></div>
 </div></form></div></div>
-<div class="row g-3 mb-3"><div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">{{ $isTour?'Total Tours':'Total Activities' }}</small><h3 id="count">0</h3></div></div></div><div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">TA Payable</small><h3 id="ta">0.00</h3></div></div></div><div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">DA Hotel and Others</small><h3 id="da">0.00</h3></div></div></div><div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">Total Payable</small><h3 id="total">0.00</h3></div></div></div></div>
+<div class="row g-3 mb-3"><div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">{{ $isTour?'Total Tours':'Total Activities' }}</small><h3 id="count">0</h3></div></div></div><div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">TA (Claimed)</small><h3 id="ta">0.00</h3></div></div></div><div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">DA / Hotel / Others (Claimed)</small><h3 id="da">0.00</h3></div></div></div><div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">Total Payable</small><h3 id="total">0.00</h3></div></div></div></div>
 <div class="card"><div class="card-header d-flex justify-content-between flex-wrap gap-2"><h5 class="mb-0">{{ $isTour?'Tour Report':'Activity Sort List' }}</h5><div class="d-flex gap-2"><button id="excel" class="btn btn-success">Excel</button><button id="pdf" class="btn btn-danger">PDF</button><button id="print" class="btn btn-dark">Print</button></div></div><div class="card-body p-0"><div class="tour-table-wrap"><table class="table table-bordered mb-0 tour-report-table"><thead id="thead"></thead><tbody id="tbody"></tbody></table></div></div></div>
 </div></div>
 @endsection

@@ -1,6 +1,14 @@
 @extends('backend.master')
 @section('title','Sales Report')
 @section('maincontent')
+<style>
+.report-table-wrapper,.tour-table-wrap,.table-responsive{max-width:100%;overflow-x:auto}
+#reportTable,.tour-report-table{width:100%;table-layout:fixed;min-width:1100px}
+#reportTable th,#reportTable td,.tour-report-table th,.tour-report-table td,.table-responsive th,.table-responsive td{white-space:normal;overflow-wrap:anywhere;word-wrap:break-word;vertical-align:top}
+#reportTable td div,.tour-report-table td div{max-width:100%;white-space:normal!important;overflow-wrap:anywhere}
+.table-responsive table{width:100%;table-layout:fixed;min-width:1000px}
+</style>
+
 <div class="nxl-content"><div class="page-header"><div class="page-header-title"><h5>Sales Report</h5></div></div></div>
 <div class="main-content">
 <form class="card card-body mb-3" method="GET"><div class="row g-2"><div class="col-md-4"><label>Organization</label><select name="organization_id" class="form-control"><option value="">All Organizations</option>@foreach($organizations as $organization)<option value="{{ $organization->id }}" @selected((string)request('organization_id')===(string)$organization->id)>{{ $organization->name }}</option>@endforeach</select></div><div class="col-md-4"><label>From</label><input type="date" name="from" value="{{ $from }}" class="form-control"></div><div class="col-md-4"><label>To</label><input type="date" name="to" value="{{ $to }}" class="form-control"></div>@can('staff.filter')<div class="col-md-3"><label>Staff</label><select name="user_id" class="form-control"><option value="">All Staff</option>@foreach($staffs as $staff)<option value="{{ $staff->id }}" @selected((string)request('user_id')===(string)$staff->id)>{{ $staff->name }}</option>@endforeach</select></div>@endcan<div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary w-100">Apply</button></div></div><button type="submit" name="export" value="csv" class="btn btn-success mt-2">Export CSV (all filtered records)</button></form>

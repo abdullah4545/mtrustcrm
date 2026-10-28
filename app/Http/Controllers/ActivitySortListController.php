@@ -31,8 +31,9 @@ class ActivitySortListController extends Controller
         'organization_name' => 'Name of Organ.',
         'from_location'     => 'From → To',
         'work_details'      => 'Vis. Output',
-        'ta'                => 'TA Payable',
-        'da'                => 'DA Hotel and Others',
+        'ta'                => 'TA (Claimed)',
+        'da'                => 'DA / Hotel / Others (Claimed)',
+        'deducted_total'    => 'Deduct Amount',
         'total'             => 'Total Payable',
         'remarks'           => 'Remarks',
         'status'            => 'Status',
@@ -42,7 +43,7 @@ class ActivitySortListController extends Controller
     ];
 
     
-    private const DEFAULT_COLUMNS = ['serial','date','organization_name','from_location','work_details','ta','da','total','remarks'];
+    private const DEFAULT_COLUMNS = ['serial','date','organization_name','from_location','work_details','ta','da','deducted_total','total','remarks'];
 
     public function index(Request $request)
     {
@@ -110,11 +111,11 @@ class ActivitySortListController extends Controller
                 'claimed_total'=>number_format((float)$activities->sum('claimed_total'),2),
                 'deducted_total'=>number_format((float)$activities->sum('deducted_total'),2),
                 'total_ta'       => number_format(
-                    (float) $activities->sum('ta'),
+                    (float) $activities->sum(fn($a) => \App\Support\ActivityDisplay::reportAmount($a, 'ta')),
                     2
                 ),
                 'total_da'       => number_format(
-                    (float) $activities->sum('da'),
+                    (float) $activities->sum(fn($a) => \App\Support\ActivityDisplay::reportAmount($a, 'da')),
                     2
                 ),
                 'grand_total'    => number_format(
@@ -157,8 +158,8 @@ class ActivitySortListController extends Controller
             'columnLabels'=> self::AVAILABLE_COLUMNS,
             'fromDate'    => $fromDate,
             'toDate'      => $toDate,
-            'totalTa'     => $activities->sum('ta'),
-            'totalDa'     => $activities->sum('da'),
+            'totalTa'     => $activities->sum(fn($a) => \App\Support\ActivityDisplay::reportAmount($a, 'ta')),
+            'totalDa'     => $activities->sum(fn($a) => \App\Support\ActivityDisplay::reportAmount($a, 'da')),
             'grandTotal'  => $activities->sum('total'),
             'statusFilter'=> $validated['status'] ?? null,
         ]);
@@ -200,8 +201,8 @@ class ActivitySortListController extends Controller
             'toDate'      => !empty($validated['to_date'])
                 ? Carbon::parse($validated['to_date'])->format('d-m-Y')
                 : null,
-            'totalTa'     => $activities->sum('ta'),
-            'totalDa'     => $activities->sum('da'),
+            'totalTa'     => $activities->sum(fn($a) => \App\Support\ActivityDisplay::reportAmount($a, 'ta')),
+            'totalDa'     => $activities->sum(fn($a) => \App\Support\ActivityDisplay::reportAmount($a, 'da')),
             'grandTotal'  => $activities->sum('total'),
             'statusFilter'=> $validated['status'] ?? null,
         ]);
@@ -367,6 +368,8 @@ class ActivitySortListController extends Controller
             )
         );
 
+        $validColumns = \App\Support\ActivityDisplay::reportColumns($validColumns);
+
         return !empty($validColumns)
             ? $validColumns
             : self::DEFAULT_COLUMNS;
@@ -405,7 +408,7 @@ class ActivitySortListController extends Controller
                 'claimed_total',
                 'deducted_total',
                 'total' => number_format(
-                    (float) $activity->{$column},
+                    \App\Support\ActivityDisplay::reportAmount($activity, $column),
                     2
                 ),
 

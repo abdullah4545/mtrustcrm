@@ -2,7 +2,12 @@
 <html><head><meta charset="utf-8"><title>Invoice - {{ $sale->invoice_no }}</title>
 <style>
 @page{size:A4;margin:104px 38px 118px 38px}*{font-family:DejaVu Sans,sans-serif;box-sizing:border-box}body{font-size:10.5px;color:#21384d;margin:0}.doc-head{width:100%;margin:0 0 14px;border-bottom:2px solid #0b73c9;padding-bottom:9px}.doc-title{font-size:20px;font-weight:800;letter-spacing:1px;color:#17324d}.doc-no{font-size:11px;color:#ef1b2d;font-weight:700}.meta{width:100%;border-collapse:collapse;margin-bottom:13px}.meta td{border:0;padding:2px 0;vertical-align:top}.right{text-align:right}.center{text-align:center}.muted{color:#6e8091}.bill-box{border:1px solid #dfe9f2;background:rgba(255,255,255,.94);padding:10px 12px;margin-bottom:14px}.label{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#718096;font-weight:700;margin-bottom:5px}.client{font-size:12px;font-weight:800;color:#17324d}.status{display:inline-block;padding:3px 7px;border:1px solid #d9e5ef;border-radius:99px;background:#fff;font-size:9px;margin-left:4px}.items{width:100%;border-collapse:collapse;margin-bottom:12px}.items thead{display:table-header-group}.items tr{page-break-inside:avoid}.items th{background:#0b73c9;color:#fff;font-weight:700;padding:7px 6px;border:1px solid #0b73c9}.items td{padding:7px 6px;border:1px solid #dfe7ef;vertical-align:top}.items tbody tr:nth-child(even){background:#f8fbfe}.amount{text-align:right;white-space:nowrap}.summary{width:42%;margin-left:auto;border-collapse:collapse}.summary td{border:0;padding:3px 5px}.summary .k{color:#66798c}.summary .grand td{border-top:1px solid #cfdbe6;padding-top:7px;font-size:12px;font-weight:800}.summary .grand .amount{color:#ef1b2d}.section{margin-top:12px;border-top:1px solid #dfe7ef;padding-top:8px}.section-title{font-size:9px;text-transform:uppercase;letter-spacing:.08em;font-weight:800;color:#0b73c9;margin-bottom:4px}.payment{margin-top:12px;width:100%;border-collapse:collapse}.payment th{background:#f3f7fb;color:#5a6f83}.payment th,.payment td{border:1px solid #dfe7ef;padding:6px}.signature{margin-top:30px;width:100%}.signature td{border:0;width:50%;padding-top:25px}.sig-line{border-top:1px solid #8595a4;width:170px;padding-top:5px;font-size:9px;color:#657789}
-</style></head><body>
+
+ table{table-layout:fixed;max-width:100%}
+ th,td{white-space:normal!important;word-wrap:break-word;overflow-wrap:break-word}
+ td p,td div,td span,td a{white-space:normal!important;word-wrap:break-word}
+ td img{max-width:100%;height:auto}
+ </style></head><body>
 @php
 $money=fn($v)=>number_format((float)$v,2);$bdDate=fn($dt)=>$dt?\Carbon\Carbon::parse($dt)->timezone('Asia/Dhaka')->format('d M Y'):'-';
 @endphp

@@ -99,7 +99,7 @@
 
         .number-cell {
             text-align: right;
-            white-space: nowrap;
+            white-space: normal;
         }
 
         .serial-cell {
@@ -190,6 +190,9 @@
         }
     .column-serial{width:4%}.column-date{width:12%}.column-organization_name{width:19%}.column-from_location{width:27%}.column-work_details{width:13%}.column-ta{width:6%}.column-da{width:7%}.column-total{width:7%}.column-remarks{width:5%}
         .crm-route{line-height:1.7;white-space:normal}.badge{display:inline-block;padding:2px 4px;border-radius:4px;background:#edf3f8;color:#17324d;font-size:8px}.text-muted{color:#66788a}small{font-size:8px}
+        th,td { white-space:normal; word-wrap:break-word; overflow-wrap:break-word; }
+        td div,td span,td small { white-space:normal !important; word-wrap:break-word; }
+        .column-deducted_total { width:8%; }
     </style>
 </head>
 
@@ -219,6 +222,8 @@
         ' To ' .
         ($toDate ?? 'Today');
 
+    $columnWeights = ['serial'=>3,'date'=>10,'organization_name'=>17,'from_location'=>23,'work_details'=>14,'ta'=>8,'da'=>9,'deducted_total'=>8,'total'=>9,'remarks'=>10];
+    $totalWeight = array_sum(array_map(fn($column) => $columnWeights[$column] ?? 10, $columns)) ?: 1;
     $numericColumns = [
         'ta',
         'da',
@@ -259,7 +264,7 @@
     <thead>
         <tr>
             @foreach($columns as $column)
-                <th class="column-{{ $column }}">
+                <th class="column-{{ $column }}" style="width:{{ round(($columnWeights[$column] ?? 10) * 100 / $totalWeight, 3) }}%">
                     {{ $columnLabels[$column] ?? $column }}
                 </th>
             @endforeach
@@ -294,7 +299,7 @@
                             'claimed_total',
                             'deducted_total',
                             'total' => number_format(
-                                (float) $activity->{$column},
+                                \App\Support\ActivityDisplay::reportAmount($activity, $column),
                                 2
                             ),
 
@@ -364,9 +369,7 @@
                 <td
                     class="{{ in_array($column, $numericColumns, true) ? 'number-cell' : '' }}"
                 >
-                    @if($index === 0)
-                        Total Amount
-                    @elseif($column === 'ta')
+                    @if($column === 'ta')
                         {{ number_format((float) $totalTa, 2) }}Tk
                     @elseif($column === 'da')
                         {{ number_format((float) $totalDa, 2) }}Tk
@@ -374,6 +377,8 @@
                         {{ number_format((float)$activities->sum($column),2) }}Tk
                     @elseif($column === 'total')
                         {{ number_format((float) $grandTotal, 2) }}Tk
+                    @elseif($index === 0)
+                        Total Amount
                     @endif
                 </td>
             @endforeach

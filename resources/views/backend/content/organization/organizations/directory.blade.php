@@ -36,7 +36,9 @@ body{max-width:850px;margin:24px auto;padding:0 20px;font-size:12px}.organizatio
 <div class="company">{{ $business?->business_name ?? 'Medi Trust Solution' }}</div>
 <h1>Hospital / Organization Directory</h1>
 <div class="meta">Total records: <strong>{{ number_format($organizations->count()) }}</strong> &nbsp; | &nbsp; Generated: {{ now('Asia/Dhaka')->format('d M Y, h:i A') }}</div>
-@if(count($filterLabels))<div class="filters"><strong>Selected filters:</strong> {{ implode(' · ', $filterLabels) }}</div>@else<div class="meta">All accessible organizations</div>@endif
+@if(count($filterLabels))<div class="filters"><strong>Selected filters:</strong> {{ implode(' · ', $filterLabels) }}</div>
+@else<div class="meta">All accessible organizations</div>
+@endif
 </header>
 @forelse($organizations as $organization)
 @php
@@ -47,16 +49,28 @@ body{max-width:850px;margin:24px auto;padding:0 20px;font-size:12px}.organizatio
 @endphp
 <article class="organization">
 <h2><span class="serial">{{ $loop->iteration }}.</span> {{ $organization->name }}</h2>
-<p><span class="label">Address:</span> {{ $organization->address ?: 'Not provided' }}@if($location) <span class="muted">({{ $location }})</span>@endif</p>
+<p><span class="label">Address:</span> {{ $organization->address ?: 'Not provided' }}
+@if($location) <span class="muted">({{ $location }})</span>
+@endif</p>
 @if($classification || $organization->no_of_beds)
-<p>@if($classification)<span class="label">Category / Type:</span> {{ $classification }}@endif &nbsp; <span class="label">Beds:</span> {{ $organization->no_of_beds ?? 'Not provided' }}</p>
+<p>
+@if($classification)<span class="label">Category / Type:</span> {{ $classification }}
+@endif &nbsp; <span class="label">Beds:</span> {{ $organization->no_of_beds ?? 'Not provided' }}</p>
 @endif
-@if($phones || $emails)<p>@if($phones)<span class="label">Phone:</span> {{ $phones }}@endif @if($emails) &nbsp; <span class="label">Email:</span> {{ $emails }}@endif</p>@endif
+@if($phones || $emails)<p>
+@if($phones)<span class="label">Phone:</span> {{ $phones }}
+@endif 
+@if($emails) &nbsp; <span class="label">Email:</span> {{ $emails }}
+@endif</p>
+@endif
 <p><span class="label">Status:</span> {{ ucfirst($organization->status ?? '-') }} &nbsp; <span class="label">DGHS Facility ID:</span> {{ $organization->dghs_facility_id ?: 'Not provided' }}</p>
 <p><span class="label">Division:</span> {{ $organization->division?->name ?? '-' }} · <span class="label">District:</span> {{ $organization->district?->name ?? '-' }} · <span class="label">Upazila:</span> {{ $organization->upazila?->name ?? '-' }} · <span class="label">Union:</span> {{ $organization->union?->name ?? '-' }}</p>
-@if($organization->map_location_link)<p><span class="label">Map Location:</span> {{ $organization->map_location_link }}</p>@endif
-@if($organization->latitude !== null || $organization->longitude !== null)<p><span class="label">Coordinates:</span> {{ $organization->latitude ?? '-' }}, {{ $organization->longitude ?? '-' }}</p>@endif
-@if($organization->website)<p><span class="label">Website:</span> {{ $organization->website }}</p>@endif
+@if($organization->map_location_link)<p><span class="label">Map Location:</span> {{ $organization->map_location_link }}</p>
+@endif
+@if($organization->latitude !== null || $organization->longitude !== null)<p><span class="label">Coordinates:</span> {{ $organization->latitude ?? '-' }}, {{ $organization->longitude ?? '-' }}</p>
+@endif
+@if($organization->website)<p><span class="label">Website:</span> {{ $organization->website }}</p>
+@endif
 <div class="profile-section"><span class="label">Existing Machine</span><div>{!! nl2br(e($directoryText($organization->existing_machine) ?: 'Not provided')) !!}</div></div>
 <div class="profile-section"><span class="label">About Organization</span><div>{!! nl2br(e($directoryText($organization->about_us) ?: 'Not provided')) !!}</div></div>
 <div class="profile-section"><span class="label">Notes</span><div>{!! nl2br(e($directoryText($organization->notes) ?: 'Not provided')) !!}</div></div>
@@ -68,14 +82,20 @@ body{max-width:850px;margin:24px auto;padding:0 20px;font-size:12px}.organizatio
     $cardImage = $directoryImage($contact->image_url);
 @endphp
 <div class="contact-block">
-<p class="contact"><span class="label">{{ $loop->iteration }}. {{ $contact->title }} {{ $contact->name ?: trim(($contact->first_name ?? '').' '.($contact->last_name ?? '')) ?: 'Name not provided' }}</span>@if($contact->is_primary) · Primary Contact@endif</p>
+<p class="contact"><span class="label">{{ $loop->iteration }}. {{ $contact->title }} {{ $contact->name ?: trim(($contact->first_name ?? '').' '.($contact->last_name ?? '')) ?: 'Name not provided' }}</span>
+@if($contact->is_primary) · Primary Contact
+@endif</p>
 <p class="contact"><span class="label">Department:</span> {{ $contact->department?->title ?? '-' }} · <span class="label">Designation:</span> {{ $contact->designation?->title ?? '-' }} · <span class="label">Status:</span> {{ ucfirst($contact->status ?? '-') }}</p>
 <p class="contact"><span class="label">Phone:</span> {{ $contactPhones ?: 'Not provided' }} · <span class="label">Email:</span> {{ $contactEmails ?: 'Not provided' }}</p>
 <p class="contact"><span class="label">Address:</span> {{ $contact->address ?: 'Not provided' }}</p>
-@if($contact->additional_info)<p class="contact"><span class="label">Additional Info:</span> {!! nl2br(e($directoryText($contact->additional_info))) !!}</p>@endif
-@if($cardImage)<p class="contact"><span class="label">Visiting Card:</span><br><img class="visiting-card" src="{{ $cardImage }}" alt="Visiting card"></p>@elseif($contact->image_url)<p class="contact"><span class="label">Visiting Card:</span> {{ $contact->image_url }}</p>@endif
+@if($contact->additional_info)<p class="contact"><span class="label">Additional Info:</span> {!! nl2br(e($directoryText($contact->additional_info))) !!}</p>
+@endif
+@if($cardImage)<p class="contact"><span class="label">Visiting Card:</span><br><img class="visiting-card" src="{{ $cardImage }}" alt="Visiting card"></p>
+@elseif($contact->image_url)<p class="contact"><span class="label">Visiting Card:</span> {{ $contact->image_url }}</p>
+@endif
 </div>
-@empty<p class="contact muted">No contact persons recorded.</p>@endforelse
+@empty<p class="contact muted">No contact persons recorded.</p>
+@endforelse
 <p class="metadata">Reference: #{{ $organization->id }} · Created By: {{ $organization->creator?->name ?? '-' }} · Created: {{ $organization->created_at?->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?? '-' }} · Updated: {{ $organization->updated_at?->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?? '-' }}</p>
 </article>
 @empty

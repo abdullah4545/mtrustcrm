@@ -32,7 +32,7 @@ class OrganizationController extends Controller
     {
         $this->middleware('auth');
         $this->middleware('permission:org.view')->only([
-            'index','datatable','show','profile','companyProfilePdfView','companyProfileDownload'
+            'index','datatable','show','profile','companyProfilePdfView','companyProfileDownload','directoryExport'
         ]);
         $this->middleware('permission:org.details.view')->only(['history']);
         $this->middleware('permission:org.create')->only(['store','quickCreate','quickStore']);
@@ -215,21 +215,15 @@ class OrganizationController extends Controller
         }
     }
 
-    public function datatable(Request $request)
+    private function applyDirectoryFilters($q, Request $request): void
     {
-        $q = CrmAccess::applyOrganizationScope(Organization::query())
-            ->with(['category:id,name','type:id,name','division:id,name','district:id,name','upazila:id,name','union:id,name','creator:id,name'])
-            ->select('organizations.*')
-            ->withCount(['activities','leads','sales'])
-            ->selectSub(function ($sub) {
-                $sub->from('lead_activities')
-                    ->join('leads', 'leads.id', '=', 'lead_activities.lead_id')
-                    ->whereColumn('leads.organization_id', 'organizations.id')
-                    ->whereNull('leads.deleted_at')
-                    ->selectRaw('COUNT(*)');
-            }, 'followups_count')
-            ->latest();
-
+        $request->validate([
+            'organization_category_id' => 'nullable|integer', 'organization_type_id' => 'nullable|integer',
+            'division_id' => 'nullable|integer', 'district_id' => 'nullable|integer',
+            'upazila_id' => 'nullable|integer', 'union_id' => 'nullable|integer', 'created_by' => 'nullable|integer',
+            'name' => 'nullable|string|max:255', 'address' => 'nullable|string|max:500',
+            'search.value' => 'nullable|string|max:255',
+        ]);
         // ✅ Filters
         if($request->filled('organization_category_id')) $q->where('organization_category_id', $request->organization_category_id);
         if($request->filled('organization_type_id'))     $q->where('organization_type_id', $request->organization_type_id);
@@ -247,7 +241,68 @@ class OrganizationController extends Controller
             $q->where('address', 'like', '%'.$request->address.'%');
         }
 
+
+        $search = trim((string)$request->input('search.value', ''));
+        if ($search !== '') {
+            $q->where(function ($query) use ($search) {
+                $query->where('name', 'like', '%'.$search.'%')
+                    ->orWhere('address', 'like', '%'.$search.'%')
+                    ->orWhere('phone_primary', 'like', '%'.$search.'%')
+                    ->orWhere('email', 'like', '%'.$search.'%')
+                    ->orWhere('dghs_facility_id', 'like', '%'.$search.'%');
+            });
+        }
+    }
+
+    public function directoryExport(Request $request)
+    {
+        $request->validate(['format' => 'required|in:pdf,print']);
+        $query = CrmAccess::applyOrganizationScope(Organization::query())
+            ->with(['category:id,name','type:id,name','division:id,name','district:id,name','upazila:id,name','union:id,name','contacts.designation:id,title']);
+        $this->applyDirectoryFilters($query, $request);
+        // Export the complete filtered dataset, independently of the list's current page.
+        $organizations = $query->orderBy('name')->orderBy('id')->get();
+        $business = \App\Models\Business::first();
+        $filterLabels = [];
+        foreach (['name' => 'Name', 'address' => 'Address'] as $key => $label) {
+            if ($request->filled($key)) $filterLabels[] = $label.': '.$request->input($key);
+        }
+        foreach (['organization_category_id' => [OrganizationCategory::class, 'Category'], 'organization_type_id' => [OrganizationType::class, 'Type'], 'division_id' => [Division::class, 'Division'], 'district_id' => [District::class, 'District'], 'upazila_id' => [Upazila::class, 'Upazila'], 'union_id' => [Union::class, 'Union']] as $key => [$model, $label]) {
+            if ($request->filled($key)) {
+                $name = $model::whereKey($request->integer($key))->value('name');
+                if ($name) $filterLabels[] = $label.': '.$name;
+            }
+        }
+        if (auth()->user()->can('staff.filter') && $request->filled('created_by')) {
+            $filterLabels[] = 'Created By: '.(User::whereKey($request->integer('created_by'))->value('name') ?? '-');
+        }
+        if ($request->filled('search.value')) $filterLabels[] = 'Search: '.$request->input('search.value');
+        $isPrint = $request->input('format') === 'print';
+        $data = compact('organizations', 'business', 'filterLabels', 'isPrint');
+        if ($isPrint) return view('backend.content.organization.organizations.directory', $data);
+        return Pdf::loadView('backend.content.organization.organizations.directory', $data)
+            ->setPaper('a4', 'portrait')->download('hospital-organization-list-'.now()->format('Y-m-d').'.pdf');
+    }
+
+    public function datatable(Request $request)
+    {
+        $q = CrmAccess::applyOrganizationScope(Organization::query())
+            ->with(['category:id,name','type:id,name','division:id,name','district:id,name','upazila:id,name','union:id,name','creator:id,name'])
+            ->select('organizations.*')
+            ->withCount(['activities','leads','sales'])
+            ->selectSub(function ($sub) {
+                $sub->from('lead_activities')
+                    ->join('leads', 'leads.id', '=', 'lead_activities.lead_id')
+                    ->whereColumn('leads.organization_id', 'organizations.id')
+                    ->whereNull('leads.deleted_at')
+                    ->selectRaw('COUNT(*)');
+            }, 'followups_count')
+            ->latest();
+
+        $this->applyDirectoryFilters($q, $request);
+
         return DataTables::of($q)
+            ->filter(function ($query) {}) // Shared filtering above also handles global search for exports.
             ->addIndexColumn()
             ->editColumn('name', function($row){
                 $name = auth()->user()->can('org.details.view') ? '<a class="fw-semibold" href="'.route('org.contacts.index',$row->id).'">'.e($row->name).'</a>' : e($row->name);

@@ -20,7 +20,9 @@
             </ul>
             </div>
         </div>  
-        <div class="d-flex gap-2 align-items-center"> 
+        <div class="d-flex gap-2 align-items-center flex-wrap"> 
+            <button type="button" class="btn btn-danger org-directory-export" data-format="pdf"><i class="feather-download"></i> PDF List</button>
+            <button type="button" class="btn btn-dark org-directory-export" data-format="print"><i class="feather-printer"></i> Print List</button>
             {{-- FILTER BUTTON --}}
             <button class="btn btn-outline-secondary"
                     data-bs-toggle="offcanvas"
@@ -78,6 +80,7 @@
     </div>
 
     <div class="offcanvas-body">
+        <div class="alert alert-light border small">Filter by address or Division / District / Upazila, and choose a Category / Type if needed. PDF List and Print List include every matching organization, across all pages.</div>
 
         <div class="row g-2">
 
@@ -289,6 +292,18 @@ $(document).ready(function(){
 
   
 
+    function organizationFilters(){
+        return {organization_category_id:$('#f_category').val()||'',organization_type_id:$('#f_type').val()||'',name:$('#f_name').val()||'',address:$('#f_address').val()||'',division_id:$('#f_division').val()||'',district_id:$('#f_district').val()||'',upazila_id:$('#f_upazila').val()||'',union_id:$('#f_union').val()||'',created_by:$('#f_created_by').val()||''};
+    }
+    $('.org-directory-export').on('click',function(){
+        const params = new URLSearchParams(organizationFilters());
+        params.set('format',$(this).data('format'));
+        params.set('search[value]',table.search()||'');
+        const url=@json(route('org.manage.directory-export'))+'?'+params.toString();
+        if($(this).data('format')==='print') window.open(url,'_blank','noopener');
+        else window.location.assign(url);
+    });
+
     // ✅ DataTable
     table = $('#orgTable').DataTable({
         pageLength: 10,
@@ -297,17 +312,7 @@ $(document).ready(function(){
         serverSide:true,
         ajax:{
             url: ROUTE_DATATABLE,
-            data: function(d){
-                d.organization_category_id = $('#f_category').val();
-                d.organization_type_id     = $('#f_type').val();
-                d.name                     = $('#f_name').val();
-                d.address                  = $('#f_address').val();
-                d.division_id              = $('#f_division').val();
-                d.district_id              = $('#f_district').val();
-                d.upazila_id               = $('#f_upazila').val();
-                d.union_id                 = $('#f_union').val();
-                d.created_by               = $('#f_created_by').val();
-            }
+            data: function(d){ Object.assign(d,organizationFilters()); }
         },
         columns:[
             {data:'DT_RowIndex', orderable:false, searchable:false},

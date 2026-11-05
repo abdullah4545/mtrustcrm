@@ -5,6 +5,7 @@
 @endsection
 
 @section('maincontent')
+@include('backend.partials.report-compact-summary')
 <style>
 .report-table-wrapper,.tour-table-wrap,.table-responsive{max-width:100%;overflow-x:auto}
 #reportTable,.tour-report-table{width:100%;table-layout:fixed;min-width:1100px}
@@ -291,24 +292,9 @@
                                     Generate Report
                                 </button>
 
-                                <button
-                                    type="button"
-                                    class="btn btn-light"
-                                    id="btnReset"
-                                >
-                                    <i class="feather-rotate-ccw"></i>
-                                    Reset
-                                </button>
+                                
 
-                                <button
-                                    type="button"
-                                    class="btn btn-outline-secondary"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#columnModal"
-                                >
-                                    <i class="feather-columns"></i>
-                                    Fields
-                                </button>
+                                
                             </div>
                         </div>
 
@@ -319,7 +305,7 @@
         </div>
 
         {{-- Summary --}}
-        <div class="row g-3 mb-3">
+        <div class="row g-3 mb-3 report-compact-summary">
 
             <div class="col-lg-3 col-md-6">
                 <div class="card summary-card">
@@ -477,109 +463,6 @@
 
 @endsection
 
-@push('modals')
-
-<div
-    class="modal fade"
-    id="columnModal"
-    tabindex="-1"
-    aria-hidden="true"
->
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    Select Report Fields
-                </h5>
-
-                <button
-                    type="button"
-                    class="btn-close"
-                    data-bs-dismiss="modal"
-                ></button>
-            </div>
-
-            <div class="modal-body">
-
-                <div
-                    class="d-flex justify-content-between mb-3"
-                >
-                    <button
-                        type="button"
-                        class="btn btn-sm btn-outline-primary"
-                        id="btnSelectAllFields"
-                    >
-                        Select All
-                    </button>
-
-                    <button
-                        type="button"
-                        class="btn btn-sm btn-outline-secondary"
-                        id="btnDefaultFields"
-                    >
-                        PDF Default Fields
-                    </button>
-                </div>
-
-                <div class="column-box">
-                    <div class="row g-2">
-
-                        @foreach(
-                            $availableColumns as $key => $label
-                        )
-                            @if($key !== 'status' || $canViewStatus)
-                            <div class="col-md-4 col-sm-6">
-                                <div class="form-check">
-                                    <input
-                                        class="form-check-input report-column"
-                                        type="checkbox"
-                                        name="columns[]"
-                                        value="{{ $key }}"
-                                        id="column_{{ $key }}"
-                                        {{ in_array($key, $defaultColumns, true) ? 'checked' : '' }}
-                                    >
-
-                                    <label
-                                        class="form-check-label"
-                                        for="column_{{ $key }}"
-                                    >
-                                        {{ $label }}
-                                    </label>
-                                </div>
-                            </div>
-                            @endif
-                        @endforeach
-
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="modal-footer">
-                <button
-                    type="button"
-                    class="btn btn-light"
-                    data-bs-dismiss="modal"
-                >
-                    Close
-                </button>
-
-                <button
-                    type="button"
-                    class="btn btn-primary"
-                    id="btnApplyFields"
-                >
-                    Apply Fields
-                </button>
-            </div>
-
-        </div>
-    </div>
-</div>
-
-@endpush
-
 @push('scripts')
 
 
@@ -650,11 +533,7 @@
     }
 
     function selectedColumns() {
-        return $('.report-column:checked')
-            .map(function () {
-                return $(this).val();
-            })
-            .get();
+        return DEFAULT_COLUMNS.slice();
     }
 
     function reportParameters() {
@@ -708,73 +587,6 @@
     $('#reportFilterForm').on('submit', function (event) {
         event.preventDefault();
         if (window.CrmPersistentFilters) window.CrmPersistentFilters.saveNow();
-        loadReport();
-    });
-
-    $('#btnApplyFields').on('click', function () {
-        if (selectedColumns().length === 0) {
-            Swal.fire(
-                'Field Required',
-                'Please select at least one report field.',
-                'warning'
-            );
-
-            return;
-        }
-
-        const modalElement =
-            document.getElementById('columnModal');
-
-        const modal =
-            bootstrap.Modal.getInstance(modalElement);
-
-        modal.hide();
-
-        loadReport();
-    });
-
-    $('#btnSelectAllFields').on('click', function () {
-        $('.report-column').prop('checked', true);
-    });
-
-    $('#btnDefaultFields').on('click', function () {
-        $('.report-column').prop('checked', false);
-
-        DEFAULT_COLUMNS.forEach(function (column) {
-            $('#column_' + column).prop('checked', true);
-        });
-    });
-
-    $('#btnReset').on('click', function () {
-        $('#from_date').val(
-            @json(now()->startOfMonth()->format('Y-m-d'))
-        );
-
-        $('#to_date').val(
-            @json(now()->format('Y-m-d'))
-        );
-
-        $('#created_by')
-            .val('')
-            .trigger('change');
-
-        @if($canViewStatus)
-        $('#status').val('').trigger('change.select2');
-        @endif
-        $('#payment_status').val('');
-
-        $('#organization_id')
-            .val('')
-            .trigger('change');
-
-        $('#branch_id').val(null).trigger('change.select2');
-
-        $('.report-column').prop('checked', false);
-
-        DEFAULT_COLUMNS.forEach(function (column) {
-            $('#column_' + column).prop('checked', true);
-        });
-
         loadReport();
     });
 

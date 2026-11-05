@@ -365,6 +365,7 @@ Route::middleware('auth')->group(function () {
 
         // organization
         Route::get('manage', [OrganizationController::class, 'index'])->name('org.manage.index');
+        Route::get('manage/directory-export', [OrganizationController::class, 'directoryExport'])->name('org.manage.directory-export');
         Route::get('manage/datatable', [OrganizationController::class, 'datatable'])->name('org.manage.datatable');
         Route::post('manage/import/upload', [OrganizationImportController::class, 'upload'])->name('org.manage.import.upload');
         Route::post('manage/import/process', [OrganizationImportController::class, 'process'])->name('org.manage.import.process');

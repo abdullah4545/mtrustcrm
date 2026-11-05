@@ -1,6 +1,7 @@
 @extends('backend.master')
 @section('title', ($business?->business_name ?? 'Medi Trust Solution').' - '.($mode==='tour'?'Tour Report':'Activity Sort List'))
 @section('maincontent')
+@include('backend.partials.report-compact-summary')
 <style>
 .report-table-wrapper,.tour-table-wrap,.table-responsive{max-width:100%;overflow-x:auto}
 #reportTable,.tour-report-table{width:100%;table-layout:fixed;min-width:1100px}
@@ -40,9 +41,9 @@
 @if($canViewStatus)<div class="col-md-2"><label class="form-label">Status</label><select id="status" name="status" class="form-control"><option value="">All Status</option>@foreach(['pending'=>'Pending','approved'=>'Approved','rejected'=>'Rejected'] as $v=>$l)<option value="{{$v}}" @selected($rf('status')===$v)>{{$l}}</option>@endforeach</select></div>@endif
 <div class="col-md-3"><label class="form-label">Payment Status</label><select id="payment_status" name="payment_status" class="form-control"><option value="">All Payment Status</option>@foreach(['unpaid'=>'Unpaid','waiting_for_payment'=>'Waiting for Payment','paid'=>'Paid'] as $v=>$l)<option value="{{$v}}" @selected($rf('payment_status')===$v)>{{$l}}</option>@endforeach</select></div>
 @endif
-<div class="col-12 d-flex gap-2"><button class="btn btn-primary" type="submit">Generate Report</button><button class="btn btn-light" type="button" id="btnReset">Reset</button></div>
+<div class="col-12 d-flex gap-2"><button class="btn btn-primary" type="submit">Generate Report</button></div>
 </div></form></div></div>
-<div class="row g-3 mb-3"><div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">{{ $isTour?'Total Tours':'Total Activities' }}</small><h3 id="count">0</h3></div></div></div><div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">TA (Claimed)</small><h3 id="ta">0.00</h3></div></div></div><div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">DA / Hotel / Others (Claimed)</small><h3 id="da">0.00</h3></div></div></div><div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">Total Payable</small><h3 id="total">0.00</h3></div></div></div></div>
+<div class="row g-3 mb-3 report-compact-summary"><div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">{{ $isTour?'Total Tours':'Total Activities' }}</small><h3 id="count">0</h3></div></div></div><div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">TA (Claimed)</small><h3 id="ta">0.00</h3></div></div></div><div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">DA / Hotel / Others (Claimed)</small><h3 id="da">0.00</h3></div></div></div><div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">Total Payable</small><h3 id="total">0.00</h3></div></div></div></div>
 <div class="card"><div class="card-header d-flex justify-content-between flex-wrap gap-2"><h5 class="mb-0">{{ $isTour?'Tour Report':'Activity Sort List' }}</h5><div class="d-flex gap-2"><button id="excel" class="btn btn-success">Excel</button><button id="pdf" class="btn btn-danger">PDF</button><button id="print" class="btn btn-dark">Print</button></div></div><div class="card-body p-0"><div class="tour-table-wrap"><table class="table table-bordered mb-0 tour-report-table"><thead id="thead"></thead><tbody id="tbody"></tbody></table></div></div></div>
 </div></div>
 @endsection
@@ -65,7 +66,6 @@ function params(){
 }
 async function load(){const r=await fetch(urls.data+'?'+params().toString(),{headers:{Accept:'application/json'}}); if(!r.ok){Swal.fire('Error','Could not load report.','error');return;} const d=await r.json(); document.getElementById('count').textContent=d.summary.count;document.getElementById('ta').textContent=d.summary.ta;document.getElementById('da').textContent=d.summary.da;document.getElementById('total').textContent=d.summary.total;document.getElementById('thead').innerHTML='<tr>'+d.columns.map(c=>`<th>${c.label}</th>`).join('')+'</tr>';document.getElementById('tbody').innerHTML=d.rows.length?d.rows.map(row=>'<tr>'+d.columns.map(c=>`<td>${['organization_name','from_location'].includes(c.key)&&row._html?.[c.key]?row._html[c.key]:String(row[c.key]??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}</td>`).join('')+'</tr>').join(''):`<tr><td colspan="${d.columns.length}" class="text-center py-4">No data found.</td></tr>`;}
 $('#reportFilterForm').on('submit',e=>{e.preventDefault();window.CrmPersistentFilters?.saveNow();load();});
-$('#btnReset').on('click',async()=>{if(window.CrmPersistentFilters?.clearCurrentPage){ await window.CrmPersistentFilters.clearCurrentPage(); } location.reload();});
 ['excel','pdf','print'].forEach(k=>document.getElementById(k).addEventListener('click',()=>{let u=urls[k]+'?'+params().toString(); if(k==='print')window.open(u,'_blank');else window.location.href=u;}));
 $(function(){ $('#created_by,#status,#payment_status').each(function(){if(this)$(this).trigger('change.select2')}); load(); });
 </script>

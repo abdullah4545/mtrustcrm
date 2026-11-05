@@ -139,6 +139,13 @@
             const localSaved = JSON.parse(localStorage.getItem(localKey) || '{}');
             if (localSaved && typeof localSaved === 'object') saved = {...saved, ...localSaved};
         } catch(e) {}
+        const dashboardParams = new URLSearchParams(location.search);
+        if (dashboardParams.get('dashboard') === '1') {
+            saved = {};
+            document.querySelectorAll('input[id^="f_"],select[id^="f_"]').forEach(el => { saved['id:'+el.id] = el.id === 'f_status' ? 'all' : ''; });
+            const dashboardFilterMap = {date_from:'f_date_from',date_to:'f_date_to',from_date:'f_from_date',to_date:'f_to_date',status:'f_status',search_text:'f_search_text',branch_id:'f_branch_id'};
+            Object.entries(dashboardFilterMap).forEach(([param,id]) => { if(dashboardParams.has(param)) saved['id:'+id] = dashboardParams.get(param); });
+        }
         let timer = null;
         let restoring = false;
 

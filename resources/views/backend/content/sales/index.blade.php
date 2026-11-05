@@ -93,6 +93,12 @@
     </div>
 
     {{-- Table --}}
+    @if(request('dashboard') == 1)
+    <div class="alert alert-info d-flex align-items-center justify-content-between gap-2 flex-wrap">
+        <span>Dashboard results @if(request('due_only')) · Outstanding due only @endif @if(request('lead_state') === 'open') · Open leads only @endif</span>
+        <a href="{{ route('sales.index') }}" class="btn btn-sm btn-light">Clear filters</a>
+    </div>
+    @endif
     <div class="main-content">
         <div class="card">
             <div class="card-body">
@@ -139,6 +145,8 @@ $(document).ready(function(){
         ajax:{
             url: ROUTE_DATATABLE,
             data: function(d){
+                d.branch_id = new URLSearchParams(location.search).get('branch_id') || '';
+                d.due_only = new URLSearchParams(location.search).get('due_only') || '';
                 d.status_stage_id = $('#f_status_stage_id').val();
                 d.payment_status = $('#f_payment_status').val();
                 d.organization_id = $('#f_organization_id').val();

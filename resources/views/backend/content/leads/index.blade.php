@@ -357,6 +357,8 @@ $(document).ready(function(){
         ajax:{
             url: ROUTE_DATATABLE,
             data: function(d){ 
+                d.lead_state = new URLSearchParams(location.search).get('lead_state') || '';
+                d.branch_id = new URLSearchParams(location.search).get('branch_id') || '';
                 d.status_stage_id = $('#f_status_stage_id').val(); 
                 d.search_text = $('#f_search_text').val();
                 d.created_by = $('#f_created_by').val();

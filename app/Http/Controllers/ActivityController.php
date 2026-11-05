@@ -120,6 +120,7 @@ class ActivityController extends Controller
         $query = $this->visibleQuery()
             ->latest('activity_at')->latest('id');
         if (Auth::user()->can('activity.view_all') && Auth::user()->can('staff.filter') && $request->filled('created_by')) $query->where('created_by', $request->integer('created_by'));
+        if (Auth::user()->can('activity.view_all') && $request->filled('branch_id')) $query->where('branch_id', $request->integer('branch_id'));
         $canViewAll = Auth::user()->can('activity.view_all');
         $showStatus = Auth::user()->can('activity.status.view');
         $status = $showStatus ? (string) $request->input('status', 'all') : 'all';
@@ -153,6 +154,7 @@ class ActivityController extends Controller
                 if($row->tour_type==='tour') $html.='<div class="mt-1"><span class="badge bg-primary">Tour</span></div>';
                 return $html;
             })
+            ->addColumn('visit_output', fn($row) => nl2br(e($row->work_details ?: '-')))
             ->addColumn('route_display', fn($row) => \App\Support\ActivityDisplay::route($row,true,true))
             ->addColumn('amount_display', function($row) {
                 $format = fn($v) => rtrim(rtrim(number_format((float)$v,2,'.',','),'0'),'.');
@@ -218,7 +220,7 @@ class ActivityController extends Controller
                     if(!$row->tour_ended_at && $row->status!=='rejected' && $user->can('activity.tour.manage')) $html.='<form method="POST" action="'.route('activities.tour-end',$row->id).'">'.csrf_field().'<input type="datetime-local" name="tour_ended_at" class="form-control form-control-sm" required min="'.e(($row->activity_at??$row->date)->format('Y-m-d\TH:i')).'"><button class="btn btn-sm btn-outline-info">End Tour</button></form>';
                 }
                 return $html.'</div>';
-            })->rawColumns(['created_display','route_display','amount_display','select','organization_contact','payment_status','status','edit_history','action'])->make(true);
+            })->rawColumns(['visit_output','created_display','route_display','amount_display','select','organization_contact','payment_status','status','edit_history','action'])->make(true);
     }
 
     public function endTour(Request $request,$id)

@@ -160,7 +160,7 @@ class LeadController extends Controller
         if ($request->filled('search_text')) {
             $s = trim($request->search_text);
             $q->where(function($qq) use ($s){
-                $qq->where('person_name','like',"%{$s}%")
+                $qq->where('lead_no','like',"%{$s}%")->orWhere('person_name','like',"%{$s}%")
                    ->orWhere('person_phone','like',"%{$s}%");
             });
         }

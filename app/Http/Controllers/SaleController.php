@@ -177,6 +177,7 @@ class SaleController extends Controller
             $q->where('sold_by', $u->id);
         }
 
+        if ($request->boolean('due_only')) $q->where('due_total', '>', 0);
         if ($request->filled('organization_id')) $q->where('organization_id', $request->integer('organization_id'));
         if ($request->filled('status_stage_id')) $q->where('status_stage_id', $request->status_stage_id);
         if ($request->filled('payment_status')) $q->where('payment_status', $request->payment_status);

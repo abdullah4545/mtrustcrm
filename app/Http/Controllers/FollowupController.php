@@ -46,6 +46,7 @@ class FollowupController extends Controller
             ->whereNotNull('next_followup_at');
 
         $this->scopeVisible($query);
+        if (Auth::user()->can('lead.view_all_branches') && $request->filled('branch_id')) $query->where('branch_id', $request->integer('branch_id'));
 
         $filter = $request->get('filter', 'today');
         if ($filter === 'overdue') {
@@ -77,6 +78,7 @@ class FollowupController extends Controller
 
         $base = Lead::query()->where('lead_state', 'open')->whereNotNull('next_followup_at');
         $this->scopeVisible($base);
+        if ($u->can('lead.view_all_branches') && $request->filled('branch_id')) $base->where('branch_id', $request->integer('branch_id'));
         $counts = [
             'overdue' => (clone $base)->where('next_followup_at', '<', now()->startOfDay())->count(),
             'today' => (clone $base)->whereBetween('next_followup_at', [now()->startOfDay(), now()->endOfDay()])->count(),

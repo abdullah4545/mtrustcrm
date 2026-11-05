@@ -34,6 +34,7 @@
         </div>
     @endif
 
+    @if($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
     <div class="main-content">
         <div class="card">
             <div class="card-body">
@@ -42,110 +43,7 @@
                     @csrf
                     <input type="hidden" name="organization_contact_id" value="{{ old('organization_contact_id', $sale->organization_contact_id) }}">
 
-                    <div class="row g-3">
-                        @include('backend.partials.sale-organization', ['organizationColumn' => 'col-md-4'])
-                        <div class="col-md-4">
-                            <label class="form-label">Invoice</label>
-                            <input class="form-control" value="{{ $sale->invoice_no }}" readonly>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label">Client Name</label>
-                            <input class="form-control" name="client_name" value="{{ $sale->client_name }}">
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label">Client Phone</label>
-                            <input class="form-control" name="client_phone" value="{{ $sale->client_phone }}">
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label">Client Email</label>
-                            <input class="form-control" name="client_email" value="{{ $sale->client_email }}">
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label">Sale Date</label>
-                            <input type="date" class="form-control" name="sale_date" value="{{ optional($sale->sale_date)->format('Y-m-d') }}">
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label">Sales Status</label>
-                            <select class="form-control" name="status_stage_id">
-                                <option value="">--</option>
-                                @foreach($statuses as $s)
-                                    <option value="{{ $s->id }}" {{ $sale->status_stage_id==$s->id?'selected':'' }}>{{ $s->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label">Discount</label>
-                            <input type="number" step="0.01" class="form-control" name="discount_amount" id="discount_amount" value="{{ $sale->discount_amount }}">
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label d-block">VAT / Tax</label>
-                            <div class="form-check mt-2">
-                                <input type="hidden" name="tax_enabled" value="0">
-                                <input class="form-check-input" type="checkbox" name="tax_enabled" id="tax_enabled" value="1" {{ $sale->tax_enabled ? 'checked' : '' }}>
-                                <label class="form-check-label" for="tax_enabled">Include VAT / Tax ({{ number_format($taxRate,2) }}%)</label>
-                            </div>
-                        </div>
-
-                        <div class="col-md-12">
-                            <label class="form-label">Notes</label>
-                            <textarea class="form-control" name="notes" rows="3">{{ $sale->notes }}</textarea>
-                        </div>
-                    </div>
-
-                    <hr class="my-4">
-
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="mb-0">Items</h6>
-                        <button type="button" class="btn btn-sm btn-primary" id="btnAddRow">
-                            <i class="feather-plus"></i> Add Item
-                        </button>
-                    </div>
-
-                    <div class="table-responsive">
-                        <table class="table table-bordered align-middle" id="itemsTable">
-                            <thead>
-                                <tr>
-                                    <th width="240">Product/Custom Item</th>
-                                    <th>Description (Optional)</th>
-                                    <th width="90">Qty <span class="required-indicator">*</span></th>
-                                    <th width="90">Unit</th>
-                                    <th width="120">Unit Price <span class="required-indicator">*</span></th>
-                                    <th width="90">Tax %</th>
-                                    <th width="130">Amount</th>
-                                    <th width="50"></th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-
-                    <div class="row mt-3">
-                        <div class="col-md-6"></div>
-                        <div class="col-md-6">
-                            <div class="border rounded p-3">
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span>Sub Total</span>
-                                    <b id="subTotalText">0.00</b>
-                                </div>
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span>Tax</span>
-                                    <b id="taxText">0.00</b>
-                                </div>
-                                <hr>
-                                <div class="d-flex justify-content-between">
-                                    <span>Total</span>
-                                    <b id="grandTotalText">0.00</b>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    @include('backend.partials.sale-direct-form')
 
                     <div class="mt-4 d-flex gap-2">
                         <button class="btn btn-primary">Update</button>
@@ -162,5 +60,5 @@
 @endsection
 
 @push('scripts')
-@include('backend.partials.sale-items-script')
+
 @endpush

@@ -80,49 +80,7 @@ class LeadController extends Controller
     // =========================
     public function quickStore(Request $request)
     {
-        $request->validate([
-            'person_name'  => 'required',
-            'person_phone' => 'required',
-            'existing_machine' => 'nullable|string|max:10000',
-        ]);
-        $u = Auth::user();
-        if ($request->filled('organization_id')) {
-            $org = Organization::findOrFail($request->organization_id);
-            CrmAccess::ensureOrganizationAllowed($org, $u);
-        }
- 
-        $lead = Lead::create([
-            'lead_no' => $this->leadNo(),
-            'branch_id' => $u->branch_id,
-            'assigned_user_id' => ($u->can('lead.view_branch') || $u->can('lead.view_all_branches')) && $request->filled('assigned_user_id') ? (int)$request->assigned_user_id : $u->id,
-            'created_by' => $u->id,
-            'organization_id' => $request->organization_id,
-            'organization_contact_id' => $request->organization_contact_id,
-
-            'platform_id' => $request->platform_id,
-            'status_stage_id' => $request->status_stage_id,
-
-            'person_name' => $request->person_name,
-            'person_phone' => $request->person_phone,
-            'person_email' => $request->person_email,
-
-            'subject' => $request->subject,
-            'note' => $request->note,
-            'expected_value' => (float)($request->expected_value ?? 0),
-            'existing_machine' => $request->existing_machine,
-
-            'next_followup_at' => $request->next_followup_at,
-            'next_action_type' => $request->next_action_type,
-            'last_activity_at' => now(),
-
-            'lead_state' => 'open',
-        ]);
-
-        return response()->json([
-            'status'  => true,
-            'message' => 'Lead created successfully',
-            'data'    => $lead
-        ]);
+        return $this->store($request);
     }
 
     private function canSeeAllBranches(): bool
@@ -254,7 +212,7 @@ class LeadController extends Controller
                 ];
                 $cls = $map[$type] ?? 'bg-secondary';
 
-                $badge = $type ? '<span class="badge '.$cls.' ms-2">'.$type.'</span>' : '';
+                $badge = $type ? '<span class="badge '.$cls.' ms-2">'.e($type).'</span>' : '';
                 return $show.$badge;
             })
             ->addColumn('desktop_followup', function($row){
@@ -273,7 +231,7 @@ class LeadController extends Controller
                 ];
                 $cls = $map[$type] ?? 'bg-secondary';
 
-                $badge = $type ? '<span class="badge '.$cls.' ms-2">'.$type.'</span>' : '';
+                $badge = $type ? '<span class="badge '.$cls.' ms-2">'.e($type).'</span>' : '';
                 return $show.$badge;
             })
             ->editColumn('lead_state', function($row){
@@ -307,8 +265,8 @@ class LeadController extends Controller
             'status_stage_id' => 'nullable|exists:status_stages,id',
             'assigned_user_id' => 'nullable|exists:users,id',
 
-            'person_name' => 'required|string|max:150',
-            'person_phone' => 'required|string|max:30',
+            'person_name' => 'nullable|string|max:150',
+            'person_phone' => 'nullable|string|max:30',
             'person_email' => 'nullable|email|max:150',
 
             'subject' => 'nullable|string|max:255',
@@ -317,7 +275,7 @@ class LeadController extends Controller
             'existing_machine' => 'nullable|string|max:10000',
 
             'next_followup_at' => 'nullable|date',
-            'next_action_type' => 'nullable|string|max:30',
+            'next_action_type' => 'nullable|string|max:255',
         ]);
 
         $u = Auth::user();
@@ -427,10 +385,7 @@ class LeadController extends Controller
             'existing_machine' => 'nullable|string|max:10000',
 
             'next_followup_at' => 'nullable|date',
-            'next_action_type' => 'nullable|string|max:30',
-
-            'lead_state' => 'required|in:open,closed',
-            'lost_reason' => 'nullable|string|max:255',
+            'next_action_type' => 'nullable|string|max:255',
         ]);
 
         if ($request->filled('organization_id')) {
@@ -458,10 +413,6 @@ class LeadController extends Controller
             'next_followup_at' => $request->next_followup_at,
             'next_action_type' => $request->next_action_type,
             'last_activity_at' => now(),
-
-            'lead_state' => $request->lead_state,
-            'closed_at' => $request->lead_state === 'closed' ? now() : null,
-            'lost_reason' => $request->lost_reason,
         ];
 
         // auto-fill from selected contact (still allowed override by typing after selection)
@@ -541,12 +492,12 @@ class LeadController extends Controller
         $this->ensureLeadAccess($lead);
 
         $request->validate([
-            'activity_type' => 'required|string|max:30',
+            'activity_type' => 'nullable|string|max:30',
             'activity_text' => 'nullable|string',
             'activity_at' => 'nullable|date',
             'outcome_status' => 'nullable|string|max:50',
             'next_followup_at' => 'nullable|date',
-            'next_action_type' => 'nullable|string|max:30',
+            'next_action_type' => 'nullable|string|max:255',
         ]);
 
         LeadActivity::create([

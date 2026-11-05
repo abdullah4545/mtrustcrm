@@ -99,23 +99,6 @@ class SaleController extends Controller
         }
     }
 
-    private function normalizeSaleItems(Request $request): void
-    {
-        $items = $request->input('items', []);
-        $products = Product::whereIn('id', collect($items)->pluck('product_id')->filter()->unique())->get()->keyBy('id');
-        foreach ($items as $key => &$item) {
-            if (!empty($item['product_id'])) {
-                $product = $products->get($item['product_id']);
-                if (!$product) throw \Illuminate\Validation\ValidationException::withMessages(["items.$key.product_id" => 'This product is no longer available.']);
-                $item['item_name'] = $product->name;
-            } elseif (trim((string)($item['item_name'] ?? '')) === '') {
-                throw \Illuminate\Validation\ValidationException::withMessages(["items.$key.item_name" => 'Please enter a name for the custom item.']);
-            }
-        }
-        unset($item);
-        $request->merge(['items' => $items]);
-    }
-
     private function saleNo(): string
     {
         return 'SL-' . date('ymd') . '-' . random_int(1000, 9999);
@@ -154,7 +137,7 @@ class SaleController extends Controller
 
     private function recalcPaymentStatus(Sale $sale): void
     {
-        $paid = (float) $sale->payments()->sum('amount');
+        $paid = (float) $sale->opening_paid_total + (float) $sale->payments()->sum('amount');
         $grand = (float) $sale->grand_total;
 
         $due = max($grand - $paid, 0);
@@ -334,29 +317,13 @@ class SaleController extends Controller
         $request->validate([
             'lead_id' => 'nullable|exists:leads,id',
             'quotation_id' => 'nullable|exists:quotations,id',
-
-            'organization_id' => 'nullable|exists:organizations,id',
+            'organization_id' => 'required|exists:organizations,id',
             'organization_contact_id' => 'nullable|exists:organization_contacts,id',
-
-            'client_name' => 'nullable|string|max:150',
-            'client_phone' => 'nullable|string|max:30',
-            'client_email' => 'nullable|email|max:150',
-            'client_address' => 'nullable|string|max:255',
-
             'sale_date' => 'nullable|date',
             'status_stage_id' => 'nullable|exists:status_stages,id',
-            'discount_amount' => 'nullable|numeric|min:0',
-            'tax_enabled' => 'nullable|boolean',
+            'grand_total' => 'required|numeric|min:0|max:9999999999.99',
+            'due_total' => 'required|numeric|min:0|lte:grand_total',
             'notes' => 'nullable|string',
-
-            'items' => 'required|array|min:1',
-            'items.*.product_id' => 'nullable|exists:products,id',
-            'items.*.item_name' => 'nullable|string|max:200',
-            'items.*.description' => 'nullable|string',
-            'items.*.qty' => 'required|numeric|min:0.01',
-            'items.*.unit' => 'nullable|string|max:20',
-            'items.*.unit_price' => 'required|numeric|min:0',
-            'items.*.tax_rate' => 'nullable|numeric|min:0',
         ]);
 
         $u = Auth::user();
@@ -385,7 +352,6 @@ class SaleController extends Controller
             }
         }
 
-        $this->normalizeSaleItems($request);
         $this->validateSaleOrganization($request);
 
         if ($lead && $lead->converted_sale_id) {
@@ -398,6 +364,7 @@ class SaleController extends Controller
             // ✅ Branch-wise invoice (NO GlobalSequence)
             $invoiceNo = $this->generateInvoiceNoBranchWise($branchId, 7);
 
+            $organization = Organization::findOrFail($request->organization_id);
             $s = new Sale();
             $s->sale_no = $this->saleNo();
             $s->invoice_no = $invoiceNo;
@@ -410,70 +377,25 @@ class SaleController extends Controller
             $s->organization_id = $request->organization_id;
             $s->organization_contact_id = $request->organization_contact_id;
 
-            $s->client_name = $request->client_name;
-            $s->client_phone = $request->client_phone;
-            $s->client_email = $request->client_email;
-            $s->client_address = $request->client_address;
+            $s->client_name = $organization->name;
+            $s->client_phone = $organization->phone_primary ?: ($organization->phone_numbers[0] ?? null);
+            $s->client_email = $organization->email ?: ($organization->email_addresses[0] ?? null);
+            $s->client_address = null;
 
             $s->sold_by = $u->id;
             $s->sale_date = $request->sale_date ?? now()->toDateString();
 
             $s->status_stage_id = $request->status_stage_id;
-            $s->discount_amount = (float)($request->discount_amount ?? 0);
-            $s->tax_enabled = $request->boolean('tax_enabled');
-            $s->tax_rate = $s->tax_enabled ? (float)(Business::first()?->vat ?? 0) : 0;
             $s->notes = $request->notes;
-
+            $s->sub_total = round((float)$request->grand_total, 2);
+            $s->grand_total = $s->sub_total;
+            $s->discount_amount = 0;
+            $s->tax_enabled = false;
+            $s->tax_rate = 0;
+            $s->tax_amount = 0;
+            $s->opening_paid_total = round($s->grand_total - round((float)$request->due_total, 2), 2);
             $s->save();
-
-            // items + totals
-            $subTotal = 0;
-            $taxTotal = 0;
-
-            foreach ($request->items as $it) {
-                $qty = (float)$it['qty'];
-                $price = (float)$it['unit_price'];
-                $taxRate = $s->tax_enabled ? (float)$s->tax_rate : 0;
-
-                $lineBase = $qty * $price;
-                $taxAmount = $taxRate > 0 ? ($lineBase * $taxRate / 100) : 0;
-                $lineTotal = $lineBase + $taxAmount;
-
-                $purchaseSnap = null;
-                if (!empty($it['product_id'])) {
-                    $p = Product::find($it['product_id']);
-                    $purchaseSnap = $p?->purchase_price;
-                }
-
-                SaleItem::create([
-                    'sale_id' => $s->id,
-                    'product_id' => $it['product_id'] ?? null,
-                    'item_name' => $it['item_name'],
-                    'description' => $it['description'] ?? null,
-                    'qty' => $qty,
-                    'unit' => $it['unit'] ?? 'pcs',
-                    'unit_price' => $price,
-                    'tax_rate' => $taxRate,
-                    'tax_amount' => $taxAmount,
-                    'line_total' => $lineTotal,
-                    'purchase_price_snapshot' => $purchaseSnap,
-                ]);
-
-                $subTotal += $lineBase;
-                $taxTotal += $taxAmount;
-            }
-
-            $taxTotal = $s->tax_enabled ? ($subTotal * (float)$s->tax_rate / 100) : 0;
-            $grand = max(0, $subTotal - (float)$s->discount_amount) + $taxTotal;
-
-            $s->update([
-                'sub_total' => $subTotal,
-                'tax_amount' => $taxTotal,
-                'grand_total' => $grand,
-                'paid_total' => 0,
-                'due_total' => $grand,
-                'payment_status' => 'unpaid',
-            ]);
+            $this->recalcPaymentStatus($s);
 
             // update lead converted_sale_id
             if ($lead) {
@@ -502,99 +424,48 @@ class SaleController extends Controller
 
     public function update(Request $request, $id)
     {
-        $sale = Sale::with('items')->findOrFail($id);
+        $sale = Sale::findOrFail($id);
         $this->ensureSaleAccess($sale);
-
         $request->validate([
-            'organization_id' => 'nullable|exists:organizations,id',
+            'lead_id' => 'nullable|exists:leads,id',
+            'quotation_id' => 'nullable|exists:quotations,id',
+            'organization_id' => 'required|exists:organizations,id',
             'organization_contact_id' => 'nullable|exists:organization_contacts,id',
-            'client_name' => 'nullable|string|max:150',
-            'client_phone' => 'nullable|string|max:30',
-            'client_email' => 'nullable|email|max:150',
-            'client_address' => 'nullable|string|max:255',
-
             'sale_date' => 'nullable|date',
             'status_stage_id' => 'nullable|exists:status_stages,id',
-            'discount_amount' => 'nullable|numeric|min:0',
-            'tax_enabled' => 'nullable|boolean',
+            'grand_total' => 'required|numeric|min:0|max:9999999999.99',
+            'due_total' => 'required|numeric|min:0|lte:grand_total',
             'notes' => 'nullable|string',
-
-            'items' => 'required|array|min:1',
-            'items.*.product_id' => 'nullable|exists:products,id',
-            'items.*.item_name' => 'nullable|string|max:200',
-            'items.*.description' => 'nullable|string',
-            'items.*.qty' => 'required|numeric|min:0.01',
-            'items.*.unit' => 'nullable|string|max:20',
-            'items.*.unit_price' => 'required|numeric|min:0',
-            'items.*.tax_rate' => 'nullable|numeric|min:0',
         ]);
-
-        $this->normalizeSaleItems($request);
         $this->validateSaleOrganization($request);
-        $sale->update([
-            'organization_id' => $request->filled('organization_id') ? $request->integer('organization_id') : null,
-            'organization_contact_id' => $request->has('organization_contact_id') ? $request->organization_contact_id : ((int)$sale->organization_id === $request->integer('organization_id') ? $sale->organization_contact_id : null),
-            'client_name' => $request->client_name,
-            'client_phone' => $request->client_phone,
-            'client_email' => $request->client_email,
-            'client_address' => $request->client_address,
-            'sale_date' => $request->sale_date,
-            'status_stage_id' => $request->status_stage_id,
-            'discount_amount' => (float)($request->discount_amount ?? 0),
-            'tax_enabled' => $request->boolean('tax_enabled'),
-            'tax_rate' => $request->boolean('tax_enabled') ? (float)(Business::first()?->vat ?? 0) : 0,
-            'notes' => $request->notes,
-        ]);
-
-        $sale->items()->delete();
-
-        $subTotal = 0;
-        $taxTotal = 0;
-
-        foreach ($request->items as $it) {
-            $qty = (float)$it['qty'];
-            $price = (float)$it['unit_price'];
-            $taxRate = $sale->tax_enabled ? (float)$sale->tax_rate : 0;
-
-            $lineBase = $qty * $price;
-            $taxAmount = $taxRate > 0 ? ($lineBase * $taxRate / 100) : 0;
-            $lineTotal = $lineBase + $taxAmount;
-
-            $purchaseSnap = null;
-            if (!empty($it['product_id'])) {
-                $p = Product::find($it['product_id']);
-                $purchaseSnap = $p?->purchase_price;
+        DB::transaction(function () use ($request, $id) {
+            $sale = Sale::whereKey($id)->lockForUpdate()->firstOrFail();
+            $recorded = round((float)$sale->payments()->sum('amount'), 2);
+            $total = round((float)$request->grand_total, 2);
+            $due = round((float)$request->due_total, 2);
+            $paid = round($total - $due, 2);
+            if ($paid < $recorded) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'due_total' => 'Total minus due cannot be less than recorded payments ('.number_format($recorded, 2).').',
+                ]);
             }
-
-            SaleItem::create([
-                'sale_id' => $sale->id,
-                'product_id' => $it['product_id'] ?? null,
-                'item_name' => $it['item_name'],
-                'description' => $it['description'] ?? null,
-                'qty' => $qty,
-                'unit' => $it['unit'] ?? 'pcs',
-                'unit_price' => $price,
-                'tax_rate' => $taxRate,
-                'tax_amount' => $taxAmount,
-                'line_total' => $lineTotal,
-                'purchase_price_snapshot' => $purchaseSnap,
+            $organization = Organization::findOrFail($request->organization_id);
+            $sale->update([
+                'organization_id' => $organization->id,
+                'organization_contact_id' => $request->organization_contact_id,
+                'client_name' => $organization->name,
+                'client_phone' => $organization->phone_primary ?: ($organization->phone_numbers[0] ?? null),
+                'client_email' => $organization->email ?: ($organization->email_addresses[0] ?? null),
+                'sale_date' => $request->sale_date ?? $sale->sale_date,
+                'status_stage_id' => $request->status_stage_id,
+                'sub_total' => $total, 'grand_total' => $total,
+                'tax_enabled' => false, 'tax_rate' => 0, 'tax_amount' => 0, 'discount_amount' => 0,
+                'opening_paid_total' => round($paid - $recorded, 2),
+                'notes' => $request->notes,
             ]);
-
-            $subTotal += $lineBase;
-            $taxTotal += $taxAmount;
-        }
-
-        $taxTotal = $sale->tax_enabled ? ($subTotal * (float)$sale->tax_rate / 100) : 0;
-        $grand = max(0, $subTotal - (float)$sale->discount_amount) + $taxTotal;
-
-        $sale->update([
-            'sub_total' => $subTotal,
-            'tax_amount' => $taxTotal,
-            'grand_total' => $grand,
-        ]);
-
-        $this->recalcPaymentStatus($sale->fresh());
-
+            $sale->items()->delete();
+            $this->recalcPaymentStatus($sale);
+        });
         return back()->with('message', 'Sale updated successfully');
     }
 
@@ -628,10 +499,12 @@ class SaleController extends Controller
             'note' => 'nullable|string',
         ]);
 
+        DB::transaction(function () use ($request, $id) {
+            $sale = Sale::whereKey($id)->lockForUpdate()->firstOrFail();
         $amount = (float) $request->amount;
         $due = (float) $sale->due_total;
         if ($amount > $due + 0.0001) {
-            return back()->withErrors(['amount' => 'Payment cannot be greater than current due amount ('.number_format($due,2).').'])->withInput();
+            throw \Illuminate\Validation\ValidationException::withMessages(['amount' => 'Payment cannot be greater than current due amount ('.number_format($due,2).').']);
         }
 
         SalePayment::create([
@@ -646,6 +519,8 @@ class SaleController extends Controller
         ]);
 
         $this->recalcPaymentStatus($sale->fresh());
+
+        });
 
         return back()->with('message', 'Payment added successfully');
     }

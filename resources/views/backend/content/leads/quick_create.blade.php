@@ -47,22 +47,13 @@
                     </div>
 
                     {{-- Name --}}
-                    <div class="col-md-4">
-                        <label class="form-label">Contact Person Name</label>
-                        <input type="text" name="person_name" id="person_name" class="form-control">
-                    </div>
+                    <input type="hidden" name="person_name" id="person_name" class="form-control">
 
                     {{-- Phone --}}
-                    <div class="col-md-4">
-                        <label class="form-label">Contact Person Phone</label>
-                        <input type="text" name="person_phone" id="person_phone" class="form-control">
-                    </div>
+                    <input type="hidden" name="person_phone" id="person_phone" class="form-control">
 
                     {{-- Email --}}
-                    <div class="col-md-4">
-                        <label class="form-label">Contact Person Email</label>
-                        <input type="email" name="person_email" id="person_email" class="form-control">
-                    </div>
+                    <input type="hidden" name="person_email" id="person_email" class="form-control">
 
                     {{-- Platform --}}
                     <div class="col-md-4">
@@ -87,17 +78,11 @@
                     </div>
 
                     {{-- State --}}
-                    <div class="col-md-4">
-                        <label class="form-label">State</label>
-                        <select name="lead_state" id="lead_state" class="form-control">
-                            <option value="open">Open</option>
-                            <option value="closed">Closed</option>
-                        </select>
-                    </div>
+                    
 
-                    {{-- Medical Reagents --}}
+                    {{-- Lead details --}}
                     <div class="col-md-12">
-                        <label class="form-label">Medical Reagents</label>
+                        <label class="form-label">Lead details</label>
                         <input type="text" name="subject" id="subject" class="form-control">
                     </div>
 
@@ -127,20 +112,11 @@
                     {{-- Action --}}
                     <div class="col-md-3">
                         <label class="form-label">Next Action</label>
-                        <select name="next_action_type" id="next_action_type" class="form-control">
-                            <option value="">--</option>
-                            <option value="call">Call</option>
-                            <option value="visit">Visit</option>
-                            <option value="message">Message</option>
-                            <option value="meeting">Meeting</option>
-                        </select>
+                        <input type="text" name="next_action_type" id="next_action_type" class="form-control" maxlength="255" placeholder="Call, message, or any next action">
                     </div>
 
                     {{-- Lost --}}
-                    <div class="col-md-3">
-                        <label class="form-label">Lost Reason</label>
-                        <input type="text" name="lost_reason" id="lost_reason" class="form-control">
-                    </div>
+                    
 
                 </div>
 

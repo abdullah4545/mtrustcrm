@@ -68,7 +68,7 @@
 
                         <div class="row">
                             <div class="col-md-6">
-                                <h6>Client</h6>
+                                <h6>Organization</h6>
                                 <div><b>{{ $sale->organization?->name ?? 'Unknown / legacy' }}</b></div><div><b>{{ $sale->client_name }}</b></div>
                                 <div>{{ $sale->client_phone }}</div>
                                 <div>{{ $sale->client_email }}</div>
@@ -86,64 +86,6 @@
 
                         <hr>
 
-                        <h6 class="mb-2">Items</h6>
-                        <div class="table-responsive">
-                            <table class="table table-bordered">
-                                <thead>
-                                <tr>
-                                    <th>Item</th>
-                                    <th width="90">Qty</th>
-                                    <th width="120">Unit Price</th>
-                                    <th width="80">Tax %</th>
-                                    <th width="130">Line Total</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                @foreach($sale->items as $it)
-                                    <tr>
-                                        <td>
-                                            <b>{{ $it->item_name }}</b>
-                                            @if($it->description)
-                                                <div class="text-muted">{{ $it->description }}</div>
-                                            @endif
-                                        </td>
-                                        <td>{{ $it->qty }} {{ $it->unit }}</td>
-                                        <td>{{ number_format((float)$it->unit_price,2) }}</td>
-                                        <td>{{ number_format((float)$it->tax_rate,2) }}</td>
-                                        <td>{{ number_format((float)$it->line_total,2) }}</td>
-                                    </tr>
-                                @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <hr>
-
-                        <div class="row">
-                            <div class="col-md-6"></div>
-                            <div class="col-md-6">
-                                <div class="border rounded p-3">
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <span>Sub Total</span>
-                                        <b>{{ number_format((float)$sale->sub_total,2) }}</b>
-                                    </div>
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <span>Discount</span>
-                                        <b>{{ number_format((float)$sale->discount_amount,2) }}</b>
-                                    </div>
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <span>Tax</span>
-                                        <b>{{ number_format((float)$sale->tax_amount,2) }}</b>
-                                    </div>
-                                    <hr>
-                                    <div class="d-flex justify-content-between">
-                                        <span>Total</span>
-                                        <b>{{ number_format((float)$sale->grand_total,2) }}</b>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
                         @if($sale->notes)
                             <hr>
                             <h6>Notes</h6>
@@ -157,6 +99,7 @@
                 <div class="card mt-3">
                     <div class="card-body">
                         <h6 class="mb-2">Payments</h6>
+                        @if($sale->opening_paid_total > 0)<div class="alert alert-light border">Paid amount entered with sale: {{ number_format((float)$sale->opening_paid_total, 2) }}. Subsequent payments appear below.</div>@endif
                         <div class="table-responsive">
                             <table class="table table-bordered">
                                 <thead>

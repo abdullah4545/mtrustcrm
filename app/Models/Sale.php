@@ -15,7 +15,7 @@ class Sale extends Model
         'client_name','client_phone','client_email','client_address',
         'sold_by','sale_date','status_stage_id','tax_enabled','tax_rate',
         'sub_total','discount_amount','tax_amount','grand_total',
-        'paid_total','due_total','payment_status',
+        'paid_total','due_total','payment_status','opening_paid_total',
         'notes'
     ];
 
@@ -28,6 +28,7 @@ class Sale extends Model
         'tax_amount' => 'decimal:2',
         'grand_total' => 'decimal:2',
         'paid_total' => 'decimal:2',
+        'opening_paid_total' => 'decimal:2',
         'due_total' => 'decimal:2',
     ];
 

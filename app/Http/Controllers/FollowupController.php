@@ -95,12 +95,12 @@ class FollowupController extends Controller
             'outcome_status' => 'required|string|max:50',
             'activity_text' => 'nullable|string|max:1000',
             'next_followup_at' => 'nullable|date',
-            'next_action_type' => 'nullable|in:call,visit,message,meeting',
+            'next_action_type' => 'nullable|string|max:255',
         ]);
 
         LeadActivity::create([
             'lead_id' => $lead->id,
-            'activity_type' => ($data['next_action_type'] ?? null) ?: 'note',
+            'activity_type' => 'follow-up',
             'activity_text' => ($data['activity_text'] ?? null) ?: ('Follow-up completed: '.$data['outcome_status']),
             'activity_at' => now(),
             'outcome_status' => $data['outcome_status'],
@@ -130,7 +130,7 @@ class FollowupController extends Controller
     public function reschedule(Request $request, $id)
     {
         $lead=Lead::findOrFail($id); $this->ensureVisible($lead);
-        $data=$request->validate(['followup_date'=>'required|date','followup_time'=>'required|date_format:H:i','message'=>'nullable|string|max:2000','remarks'=>'nullable|string|max:1000','next_action_type'=>'nullable|in:call,visit,message,meeting']);
+        $data=$request->validate(['followup_date'=>'required|date','followup_time'=>'required|date_format:H:i','message'=>'nullable|string|max:2000','remarks'=>'nullable|string|max:1000','next_action_type'=>'nullable|string|max:255']);
         $newAt=Carbon::parse($data['followup_date'].' '.$data['followup_time']);
         $oldAt=$lead->next_followup_at;
         $completed=LeadActivity::create(['lead_id'=>$lead->id,'activity_type'=>'follow-up','activity_text'=>'Previous follow-up completed by reschedule'.($data['remarks']?' — '.$data['remarks']:''),'activity_at'=>now(),'outcome_status'=>'Completed / Rescheduled','next_followup_at'=>$newAt,'next_action_type'=>$data['next_action_type']??$lead->next_action_type,'created_by'=>Auth::id()]);

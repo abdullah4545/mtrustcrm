@@ -153,20 +153,11 @@
                             </select>
                         </div>
 
-                        <div class="col-md-4">
-                            <label class="form-label">Contact Person Name</label>
-                            <input type="text" id="person_name" class="form-control" placeholder="Auto from contact or type custom">
-                        </div>
+                        <input type="hidden" id="person_name" class="form-control" placeholder="Auto from contact or type custom">
 
-                        <div class="col-md-4">
-                            <label class="form-label">Contact Person Phone</label>
-                            <input type="text" id="person_phone" class="form-control">
-                        </div>
+                        <input type="hidden" id="person_phone" class="form-control">
 
-                        <div class="col-md-4">
-                            <label class="form-label">Contact Person Email</label>
-                            <input type="email" id="person_email" class="form-control">
-                        </div>
+                        <input type="hidden" id="person_email" class="form-control">
 
                         <div class="col-md-4">
                             <label class="form-label">Source (Platform)</label>
@@ -197,16 +188,10 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Lead Progress</label>
-                            <select id="lead_state" class="form-control">
-                                <option value="open">Open</option>
-                                <option value="closed">Closed</option>
-                            </select>
-                        </div>
+                        
 
                         <div class="col-md-12">
-                            <label class="form-label">Medical Reagents</label>
+                            <label class="form-label">Lead details</label>
                             <input type="text" id="subject" class="form-control">
                         </div>
 
@@ -232,19 +217,10 @@
 
                         <div class="col-md-3">
                             <label class="form-label">Next Action</label>
-                            <select id="next_action_type" class="form-control">
-                                <option value="">--</option>
-                                <option value="call">Call</option>
-                                <option value="visit">Visit</option>
-                                <option value="message">Message</option>
-                                <option value="meeting">Meeting</option>
-                            </select>
+                            <input type="text" id="next_action_type" class="form-control" maxlength="255" placeholder="Call, message, or any next action">
                         </div>
 
-                        <div class="col-md-3">
-                            <label class="form-label">Lost Reason (only if lost/closed)</label>
-                            <input type="text" id="lost_reason" class="form-control">
-                        </div>
+                        
 
                     </div>
                 </form>
@@ -301,13 +277,7 @@
 
                         <div class="col-md-4">
                             <label class="form-label">Next Action</label>
-                            <select id="a_next_action_type" class="form-control">
-                                <option value="">--</option>
-                                <option value="call">Call</option>
-                                <option value="visit">Visit</option>
-                                <option value="message">Message</option>
-                                <option value="meeting">Meeting</option>
-                            </select>
+                            <input type="text" id="a_next_action_type" class="form-control" maxlength="255" placeholder="Call, message, or any next action">
                         </div>
 
                         <div class="col-md-4">
@@ -402,7 +372,7 @@ $(document).ready(function(){
             {data:'lead_display', name:'lead_no'},
             {data:'organization_contact', orderable:false, searchable:false},
             {data:'desktop_status_badge', orderable:false, searchable:false, render:function(data,type,row){
-                return type==='display' ? '<div class="crm-status-stack">'+data+row.lead_state+'</div>' : data;
+                return type==='display' ? '<div class="crm-status-stack">'+data+'</div>' : data;
             }},
             {data:'desktop_followup', orderable:false, searchable:false},
             {data:'action', orderable:false, searchable:false},
@@ -509,8 +479,6 @@ $(document).ready(function(){
         fd.append('next_followup_at', $('#next_followup_at').val());
         fd.append('next_action_type', $('#next_action_type').val());
 
-        fd.append('lead_state', $('#lead_state').val());
-        fd.append('lost_reason', $('#lost_reason').val());
 
         const url = id ? (ROUTE_UPDATE+'/'+id) : ROUTE_STORE;
 
@@ -554,8 +522,6 @@ $(document).ready(function(){
             $('#next_followup_at').val(d.next_followup_at ? d.next_followup_at.replace(' ','T') : '');
             $('#next_action_type').val(d.next_action_type);
 
-            $('#lead_state').val(d.lead_state);
-            $('#lost_reason').val(d.lost_reason);
 
             modal.show();
         });
@@ -608,7 +574,6 @@ function clearForm(){
     document.getElementById('leadForm').reset();
     $('#expected_value').val('0');
     if(window.leadExistingMachineEditor) window.leadExistingMachineEditor.setData(''); else $('#existing_machine').val('');
-    $('#lead_state').val('open');
     $('#assigned_user_id').val('{{ auth()->id() }}');
     $('#organization_contact_id').html(`<option value="">-- Select Contact --</option>`);
 }
@@ -706,7 +671,7 @@ function loadActivities(leadId){
         rows.forEach(r=>{
             const type = (r.activity_type || 'note').toUpperCase();
             const nextDisplay = r.next_followup_at ? new Date(String(r.next_followup_at).replace(' ','T')).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true}) : '';
-            const next = r.next_followup_at ? ` | Next: <b>${nextDisplay}</b> ${r.next_action_type ? `<span class="badge bg-secondary ms-1">${(r.next_action_type||'').toUpperCase()}</span>`:''}` : '';
+            const next = r.next_followup_at ? ` | Next: <b>${nextDisplay}</b> ${r.next_action_type ? `<span class="badge bg-secondary ms-1">${$('<div>').text(r.next_action_type||'').html()}</span>`:''}` : '';
             html += `
                 <div class="mb-3 pb-2 border-bottom">
                     <div class="d-flex justify-content-between">

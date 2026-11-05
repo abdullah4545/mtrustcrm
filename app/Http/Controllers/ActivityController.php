@@ -107,7 +107,7 @@ class ActivityController extends Controller
             ? User::where('status',1)->orderBy('name')->get(['id','name'])
             : User::whereKey($u->id)->get(['id','name']);
         $showStaffColumn = $u->can('activity.view_all');
-        $showStatus = $u->can('activity.status.view');
+        $showStatus = $u->canAny(['activity.status.view','activity.approve','activity.bulk_review']);
         $showEditAudit = false;
         $canBulkReview = $u->can('activity.bulk_review');
         $canManagePayment = $u->can('activity.payment.manage');// TA/DA edit audit is shown per row inside the activity form.
@@ -121,8 +121,9 @@ class ActivityController extends Controller
             ->latest('activity_at')->latest('id');
         if (Auth::user()->can('activity.view_all') && Auth::user()->can('staff.filter') && $request->filled('created_by')) $query->where('created_by', $request->integer('created_by'));
         if (Auth::user()->can('activity.view_all') && $request->filled('branch_id')) $query->where('branch_id', $request->integer('branch_id'));
+        if (Auth::user()->canAny(['activity.approve','activity.bulk_review'])) $query->with('reviewer:id,name');
         $canViewAll = Auth::user()->can('activity.view_all');
-        $showStatus = Auth::user()->can('activity.status.view');
+        $showStatus = Auth::user()->canAny(['activity.status.view','activity.approve','activity.bulk_review']);
         $status = $showStatus ? (string) $request->input('status', 'all') : 'all';
         abort_unless(in_array($status, ['all','pending','approved','rejected'], true), 422, 'Invalid activity status.');
         if (!$canViewAll) $query->whereIn('status', ['pending','rejected']);
@@ -162,7 +163,16 @@ class ActivityController extends Controller
             })
             ->addColumn('tour_type', fn($row) => e($row->tour_type==='tour'?'Tour':'Local Tour'))
             ->addColumn('payment_status', function($row){ $map=['unpaid'=>'secondary','waiting_for_payment'=>'warning','paid'=>'success']; $label=['unpaid'=>'Unpaid','waiting_for_payment'=>'Waiting for Payment','paid'=>'Paid']; return '<span class="badge bg-'.($map[$row->payment_status]??'secondary').'">'.e($label[$row->payment_status]??ucfirst($row->payment_status)).'</span>'.($row->paid_at?'<div class="small text-muted mt-1">'.$row->paid_at->timezone('Asia/Dhaka')->format('d M Y, h:i A').'</div>':''); })
-            ->addColumn('status', fn($row) => '<span class="badge bg-'.($row->status==='approved'?'success':($row->status==='rejected'?'danger':'secondary')).'">'.e($row->status).'</span>'.($row->status==='rejected' && $row->review_note ? '<div class="small text-danger mt-1">'.e($row->review_note).'</div>':''))
+            ->addColumn('status', function ($row) {
+                $html = '<span class="badge bg-'.($row->status==='approved'?'success':($row->status==='rejected'?'danger':'secondary')).'">'.e($row->status).'</span>';
+                if ($row->status==='rejected' && $row->review_note) $html .= '<div class="small text-danger mt-1">'.e($row->review_note).'</div>';
+                if (Auth::user()->canAny(['activity.approve','activity.bulk_review']) && in_array($row->status, ['approved','rejected'], true)) {
+                    $label = $row->status==='approved' ? 'Approved by: ' : 'Rejected by: ';
+                    $html .= '<div class="small text-muted mt-1 activity-reviewer"><strong>'.e($label).'</strong>'.e($row->reviewer?->name ?? 'Unknown / legacy').'</div>';
+                    if ($row->reviewed_at) $html .= '<div class="small text-muted">'.e($row->reviewed_at->timezone('Asia/Dhaka')->format('d M Y, h:i A')).'</div>';
+                }
+                return $html;
+            })
             ->addColumn('edit_history', function($row) {
                 if (!Auth::user()->hasPermissionTo('activity.multiple_edit')) return '';
                 $count = (int) ($row->edit_count ?? 0);

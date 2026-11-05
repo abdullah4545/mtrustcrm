@@ -118,6 +118,7 @@
 #activityTable td.activity-location .crm-route-plain{margin-bottom:2px!important}
 #activityTable_wrapper #activityTable thead th,#activityTable_wrapper #activityTable tbody td{padding:6px 8px!important}
 #activityTable .activity-visit-output{min-width:200px;max-width:320px;white-space:normal;overflow-wrap:anywhere}
+#activityTable .activity-reviewer{max-width:220px;white-space:normal;overflow-wrap:anywhere}
 #activityTable .activity-money{white-space:nowrap;min-width:80px}
 #activityTable .activity-actions-cell{min-width:270px;width:270px}
 #activityTable .activity-actions{display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;align-items:center;gap:6px;min-width:250px;max-width:280px}

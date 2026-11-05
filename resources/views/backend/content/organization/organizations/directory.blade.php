@@ -10,6 +10,16 @@
 body{max-width:850px;margin:24px auto;padding:0 20px;font-size:12px}.organization h2{font-size:15px}.meta{font-size:11px}.contact{font-size:11px}
 @media print{body{max-width:none;margin:0;padding:0;font-size:10px}.toolbar{display:none!important}.organization h2{font-size:12px}.meta,.contact{font-size:9px}}
 @endif
+/* Flow each organization's details across the available line width in PDF and print. */
+.organization p,.organization .profile-section,.organization .profile-section>div{display:inline;margin:0;line-height:1.7}
+.organization p::after,.organization .profile-section::after{content:"  |  ";color:#a6b2bf}
+.organization .profile-section>.label{display:inline;margin:0;font-weight:bold}
+.organization .profile-section>.label::after{content:": "}
+.organization .contact-block{display:block;margin:5px 0;padding:3px 0 3px 9px}
+.organization .contact-block p{display:inline}
+.organization .metadata{display:block;margin-top:6px}
+.organization .metadata::after{content:""}
+.organization .visiting-card{display:inline-block;vertical-align:middle;max-width:150px;max-height:95px;margin:3px}
 </style>
 </head>
 <body>
@@ -71,9 +81,9 @@ body{max-width:850px;margin:24px auto;padding:0 20px;font-size:12px}.organizatio
 @endif
 @if($organization->website)<p><span class="label">Website:</span> {{ $organization->website }}</p>
 @endif
-<div class="profile-section"><span class="label">Existing Machine</span><div>{!! nl2br(e($directoryText($organization->existing_machine) ?: 'Not provided')) !!}</div></div>
-<div class="profile-section"><span class="label">About Organization</span><div>{!! nl2br(e($directoryText($organization->about_us) ?: 'Not provided')) !!}</div></div>
-<div class="profile-section"><span class="label">Notes</span><div>{!! nl2br(e($directoryText($organization->notes) ?: 'Not provided')) !!}</div></div>
+<div class="profile-section"><span class="label">Existing Machine</span><div>{!! e($directoryText($organization->existing_machine) ?: 'Not provided') !!}</div></div>
+<div class="profile-section"><span class="label">About Organization</span><div>{!! e($directoryText($organization->about_us) ?: 'Not provided') !!}</div></div>
+<div class="profile-section"><span class="label">Notes</span><div>{!! e($directoryText($organization->notes) ?: 'Not provided') !!}</div></div>
 <div class="profile-section"><span class="label">Contact Persons ({{ $organization->contacts->count() }})</span></div>
 @forelse($organization->contacts as $contact)
 @php
@@ -88,9 +98,9 @@ body{max-width:850px;margin:24px auto;padding:0 20px;font-size:12px}.organizatio
 <p class="contact"><span class="label">Department:</span> {{ $contact->department?->title ?? '-' }} · <span class="label">Designation:</span> {{ $contact->designation?->title ?? '-' }} · <span class="label">Status:</span> {{ ucfirst($contact->status ?? '-') }}</p>
 <p class="contact"><span class="label">Phone:</span> {{ $contactPhones ?: 'Not provided' }} · <span class="label">Email:</span> {{ $contactEmails ?: 'Not provided' }}</p>
 <p class="contact"><span class="label">Address:</span> {{ $contact->address ?: 'Not provided' }}</p>
-@if($contact->additional_info)<p class="contact"><span class="label">Additional Info:</span> {!! nl2br(e($directoryText($contact->additional_info))) !!}</p>
+@if($contact->additional_info)<p class="contact"><span class="label">Additional Info:</span> {!! e($directoryText($contact->additional_info)) !!}</p>
 @endif
-@if($cardImage)<p class="contact"><span class="label">Visiting Card:</span><br><img class="visiting-card" src="{{ $cardImage }}" alt="Visiting card"></p>
+@if($cardImage)<p class="contact"><span class="label">Visiting Card:</span> <img class="visiting-card" src="{{ $cardImage }}" alt="Visiting card"></p>
 @elseif($contact->image_url)<p class="contact"><span class="label">Visiting Card:</span> {{ $contact->image_url }}</p>
 @endif
 </div>

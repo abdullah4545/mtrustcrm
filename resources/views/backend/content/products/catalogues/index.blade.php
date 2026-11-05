@@ -7,7 +7,7 @@
             <div class="page-header-title"><h5 class="m-b-10">Catalogue</h5></div>
             <ul class="breadcrumb"><li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li><li class="breadcrumb-item">Products Catalogue</li></ul>
         </div>
-        <div class="page-header-right ms-auto"><button type="button" class="btn btn-primary" id="catalogueCreate"><i class="feather-plus me-2"></i>Add Catalogue</button></div>
+        @if(auth()->user()->hasRole('superadmin') || auth()->user()->can('catalogue.manage'))<div class="page-header-right ms-auto"><button type="button" class="btn btn-primary" id="catalogueCreate"><i class="feather-plus me-2"></i>Add Catalogue</button></div>@endif
     </div>
     <div class="main-content">
         <div class="card">

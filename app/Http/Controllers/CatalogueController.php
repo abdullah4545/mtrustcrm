@@ -13,7 +13,12 @@ class CatalogueController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('permission:catalogue.manage');
+        $this->middleware(function ($request, $next) {
+            $user = auth()->user();
+            $reading = in_array($request->route()->getActionMethod(), ['index','datatable','show'], true);
+            abort_unless($user->hasRole('superadmin') || $user->can('catalogue.manage') || ($reading && $user->can('catalogue.view')), 403);
+            return $next($request);
+        });
     }
 
     public function index()
@@ -44,7 +49,7 @@ class CatalogueController extends Controller
             ->editColumn('status', fn($row) => $row->status === 'active'
                 ? '<span class="badge bg-success">Active</span>'
                 : '<span class="badge bg-secondary">Inactive</span>')
-            ->addColumn('action', fn($row) => '<div class="d-flex gap-2"><button type="button" class="btn btn-sm btn-primary catalogue-edit" data-id="'.$row->id.'" title="Edit"><i class="feather-edit"></i></button><button type="button" class="btn btn-sm btn-danger catalogue-delete" data-id="'.$row->id.'" title="Delete"><i class="feather-trash-2"></i></button></div>')
+            ->addColumn('action', fn($row) => (auth()->user()->hasRole('superadmin') || auth()->user()->can('catalogue.manage')) ? '<div class="d-flex gap-2"><button type="button" class="btn btn-sm btn-primary catalogue-edit" data-id="'.$row->id.'" title="Edit"><i class="feather-edit"></i></button><button type="button" class="btn btn-sm btn-danger catalogue-delete" data-id="'.$row->id.'" title="Delete"><i class="feather-trash-2"></i></button></div>' : '')
             ->rawColumns(['file','title','category_name','description','status','action'])
             ->make(true);
     }

@@ -258,7 +258,7 @@ class OrganizationController extends Controller
     {
         $request->validate(['format' => 'required|in:pdf,print']);
         $query = CrmAccess::applyOrganizationScope(Organization::query())
-            ->with(['category:id,name','type:id,name','division:id,name','district:id,name','upazila:id,name','union:id,name','contacts.designation:id,title']);
+            ->with(['category:id,name','type:id,name','division:id,name','district:id,name','upazila:id,name','union:id,name','contacts.designation:id,title','contacts.department:id,title','creator:id,name']);
         $this->applyDirectoryFilters($query, $request);
         // Export the complete filtered dataset, independently of the list's current page.
         $organizations = $query->orderBy('name')->orderBy('id')->get();

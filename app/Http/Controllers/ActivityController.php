@@ -268,8 +268,7 @@ class ActivityController extends Controller
     private function validated(Request $request): array
     {
         return $request->validate([
-            'staff_id'=>'nullable|exists:users,id','activity_at'=>'nullable|date','organization_id'=>'nullable|exists:organizations,id','department'=>'nullable|string|max:255',
-            'department_id'=>'nullable|exists:departments,id','contact_id'=>'nullable','contact_person'=>'nullable|string|max:255',
+            'staff_id'=>'nullable|exists:users,id','activity_at'=>'nullable|date','organization_id'=>'required|exists:organizations,id',
             'work_details'=>'required|string','remarks'=>'nullable|string','status'=>'nullable|in:pending,approved,rejected',
             'tour_ended_at'=>'nullable|date','tour_type'=>'nullable|in:local_tour,tour','travels.*.note'=>'nullable|string|max:500',
             'travels'=>'nullable|array','travels.*.id'=>'nullable|integer','travels.*.entry_at'=>'required_with:travels|date_format:Y-m-d\TH:i','travels.*.from_location'=>'required_with:travels|string|max:255','travels.*.to_location'=>'required_with:travels|string|max:255',
@@ -333,7 +332,7 @@ class ActivityController extends Controller
             $owner = User::findOrFail($allowedStaff->id);
         }
 
-        $org = !empty($data['organization_id']) ? Organization::find($data['organization_id']) : null;
+        $org = Organization::findOrFail($data['organization_id']);
         if ($org) CrmAccess::ensureOrganizationAllowed($org, $owner);
 
         $travels = collect($data['travels'] ?? [])->filter(fn($r) => filled($r['from_location'] ?? null) || filled($r['to_location'] ?? null) || (float)($r['cost'] ?? 0)>0)->values();
@@ -383,8 +382,8 @@ class ActivityController extends Controller
                 $activity->tour_ended_at=$end;$activity->tour_ended_by=$u->id;
             }
             $activity->fill([
-                'organization_id'=>$org?->id,'organization_name'=>$org?->name,'department_id'=>$data['department_id']??null,'department'=>!empty($data['department_id']) ? \App\Models\Department::find($data['department_id'])?->title : null,
-                'contact_id'=>null,'contact_person'=>$data['contact_person']??null,'work_details'=>$data['work_details']??null,
+                'organization_id'=>$org?->id,'organization_name'=>$org?->name,'department_id'=>null,'department'=>null,
+                'contact_id'=>null,'contact_person'=>null,'work_details'=>$data['work_details']??null,
                 'from_location'=>$travels->pluck('from_location')->filter()->implode(' | '),
                 'to_location'=>$travels->pluck('to_location')->filter()->implode(' | '),
                 'vehicle'=>$travels->pluck('vehicle')->filter()->implode(' | '),

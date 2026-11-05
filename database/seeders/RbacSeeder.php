@@ -86,7 +86,7 @@ class RbacSeeder extends Seeder
             'report.view_self',
 
             // Products
-            'catalogue.manage',
+            'catalogue.manage', 'catalogue.view',
             'product.view',
             'product.create',
             'product.edit',
@@ -322,7 +322,7 @@ class RbacSeeder extends Seeder
 
         foreach ($roleMap as $roleName => $perms) {
             $role = Role::where('name', $roleName)->first();
-            $role->syncPermissions($perms);
+            $role->syncPermissions(array_values(array_unique(array_merge($perms, ['catalogue.view']))));
         }
     }
 }

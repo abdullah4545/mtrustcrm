@@ -11,7 +11,10 @@ class ProductCategoryController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('permission:product_category.manage');
+        $this->middleware(function ($request, $next) {
+            abort_unless(auth()->user()->hasRole('superadmin') || auth()->user()->canAny(['product_category.manage','product.category.manage']), 403);
+            return $next($request);
+        });
     }
     public function index()
     {

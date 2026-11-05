@@ -180,17 +180,9 @@
                             </select>
                         </div>
 
-                        <div class="col-12 col-sm-6 col-lg-3">
-                            <label>Department</label>
-                            <select id="department" class="form-control">
-                                <option value="">Select Department</option>
-                            </select>
-                        </div>
+                        
 
-                        <div class="col-12 col-sm-6 col-lg-3">
-                            <label>Contact Person</label>
-                            <input type="text" id="contact_person" class="form-control">
-                        </div>
+                        
 
                         <div class="col-12 col-sm-6 col-lg-3">
                             <label>From</label>
@@ -266,21 +258,13 @@
     const ROUTE_UPDATE = "{{ url('activities') }}";
     const ROUTE_DELETE = "{{ url('activities') }}";
     const ROUTE_ORG = "{{ url('activities/ajax/organizations') }}";
-    const ROUTE_DEP = "{{ url('activities/ajax/departments') }}";
 
     function loadDropdowns(){
         if($.fn.select2){
             $('#organization_id').select2({width:'100%',placeholder:'Search organization...',dropdownParent:$('#organization_id').closest('.modal').length?$('#organization_id').closest('.modal').find('.modal-content').first():$(document.body),ajax:{url:ROUTE_ORG,dataType:'json',delay:300,data:p=>({q:p.term||'',page:p.page||1}),processResults:r=>r,cache:true}});
         }
 
-        // department
-        $.get(ROUTE_DEP, function(res){
-            let html = `<option value="">Select Department</option>`;
-            res.forEach(v=>{
-                html += `<option value="${v.title}">${v.title}</option>`;
-            });
-            $('#department').html(html);
-        });
+
     }
 
     $(document).ready(function(){

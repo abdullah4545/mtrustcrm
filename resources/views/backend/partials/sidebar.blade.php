@@ -93,21 +93,15 @@
                 @endcanany
 
 
-                @canany(['catalogue.manage','product.view','product.create','product.edit','product.category.manage','product.subcategory.manage','brand.manage'])
+                @if(auth()->user()->hasRole('superadmin') || auth()->user()->canAny(['catalogue.view','catalogue.manage','product_category.manage','product.category.manage']))
                 <li class="nxl-item nxl-hasmenu">
-                    <a href="javascript:void(0);" class="nxl-link">
-                        <span class="nxl-micon"><i class="feather-briefcase"></i></span>
-                        <span class="nxl-mtext">Products Catalogue</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                    </a>
+                    <a href="javascript:void(0);" class="nxl-link"><span class="nxl-micon"><i class="feather-briefcase"></i></span><span class="nxl-mtext">Products Catalogue</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span></a>
                     <ul class="nxl-submenu">
-                        @can('product.category.manage')<li class="nxl-item"><a class="nxl-link" href="{{ route('product.categories.index') }}">Categorys</a></li>@endcan
-                        @can('product.subcategory.manage')<li class="nxl-item"><a class="nxl-link" href="{{ route('product.subcategories.index') }}">Sub Categorys</a></li>@endcan
-                        @can('brand.manage')<li class="nxl-item"><a class="nxl-link" href="{{ route('brands.index') }}">Brands</a></li>@endcan
-                        @can('catalogue.manage')<li class="nxl-item"><a class="nxl-link" href="{{ route('catalogues.index') }}">Catalogue</a></li>@endcan
-                        @canany(['product.view','product.create','product.edit'])<li class="nxl-item"><a class="nxl-link" href="{{ route('products.index') }}">Products</a></li>@endcanany
+                        @if(auth()->user()->hasRole('superadmin') || auth()->user()->canAny(['product_category.manage','product.category.manage']))<li class="nxl-item"><a class="nxl-link" href="{{ route('product.categories.index') }}">Category</a></li>@endif
+                        @if(auth()->user()->hasRole('superadmin') || auth()->user()->canAny(['catalogue.view','catalogue.manage']))<li class="nxl-item"><a class="nxl-link" href="{{ route('catalogues.index') }}">Catalogue</a></li>@endif
                     </ul>
                 </li>
-                @endcanany
+                @endif
 
                 @can('geo.view')
                 <li class="nxl-item nxl-hasmenu">

@@ -129,7 +129,7 @@
 <form id="activityForm">
 <div class="row mb-3"><div class="col-md-4"><label>Tour Type</label><select id="activity_tour_type" class="form-control" @disabled(!auth()->user()->can('activity.tour.manage') || ($editing && $activity->tour_type==='tour'))><option value="local_tour">Local Tour</option><option value="tour" @selected($editing && $activity->tour_type==='tour')>Tour — start with activity date &amp; time</option></select>
 @if($editing && $activity->tour_type==='tour')<small>Started: {{ ($activity->activity_at??$activity->date)->format('d M Y h:i A') }} · {{ $activity->tour_ended_at ? 'Ended: '.$activity->tour_ended_at->format('d M Y h:i A') : 'Running' }}</small>@endif</div>
-@can('activity.tour.manage')<div class="col-md-4"><label>Tour End Date &amp; Time (optional)</label><input id="tour_ended_at" type="datetime-local" class="form-control" value="{{ $editing && $activity->tour_ended_at ? $activity->tour_ended_at->format('Y-m-d\TH:i') : '' }}" @disabled($editing && $activity->tour_ended_at)><small class="text-muted">Leave empty while the tour is running.</small></div>@endcan
+@can('activity.tour.manage')<div class="col-md-4" id="tour_end_field" @if(!$editing || $activity->tour_type !== 'tour') hidden @endif><label>Tour End Date &amp; Time (optional)</label><input id="tour_ended_at" type="datetime-local" class="form-control" value="{{ $editing && $activity->tour_ended_at ? $activity->tour_ended_at->format('Y-m-d\TH:i') : '' }}" @disabled($editing && $activity->tour_ended_at)><small class="text-muted">Leave empty while the tour is running.</small></div>@endcan
 </div>
 <div class="row g-3">
     <div class="col-6 col-md-2"><label>Activity Date</label><input type="date" id="activity_date" class="form-control" value="{{ $activityTime?->timezone('Asia/Dhaka')->format('Y-m-d') }}" @disabled($editing && !auth()->user()->hasPermissionTo('activity.view_all')) required></div>
@@ -147,9 +147,7 @@
     </div>
     @endif
 
-    <div class="col-12 col-md-4"><label>Organization <span class="text-muted">(Optional)</span></label><select id="organization_id" class="form-control"><option value="">Select Organization</option></select></div>
-    <div class="col-12 col-md-4"><label>Department <span class="text-muted">(Optional)</span></label><select id="department" class="form-control"><option value="">Select Department</option></select></div>
-    <div class="col-12 col-md-4"><label>Contact Person</label><input type="text" id="contact_person" class="form-control" value="{{ $editing ? $activity->contact_person : '' }}" placeholder="Type contact person name"></div>
+    <div class="col-12 col-md-4"><label>Organization <span class="text-danger">*</span></label><select id="organization_id" class="form-control" required><option value="">Select Organization</option></select></div>
 
     <div class="col-12">
         <div class="activity-section">
@@ -230,11 +228,7 @@ $.ajaxSetup({headers:{'X-CSRF-TOKEN':$('meta[name="csrf-token"]').attr('content'
 const ACTIVITY_URL = @json($editing ? route('activities.update',$activity->id) : route('activities.quick.store'));
 const ORG_URL = @json(url('activities/ajax/organizations'));
 const VEHICLE_URL = @json(url('activities/ajax/vehicles'));
-const DEPT_URL = @json(url('activities/ajax/departments'));
-const CONTACT_URL = @json(url('activities/ajax/org-contacts'));
 const OLD_ORG = @json($editing ? (string)$activity->organization_id : '');
-const OLD_DEPT = @json($editing ? (string)$activity->department_id : '');
-const OLD_CONTACT = @json($editing ? (string)$activity->contact_id : '');
 const CAN_MANAGE_ENTRY = @json((bool)$canManageActivityEntry);
 const CAN_MULTIPLE_TADA_EDIT = @json((bool)$canMultipleTaDaEdit);
 let travels = @json($initialTravels);
@@ -354,23 +348,6 @@ function openExpenseEdit(index){
     expenseModal.show();
 }
 
-function loadDepartments(org,selected='',contact=''){
-    $.get(DEPT_URL,r=>{
-        let h='<option value="">No Department / Select Department</option>';
-        r.forEach(v=>h+=`<option value="${v.id}" data-title="${esc(v.title)}" ${String(v.id)===String(selected)?'selected':''}>${esc(v.title)}</option>`);
-        $('#department').html(h).trigger('change.select2');
-        if(org) loadContacts(org,selected||'',contact);
-    });
-}
-function loadContacts(org,dept='',selected=''){
-    const data={}; if(dept) data.department_id=dept;
-    $.get(CONTACT_URL+'/'+org,data,r=>{
-        let h='<option value="">Select Contact</option>';
-        r.forEach(v=>h+=`<option value="${v.id}" data-name="${esc(v.name)}" ${String(v.id)===String(selected)?'selected':''}>${esc(v.name||'Unnamed')}${v.designation?' - '+esc(v.designation.title):''}</option>`);
-        $('#contact_id').html(h).trigger('change.select2');
-    });
-}
-
 $(function(){
     // Move modals to <body> so parent theme transforms/filters cannot blur or block them.
     ['travelModal','expenseModal'].forEach(function(id){
@@ -381,7 +358,7 @@ $(function(){
     travelModal = new bootstrap.Modal(document.getElementById('travelModal'), {backdrop:true, keyboard:true, focus:true});
     expenseModal = new bootstrap.Modal(document.getElementById('expenseModal'), {backdrop:true, keyboard:true, focus:true});
 
-    $('#department,#staff_id').each(function(){ if(this && !$(this).hasClass('select2-hidden-accessible')) $(this).select2({width:'100%',dropdownParent:$(this).closest('.modal').length?$(this).closest('.modal').find('.modal-content').first():$(document.body)}); });
+    $('#staff_id').each(function(){ if(this && !$(this).hasClass('select2-hidden-accessible')) $(this).select2({width:'100%',dropdownParent:$(this).closest('.modal').length?$(this).closest('.modal').find('.modal-content').first():$(document.body)}); });
     if($('#organization_id').hasClass('select2-hidden-accessible')) $('#organization_id').select2('destroy');
     $('#organization_id').select2({
         width:'100%', placeholder:'Search organization...', minimumInputLength:0,
@@ -395,20 +372,19 @@ $(function(){
 
     }
 
-    loadDepartments(OLD_ORG,OLD_DEPT,OLD_CONTACT);
+    toggleTourEndField();
     $.get(VEHICLE_URL,r=>{ vehicles=r; fillVehicleOptions(''); });
 
     renderTravels(); renderExpenses();
 });
 
-$('#organization_id').on('change',function(){
-    const v=$(this).val();
-    if(v) loadContacts(v,$('#department').val());
-});
-$('#department').on('change',function(){
-    const org=$('#organization_id').val(), d=$(this).val();
-    if(org) loadContacts(org,d);
-});
+function toggleTourEndField(){
+    const isTour=$('#activity_tour_type').val()==='tour';
+    $('#tour_end_field').prop('hidden',!isTour);
+    $('#tour_ended_at').prop('required',false);
+    if(!isTour) $('#tour_ended_at').val('');
+}
+$('#activity_tour_type').on('change',toggleTourEndField);
 
 $('#addTravel').on('click',function(){ resetTravelModal(); travelModal.show(); });
 $('#saveTravelRow').on('click',function(){
@@ -465,20 +441,17 @@ $(document).on('click','.delete-expense',function(){
 });
 
 $('#btnSave').on('click',function(){
+    if(!$('#organization_id').val()){ Swal.fire('Required','Please select an organization.','warning'); return; }
     if(!$.trim($('#work_details').val())){ Swal.fire('Error','Visit Output is required','error'); return; }
     if(!$('#activity_date').val() || !$('#activity_time').val()){ Swal.fire('Required','Please select activity date and time.','warning'); return; }
     const fd=new FormData();
-    if($('#tour_ended_at').val() && !$('#tour_ended_at').prop('disabled')) fd.append('tour_ended_at',$('#tour_ended_at').val());
+    if($('#activity_tour_type').val()==='tour' && $('#tour_ended_at').val() && !$('#tour_ended_at').prop('disabled')) fd.append('tour_ended_at',$('#tour_ended_at').val());
     fd.append('tour_type',$('#activity_tour_type').val()||'local_tour');
     fd.append('activity_at',$('#activity_date').val()+'T'+$('#activity_time').val());
     if(CAN_MANAGE_ENTRY){
         fd.append('staff_id',$('#staff_id').val()||'');
     }
     fd.append('organization_id',$('#organization_id').val());
-    fd.append('department_id',$('#department').val());
-    fd.append('department',$('#department').val() ? ($('#department option:selected').data('title')||$('#department option:selected').text()) : '');
-    fd.append('contact_id','');
-    fd.append('contact_person',$.trim($('#contact_person').val()));
     fd.append('work_details',$('#work_details').val());
     fd.append('remarks',$('#remarks').val());
 

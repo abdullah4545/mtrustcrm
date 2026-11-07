@@ -147,7 +147,7 @@
     </div>
     @endif
 
-    <div class="col-12 col-md-4"><label>Organization <span class="text-danger">*</span></label><select id="organization_id" class="form-control" required><option value="">Select Organization</option></select></div>
+    <div class="col-12 col-md-4"><label>Organization (Optional)</label><select id="organization_id" class="form-control"><option value="">Select Organization</option></select></div>
 
     <div class="col-12">
         <div class="activity-section">
@@ -361,7 +361,7 @@ $(function(){
     $('#staff_id').each(function(){ if(this && !$(this).hasClass('select2-hidden-accessible')) $(this).select2({width:'100%',dropdownParent:$(this).closest('.modal').length?$(this).closest('.modal').find('.modal-content').first():$(document.body)}); });
     if($('#organization_id').hasClass('select2-hidden-accessible')) $('#organization_id').select2('destroy');
     $('#organization_id').select2({
-        width:'100%', placeholder:'Search organization...', minimumInputLength:0,
+        width:'100%', placeholder:'Search organization (optional)...', allowClear:true, minimumInputLength:0,
         dropdownParent: $('#organization_id').closest('.modal').length ? $('#organization_id').closest('.modal').find('.modal-content').first() : $(document.body),
         ajax:{url:ORG_URL,dataType:'json',delay:300,data:p=>({q:p.term||'',page:p.page||1}),processResults:r=>r,cache:true}
     });
@@ -441,7 +441,6 @@ $(document).on('click','.delete-expense',function(){
 });
 
 $('#btnSave').on('click',function(){
-    if(!$('#organization_id').val()){ Swal.fire('Required','Please select an organization.','warning'); return; }
     if(!$.trim($('#work_details').val())){ Swal.fire('Error','Visit Output is required','error'); return; }
     if(!$('#activity_date').val() || !$('#activity_time').val()){ Swal.fire('Required','Please select activity date and time.','warning'); return; }
     const fd=new FormData();
@@ -451,7 +450,7 @@ $('#btnSave').on('click',function(){
     if(CAN_MANAGE_ENTRY){
         fd.append('staff_id',$('#staff_id').val()||'');
     }
-    fd.append('organization_id',$('#organization_id').val());
+    fd.append('organization_id',$('#organization_id').val() || '');
     fd.append('work_details',$('#work_details').val());
     fd.append('remarks',$('#remarks').val());
 

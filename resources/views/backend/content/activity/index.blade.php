@@ -176,7 +176,7 @@
 
                         <div class="col-12 col-sm-6 col-lg-3">
                             <label>Organization</label>
-                            <select id="organization_id" class="form-control" required>
+                            <select id="organization_id" class="form-control">
                                 <option value="">Select Organization</option>
                             </select>
                         </div>

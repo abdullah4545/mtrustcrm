@@ -278,7 +278,7 @@ class ActivityController extends Controller
     private function validated(Request $request): array
     {
         return $request->validate([
-            'staff_id'=>'nullable|exists:users,id','activity_at'=>'nullable|date','organization_id'=>'required|exists:organizations,id',
+            'staff_id'=>'nullable|exists:users,id','activity_at'=>'nullable|date','organization_id'=>'nullable|exists:organizations,id',
             'work_details'=>'required|string','remarks'=>'nullable|string','status'=>'nullable|in:pending,approved,rejected',
             'tour_ended_at'=>'nullable|date','tour_type'=>'nullable|in:local_tour,tour','travels.*.note'=>'nullable|string|max:500',
             'travels'=>'nullable|array','travels.*.id'=>'nullable|integer','travels.*.entry_at'=>'required_with:travels|date_format:Y-m-d\TH:i','travels.*.from_location'=>'required_with:travels|string|max:255','travels.*.to_location'=>'required_with:travels|string|max:255',
@@ -342,7 +342,7 @@ class ActivityController extends Controller
             $owner = User::findOrFail($allowedStaff->id);
         }
 
-        $org = Organization::findOrFail($data['organization_id']);
+        $org = !empty($data['organization_id']) ? Organization::findOrFail($data['organization_id']) : null;
         if ($org) CrmAccess::ensureOrganizationAllowed($org, $owner);
 
         $travels = collect($data['travels'] ?? [])->filter(fn($r) => filled($r['from_location'] ?? null) || filled($r['to_location'] ?? null) || (float)($r['cost'] ?? 0)>0)->values();

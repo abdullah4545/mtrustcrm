@@ -63,9 +63,9 @@
                         <label class="form-label">Status</label>
                         <select id="f_status" class="form-control">
                             <option value="all" @selected(!$af('f_status') || $af('f_status') === 'all')>All Status</option>
-                            @can('activity.view_all')
+                            @if(auth()->user()->can('activity.view_all') || \App\Support\ActivityApproval::branches())
                             <option value="approved" @selected($af('f_status') === 'approved')>Approved</option>
-                            @endcan
+                            @endif
                             <option value="pending" @selected($af('f_status') === 'pending')>Pending</option>
                             <option value="rejected" @selected($af('f_status') === 'rejected')>Rejected</option>
                         </select>

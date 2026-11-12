@@ -633,7 +633,7 @@
             icon: 'question', showCancelButton: true, confirmButtonText: 'Yes, Mark Paid'
         }).then(function(result){
             if (!result.isConfirmed) return;
-            $.post(ACTIVITY_BULK_URL, {ids: ids, action: 'paid', source:'report'})
+            $.post(ACTIVITY_BULK_URL, {_token: document.querySelector('meta[name="csrf-token"]').content, ids: ids, action: 'paid', source:'report'})
                 .done(function(response){ Swal.fire('Done', response.message, 'success'); loadReport(); })
                 .fail(function(xhr){
                     let message = xhr.responseJSON?.message || 'Unable to update payment status.';

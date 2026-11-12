@@ -24,8 +24,10 @@ class ActivityController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('permission:activity.view_all|activity.view_branch|activity.view_self')
-            ->only(['index','datatable','organizations','departments','vehicles','expenseTypes','staffs','organizationDepartments','organizationContacts']);
+        $this->middleware(function ($request, $next) {
+            abort_unless(auth()->user()->canAny(['activity.view_all','activity.view_branch','activity.view_self']) || \App\Support\ActivityApproval::branches(), 403);
+            return $next($request);
+        })->only(['index','datatable','organizations','departments','vehicles','expenseTypes','staffs','organizationDepartments','organizationContacts']);
         // The /activities/{id} route is the Activity EDIT screen in this CRM.
         // Do not require activity.details.view here; staff with activity.edit must be able
         // to open their own/visible activity for editing. findVisible() still enforces
@@ -33,8 +35,8 @@ class ActivityController extends Controller
         $this->middleware('permission:activity.edit')->only(['show','update']);
         $this->middleware('permission:activity.create')->only(['quickCreate','quickStore','store']);
         $this->middleware('permission:activity.delete')->only(['destroy']);
-        $this->middleware('permission:activity.approve')->only(['review']);
-        $this->middleware('permission:activity.bulk_review|activity.payment.manage')->only(['bulkAction']);
+
+
     }
 
     private function isAdmin(): bool
@@ -92,8 +94,14 @@ class ActivityController extends Controller
     {
         $u = Auth::user();
         $q = Activity::query()->withCount('billHistories')->with(['creator:id,name','lastEditor:id,name','travels','expenses']);
+        if ($u->hasRole('branch_manager')) return $q->where('branch_id', $u->branch_id ?: -1);
         if ($u->can('activity.view_all')) return $q;
-        return $q->where('created_by',$u->id);
+        return $q->where(function ($scope) use ($u) {
+            $scope->where('created_by', $u->id);
+            if ($u->can('activity.view_branch') && $u->branch_id) $scope->orWhere('branch_id', $u->branch_id);
+            $branches = \App\Support\ActivityApproval::branches($u);
+            if ($branches) $scope->orWhereIn('branch_id', $branches);
+        });
     }
 
     private function findVisible(int $id): Activity
@@ -106,10 +114,10 @@ class ActivityController extends Controller
         $staffs = $u->can('activity.view_all') && $u->can('staff.filter')
             ? User::where('status',1)->orderBy('name')->get(['id','name'])
             : User::whereKey($u->id)->get(['id','name']);
-        $showStaffColumn = $u->can('activity.view_all');
-        $showStatus = $u->canAny(['activity.status.view','activity.approve','activity.bulk_review']);
+        $showStaffColumn = $u->can('activity.view_all') || $u->can('activity.view_branch') || count(\App\Support\ActivityApproval::branches($u)) > 0;
+        $showStatus = $u->canAny(['activity.status.view','activity.approve','activity.bulk_review']) || count(\App\Support\ActivityApproval::branches()) > 0;
         $showEditAudit = false;
-        $canBulkReview = $u->can('activity.bulk_review');
+        $canBulkReview = $u->can('activity.bulk_review') || count(\App\Support\ActivityApproval::branches($u)) > 0;
         $canManagePayment = $u->can('activity.payment.manage');// TA/DA edit audit is shown per row inside the activity form.
         // TA/DA edit status is intentionally not shown on the Activity List.
         return view('backend.content.activity.index', compact('staffs', 'showStaffColumn', 'showEditAudit', 'showStatus', 'canBulkReview', 'canManagePayment'));
@@ -121,12 +129,12 @@ class ActivityController extends Controller
             ->latest('activity_at')->latest('id');
         if (Auth::user()->can('activity.view_all') && Auth::user()->can('staff.filter') && $request->filled('created_by')) $query->where('created_by', $request->integer('created_by'));
         if (Auth::user()->can('activity.view_all') && $request->filled('branch_id')) $query->where('branch_id', $request->integer('branch_id'));
-        if (Auth::user()->canAny(['activity.approve','activity.bulk_review'])) $query->with('reviewer:id,name');
+        if (Auth::user()->canAny(['activity.approve','activity.bulk_review']) || \App\Support\ActivityApproval::branches()) $query->with('reviewer:id,name');
         $canViewAll = Auth::user()->can('activity.view_all');
-        $showStatus = Auth::user()->canAny(['activity.status.view','activity.approve','activity.bulk_review']);
+        $showStatus = Auth::user()->canAny(['activity.status.view','activity.approve','activity.bulk_review']) || count(\App\Support\ActivityApproval::branches()) > 0;
         $status = $showStatus ? (string) $request->input('status', 'all') : 'all';
         abort_unless(in_array($status, ['all','pending','approved','rejected'], true), 422, 'Invalid activity status.');
-        if (!$canViewAll) $query->whereIn('status', ['pending','rejected']);
+        if (!$canViewAll && !\App\Support\ActivityApproval::branches()) $query->whereIn('status', ['pending','rejected']);
         if ($status !== 'all') $query->where('status', $status);
         if ($request->filled('payment_status')) $query->where('payment_status',$request->string('payment_status'));
         if ($request->filled('date')) $query->whereDate('date', $request->date('date'));
@@ -149,7 +157,7 @@ class ActivityController extends Controller
             ->addColumn('created_display', function($row) {
                 $when = ($row->activity_at ?? $row->date)?->copy()->timezone('Asia/Dhaka')->format('d M Y, h:i A') ?? '-';
                 $html = '<div class="crm-created">'.e($when).'</div>';
-                if (Auth::user()->can('activity.view_all')) {
+                if (Auth::user()->can('activity.view_all') || Auth::user()->can('activity.view_branch') || \App\Support\ActivityApproval::branches()) {
                     $html .= '<span class="crm-staff-badge"><i class="feather-user" aria-hidden="true"></i> '.e($row->creator?->name ?? '-').'</span>';
                 }
                 if($row->tour_type==='tour') $html.='<div class="mt-1"><span class="badge bg-primary">Tour</span></div>';
@@ -208,7 +216,7 @@ class ActivityController extends Controller
 
                 // Pending activities can be reviewed by normal approvers. Once reviewed,
                 // only Super Admin may change the approval decision.
-                if ($user->can('activity.approve') && (!$locked || $superAdmin)) {
+                if (\App\Support\ActivityApproval::allowed($row, $user) && (!$locked || $superAdmin)) {
                     if ($row->status !== 'approved' && $row->status !== 'rejected') {
                         $html.='<button class="btn btn-sm btn-success btn-review" data-id="'.$row->id.'" data-status="approved">Approve</button>';
                     }
@@ -354,13 +362,15 @@ class ActivityController extends Controller
         if (!$activity->exists && empty($data['activity_at'])) {
             throw ValidationException::withMessages(['activity_at' => 'Please select an activity date and time.']);
         }
-        if ($activity->exists && !$u->hasPermissionTo('activity.view_all')) {
+        if ($activity->exists) {
             $activityAt = ($activity->activity_at ?? $activity->created_at ?? $activity->date)->copy()->timezone('Asia/Dhaka');
         } else {
             $activityAt = !empty($data['activity_at'])
                 ? \Carbon\Carbon::parse($data['activity_at'], 'Asia/Dhaka')
                 : ($activity->activity_at ?? $activity->created_at ?? $now)->copy()->timezone('Asia/Dhaka');
         }
+
+        if (!$activity->exists && ($activityAt->toDateString() < $now->copy()->subDay()->toDateString() || $activityAt->toDateString() > $now->toDateString())) throw ValidationException::withMessages(['activity_at'=>'Only today or yesterday can be selected.']);
 
         if($activity->exists && $activity->tour_type==='tour' && !$activityAt->equalTo($activity->activity_at??$activity->date)) throw ValidationException::withMessages(['activity_at'=>'Tour start time cannot be changed once started.']);
         $oldTravelImages = $activity->exists ? $activity->travels->pluck('image_url')->filter()->values()->all() : [];
@@ -407,7 +417,7 @@ class ActivityController extends Controller
                 $activity->entered_by = $u->id;
             }
 
-            if (!$activity->exists || $u->hasPermissionTo('activity.view_all')) {
+            if (!$activity->exists) {
                 $activity->date = $activityAt->toDateString();
                 $activity->activity_at = $activityAt;
             }
@@ -538,7 +548,11 @@ class ActivityController extends Controller
     {
         if($source!=='report') return $this->visibleQuery();
         $q=Activity::query();
-        if(!auth()->user()->can('report.view_all')) $q->where('created_by',auth()->id())->where('branch_id',auth()->user()->branch_id);
+        if(auth()->user()->hasRole('branch_manager')) return $q->where('branch_id',auth()->user()->branch_id ?: -1);
+        if(!auth()->user()->can('report.view_all')) {
+            if(auth()->user()->can('report.view_branch') && auth()->user()->branch_id) $q->where('branch_id',auth()->user()->branch_id);
+            else $q->where('created_by',auth()->id());
+        }
         return $q;
     }
 
@@ -563,7 +577,10 @@ class ActivityController extends Controller
 
         $action = $data['action'];
         $user = Auth::user();
-        if (in_array($action, ['approve','reject'], true) && !$user->can('activity.bulk_review')) abort(403);
+        if (in_array($action, ['approve','reject'], true)) {
+            abort_unless($user->can('activity.bulk_review') || \App\Support\ActivityApproval::branches($user), 403);
+            foreach ($activities as $activity) abort_unless((!$user->hasRole('branch_manager') && $user->can('activity.bulk_review')) || \App\Support\ActivityApproval::allowed($activity, $user), 403);
+        }
         if (in_array($action, ['unpaid','waiting_for_payment','paid'], true) && !$user->can('activity.payment.manage')) abort(403);
 
         $updated = 0;
@@ -574,6 +591,7 @@ class ActivityController extends Controller
             foreach ($activities->sortBy('id') as $listed) {
                 $a=$this->bulkQuery($source)->whereKey($listed->id)->lockForUpdate()->firstOrFail();
                 if (in_array($action,['approve','reject'],true)) {
+                    abort_unless((!$user->hasRole('branch_manager') && $user->can('activity.bulk_review')) || \App\Support\ActivityApproval::allowed($a, $user),403);
                     if($a->status==='rejected' || $a->payment_status==='paid' || ($this->isLocked($a)&&!$this->isSuperAdmin())){ $skipped++; $skipReasons[]="Activity #{$a->id}: paid or locked";continue; }
                     Bills::activityDecision($a,$action==='approve'?'approved':'rejected',$data['review_note']??'');
                 } else {
@@ -647,6 +665,7 @@ class ActivityController extends Controller
         $data = $request->validate(['status'=>'required|in:approved,rejected','review_note'=>'required_if:status,rejected|nullable|string|max:2000']);
         DB::transaction(function()use($id,$data){
             $activity=$this->visibleQuery()->whereKey($id)->lockForUpdate()->firstOrFail();
+            abort_unless(\App\Support\ActivityApproval::allowed($activity),403);
             $this->ensureUnlockedOrSuperAdmin($activity,'review');
             Bills::activityDecision($activity,$data['status'],$data['review_note']??'');
         });

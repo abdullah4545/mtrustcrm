@@ -9,12 +9,20 @@ class ActivityBillReviewController extends Controller
 {
     public function __construct(){
         $this->middleware('auth');
-        $this->middleware('permission:activity.view_all|activity.view_branch|activity.view_self');
+        $this->middleware(function($request,$next){
+            abort_unless(auth()->user()->canAny(['activity.view_all','activity.view_branch','activity.view_self']) || \App\Support\ActivityApproval::branches(),403);
+            return $next($request);
+        });
         $this->middleware('permission:activity.approve')->only('update');
     }
     private function query(){
         $q=Activity::query();
-        if(!auth()->user()->can('activity.view_all'))$q->where('created_by',auth()->id());
+        if(auth()->user()->hasRole('branch_manager')) return $q->where('branch_id',auth()->user()->branch_id ?: -1);
+        if(!auth()->user()->can('activity.view_all')) $q->where(function($scope){
+            $scope->where('created_by',auth()->id());
+            if(auth()->user()->can('activity.view_branch') && auth()->user()->branch_id) $scope->orWhere('branch_id',auth()->user()->branch_id);
+            if(\App\Support\ActivityApproval::branches()) $scope->orWhereIn('branch_id',\App\Support\ActivityApproval::branches());
+        });
         return $q;
     }
     public function show($id){

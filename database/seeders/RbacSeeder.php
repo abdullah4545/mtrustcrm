@@ -270,7 +270,7 @@ class RbacSeeder extends Seeder
                 'lead.view_branch','lead.create','lead.edit','lead.delete','lead.activity.view','lead.activity.add',
             'lead.details.view',
             'followup.details.view',
-                'activity.view_branch','activity.create','activity.create_for_others','activity.edit','activity.delete','activity.approve','activity.status.view',
+                'activity.view_branch','activity.create','activity.create_for_others','activity.edit','activity.delete','activity.approve_own_branch','activity.status.view',
             'activity.status.view',
             'activity.details.view',
                 'report.sales.view','report.leads.view','report.collections.view','report.activity.view','report.view_branch',
@@ -320,6 +320,7 @@ class RbacSeeder extends Seeder
             ],
         ];
 
+        Permission::findOrCreate('activity.approve_own_branch', 'web');
         foreach ($roleMap as $roleName => $perms) {
             $role = Role::where('name', $roleName)->first();
             $role->syncPermissions(array_values(array_unique(array_merge($perms, ['catalogue.view']))));

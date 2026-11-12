@@ -122,6 +122,14 @@
 
     {{-- js link includes --}}
     @include('backend.partials.links.js')
+    <script>
+    $.ajaxPrefilter(function(options, original, xhr) {
+        const target = new URL(options.url, location.href);
+        if (target.origin === location.origin && !/^(GET|HEAD|OPTIONS)$/i.test(options.type || 'GET')) {
+            xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]').content);
+        }
+    });
+    </script>
 
     <script>
     // CRM-wide SERVER-SIDE persistent filters.

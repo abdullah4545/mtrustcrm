@@ -132,8 +132,8 @@
 @can('activity.tour.manage')<div class="col-md-4" id="tour_end_field" @if(!$editing || $activity->tour_type !== 'tour') hidden @endif><label>Tour End Date &amp; Time (optional)</label><input id="tour_ended_at" type="datetime-local" class="form-control" value="{{ $editing && $activity->tour_ended_at ? $activity->tour_ended_at->format('Y-m-d\TH:i') : '' }}" @disabled($editing && $activity->tour_ended_at)><small class="text-muted">Leave empty while the tour is running.</small></div>@endcan
 </div>
 <div class="row g-3">
-    <div class="col-6 col-md-2"><label>Activity Date</label><input type="date" id="activity_date" class="form-control" value="{{ $activityTime?->timezone('Asia/Dhaka')->format('Y-m-d') }}" @disabled($editing && !auth()->user()->hasPermissionTo('activity.view_all')) required></div>
-    <div class="col-6 col-md-2"><label>Activity Time</label><input type="time" id="activity_time" class="form-control" value="{{ ($activityTime ?? now('Asia/Dhaka'))->timezone('Asia/Dhaka')->format('H:i') }}" @disabled($editing && !auth()->user()->hasPermissionTo('activity.view_all')) required></div>
+    <div class="col-6 col-md-2"><label>Activity Date</label><input type="date" id="activity_date" class="form-control" @if(!$editing) min="{{ now('Asia/Dhaka')->subDay()->toDateString() }}" max="{{ now('Asia/Dhaka')->toDateString() }}" @endif value="{{ $activityTime?->timezone('Asia/Dhaka')->format('Y-m-d') }}" @disabled($editing) required></div>
+    <div class="col-6 col-md-2"><label>Activity Time</label><input type="time" id="activity_time" class="form-control" value="{{ ($activityTime ?? now('Asia/Dhaka'))->timezone('Asia/Dhaka')->format('H:i') }}" @disabled($editing) required></div>
 
     @if($canManageActivityEntry)
     <div class="col-12 col-md-4">
